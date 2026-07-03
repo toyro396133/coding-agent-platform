@@ -14,8 +14,9 @@ Create a concise summary (1-3 sentences) that will be useful for future tasks. I
       prompt: contextText
     })
 
-    if (text !== 'NO_MEMORY' && text.trim().length > 0) {
-      await saveMemory(userId, text.trim(), taskId)
+    const trimmedText = text.trim()
+    if (trimmedText.length > 0 && trimmedText.toUpperCase() !== 'NO_MEMORY') {
+      await saveMemory(userId, trimmedText, taskId)
       console.log(`[Memory] Saved memory for task ${taskId}`)
     }
   } catch (error) {

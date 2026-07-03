@@ -17,6 +17,8 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.7",
+    "@ai-sdk/google": "^4.0.8",
     "@ai-sdk/openai": "^4.0.7",
     "@git-diff-view/file": "^0.0.32",
     "@git-diff-view/react": "^0.0.32",

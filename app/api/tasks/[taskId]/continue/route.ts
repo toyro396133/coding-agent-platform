@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse, after } from 'next/server'
+import { generateText, tool } from 'ai'
+import { z } from 'zod'
+import { getSubAgentModel } from '@/lib/ai/router'
+import { getModelClient } from '@/lib/ai/models'
 import { getServerSession } from '@/lib/session/get-server-session'
 import { db } from '@/lib/db/client'
 import { tasks, taskMessages, connectors } from '@/lib/db/schema'

@@ -35,9 +35,10 @@ export async function saveMemory(userId: string, content: string, taskId?: strin
 
 export async function retrieveRelevantMemories(userId: string, prompt: string, topK: number = 5, threshold: number = 0.5) {
   // Normalize and validate inputs to prevent DB errors
-  const normalizedTopK = Math.max(1, Math.min(Math.floor(topK) || 5, 100))
-  const normalizedThreshold = Math.max(0, Math.min(Number(threshold) || 0.5, 1))
-
+  const safeTopK = Number.isFinite(topK) ? topK : 5
+  const normalizedTopK = Math.max(1, Math.min(Math.floor(safeTopK), 100))
+  const safeThreshold = Number.isFinite(Number(threshold)) ? Number(threshold) : 0.5
+  const normalizedThreshold = Math.max(0, Math.min(safeThreshold, 1))
   const promptEmbedding = await generateEmbedding(prompt)
   const embeddingArray = `[${promptEmbedding.join(',')}]`
 

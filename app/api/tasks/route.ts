@@ -592,7 +592,11 @@ async function processTask(
     let finalPrompt = sanitizedPrompt
     try {
       await logger.info('Orchestrator evaluating task for sub-agents...')
-      const orchestratorModel = getModelClient(selectedModel || 'gpt-4o-mini')
+      const orchestratorModel = getModelClient(selectedModel || 'gpt-4o-mini', {
+        OPENAI_API_KEY: apiKeys?.OPENAI_API_KEY,
+        ANTHROPIC_API_KEY: apiKeys?.ANTHROPIC_API_KEY,
+        GEMINI_API_KEY: apiKeys?.GEMINI_API_KEY,
+      })
 
       const { text } = await generateText({
         model: orchestratorModel,
@@ -618,7 +622,11 @@ async function processTask(
               await logger.info(`Spawning sub-agent: ${subTaskType}`)
               const userId = (await getServerSession())?.user?.id || 'anonymous'
               const subModelName = await getSubAgentModel(subTaskType, userId)
-              const subModel = getModelClient(subModelName)
+              const subModel = getModelClient(subModelName, {
+                OPENAI_API_KEY: apiKeys?.OPENAI_API_KEY,
+                ANTHROPIC_API_KEY: apiKeys?.ANTHROPIC_API_KEY,
+                GEMINI_API_KEY: apiKeys?.GEMINI_API_KEY,
+              })
 
               await logger.info(`Sub-agent ${subTaskType} using model ${subModelName}`)
 

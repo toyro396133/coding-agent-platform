@@ -590,8 +590,29 @@ async function processTask(
       await logger.info('Warning: Could not fetch MCP servers, continuing without them')
     }
 
+    // Parse mentions and inject context from previous tasks and memories
+    let promptWithContext = prompt
+    let memoryContext = ''
+    try {
+      promptWithContext = await parseMentionsAndInjectContext(userId, prompt)
+
+      // Retrieve relevant memories based on semantic similarity
+      const relevantMemories = await retrieveRelevantMemories(userId, prompt, 3, 0.5)
+      if (relevantMemories.length > 0) {
+        memoryContext = '\n\n--- Relevant Past Learnings ---\n'
+        relevantMemories.forEach((mem) => {
+          memoryContext += `- ${mem.content}\n`
+        })
+      }
+    } catch (enrichmentError) {
+      console.error('Context enrichment failed, continuing with original prompt:', enrichmentError)
+      await logger.info('Memory retrieval skipped, proceeding with original prompt')
+    }
+
+    const enrichedPrompt = promptWithContext + memoryContext
+
     // Sanitize prompt to prevent CLI option parsing issues
-    const sanitizedPrompt = prompt
+    const sanitizedPrompt = enrichedPrompt
       .replace(/`/g, "'") // Replace backticks with single quotes
       .replace(/\$/g, '') // Remove dollar signs
       .replace(/\\/g, '') // Remove backslashes

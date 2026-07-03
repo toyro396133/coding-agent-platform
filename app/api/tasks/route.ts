@@ -21,6 +21,11 @@ import { generateTaskTitle, createFallbackTitle } from '@/lib/utils/title-genera
 import { generateCommitMessage, createFallbackCommitMessage } from '@/lib/utils/commit-message-generator'
 import { decrypt } from '@/lib/crypto'
 import { getServerSession } from '@/lib/session/get-server-session'
+import { parseMentionsAndInjectContext } from '@/lib/memory/mention-parser'
+import { retrieveRelevantMemories } from '@/lib/memory/engine'
+
+import { summarizeAndStoreTask } from '@/lib/memory/summarize'
+
 import { getUserGitHubToken } from '@/lib/github/user-token'
 import { getGitHubUser } from '@/lib/github/client'
 import { getUserApiKeys } from '@/lib/api-keys/user-keys'
@@ -227,6 +232,7 @@ export async function POST(request: NextRequest) {
     after(async () => {
       try {
         await processTaskWithTimeout(
+          session.user.id,
           newTask.id,
           validatedData.prompt,
           validatedData.repoUrl || '',
@@ -254,6 +260,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function processTaskWithTimeout(
+  userId: string,
   taskId: string,
   prompt: string,
   repoUrl: string,
@@ -299,6 +306,7 @@ async function processTaskWithTimeout(
   try {
     await Promise.race([
       processTask(
+        userId,
         taskId,
         prompt,
         repoUrl,
@@ -368,6 +376,7 @@ async function isTaskStopped(taskId: string): Promise<boolean> {
 }
 
 async function processTask(
+  userId: string,
   taskId: string,
   prompt: string,
   repoUrl: string,
@@ -749,6 +758,11 @@ async function processTask(
         // Update task as completed
         await logger.updateStatus('completed')
         await logger.updateProgress(100, 'Task completed successfully')
+        // Store long-term memory asynchronously
+        after(async () => {
+          await summarizeAndStoreTask(userId, taskId, prompt, agentResult.agentResponse || null)
+        })
+
 
         console.log('Task completed successfully')
       }

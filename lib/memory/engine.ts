@@ -42,7 +42,7 @@ export async function retrieveRelevantMemories(userId: string, prompt: string, t
   const promptEmbedding = await generateEmbedding(prompt)
   const embeddingArray = `[${promptEmbedding.join(',')}]`
 
-  const results = await db.execute(sql`
+  const results = await db.execute<{ id: string; content: string; similarity: number }>(sql`
     SELECT
       id,
       content,

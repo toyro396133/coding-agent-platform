@@ -591,16 +591,22 @@ async function processTask(
     }
 
     // Parse mentions and inject context from previous tasks and memories
-    const promptWithContext = await parseMentionsAndInjectContext(userId, prompt)
-
-    // Retrieve relevant memories based on semantic similarity
-    const relevantMemories = await retrieveRelevantMemories(userId, prompt, 3, 0.5)
+    let promptWithContext = prompt
     let memoryContext = ''
-    if (relevantMemories.length > 0) {
-      memoryContext = '\n\n--- Relevant Past Learnings ---\n'
-      relevantMemories.forEach((mem: any) => {
-        memoryContext += `- ${mem.content}\n`
-      })
+    try {
+      promptWithContext = await parseMentionsAndInjectContext(userId, prompt)
+
+      // Retrieve relevant memories based on semantic similarity
+      const relevantMemories = await retrieveRelevantMemories(userId, prompt, 3, 0.5)
+      if (relevantMemories.length > 0) {
+        memoryContext = '\n\n--- Relevant Past Learnings ---\n'
+        relevantMemories.forEach((mem) => {
+          memoryContext += `- ${mem.content}\n`
+        })
+      }
+    } catch (enrichmentError) {
+      console.error('Context enrichment failed, continuing with original prompt:', enrichmentError)
+      await logger.info('Memory retrieval skipped, proceeding with original prompt')
     }
 
     const enrichedPrompt = promptWithContext + memoryContext

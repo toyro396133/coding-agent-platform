@@ -1,7 +1,7 @@
 import { db } from '../db/client'
 import { settings } from '../db/schema'
 import { eq, and } from 'drizzle-orm'
-import { generateId } from 'ai'
+import { generateId } from '@/lib/utils/id'
 
 export async function getSubAgentModel(subTaskType: string, userId: string): Promise<string> {
   const keyName = `routing:dynamic_${subTaskType}`
@@ -37,16 +37,21 @@ export async function getSubAgentModel(subTaskType: string, userId: string): Pro
     fallbackModel = 'claude-3-5-haiku'
   }
 
-  // Save the fallback to the database so it appears in the UI
+  // Save the fallback to the database so it appears in the UI.
+  // Use onConflictDoNothing to avoid a race with concurrent requests inserting
+  // the same (userId, key) pair, which would otherwise violate the unique index.
   try {
-    await db.insert(settings).values({
-      id: generateId(),
-      userId,
-      key: keyName,
-      value: fallbackModel,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
+    await db
+      .insert(settings)
+      .values({
+        id: generateId(),
+        userId,
+        key: keyName,
+        value: fallbackModel,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing({ target: [settings.userId, settings.key] })
   } catch (error) {
     console.error('Failed to save dynamic sub-agent routing to DB:', error)
   }

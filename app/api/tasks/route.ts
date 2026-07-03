@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server'
-import { generateText, tool } from 'ai'
+import { generateText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
 import { getSubAgentModel } from '@/lib/ai/router'
 import { getModelClient } from '@/lib/ai/models'
@@ -599,13 +599,11 @@ async function processTask(
         system:
           "You are the Orchestrator Agent. Your job is to evaluate the user's prompt. If the task is complex and requires specialized knowledge (like CSS fixes, API reading, syntax checking, etc.), you can spawn sub-agents to do preliminary work or analysis using the `spawnSubAgent` tool. You can call it multiple times. Once you have all the necessary sub-agent results, summarize how the main Sandbox Agent should proceed and combine that with the original prompt. If no sub-agents are needed, just output the original prompt or a slightly clarified version of it.",
         prompt: finalPrompt,
-        // @ts-ignore - Support depends on exact SDK version
-        maxSteps: 5,
-        maxToolRoundtrips: 5,
+        stopWhen: stepCountIs(5),
         tools: {
           spawnSubAgent: tool({
             description: 'Spawn a specialized sub-agent to handle a specific part of the task.',
-            parameters: z.object({
+            inputSchema: z.object({
               subTaskType: z
                 .string()
                 .describe(
@@ -613,8 +611,7 @@ async function processTask(
                 ),
               prompt: z.string().describe('The specific prompt or assignment for this sub-agent.'),
             }),
-            // @ts-ignore - Ignore exact typing match on execute for older versions
-            execute: async ({ subTaskType, prompt: subPrompt }: { subTaskType: string; prompt: string }) => {
+            execute: async ({ subTaskType, prompt: subPrompt }) => {
               await logger.info(`Spawning sub-agent: ${subTaskType}`)
               const userId = (await getServerSession())?.user?.id || 'anonymous'
               const subModelName = await getSubAgentModel(subTaskType, userId)
@@ -633,7 +630,7 @@ async function processTask(
             },
           }),
         },
-      } as any) // Cast entire options to any to bypass version-specific typing constraints on maxSteps/maxToolRoundtrips
+      })
 
       if (text) {
         finalPrompt = text

@@ -13,7 +13,7 @@ function redactSensitiveData(text: string): string {
     return match
   })
   // Redact email addresses
-  redacted = redacted.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[REDACTED_EMAIL]')
+  redacted = redacted.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[REDACTED_EMAIL]')
   // Redact common secret environment variable patterns
   redacted = redacted.replace(/(api[_-]?key|secret|password|token|auth)["\s:=]+["']?[\w-]{8,}["']?/gi, '$1=[REDACTED]')
   return redacted

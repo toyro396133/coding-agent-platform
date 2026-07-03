@@ -1,5 +1,4 @@
-import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core'
-import { customType } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 
 // Log entry types
@@ -443,15 +442,14 @@ export const memories = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     taskId: text('task_id')
-      .references(() => tasks.id, { onDelete: 'cascade' }), // Optional: Can link memory to specific task
+      .references(() => tasks.id, { onDelete: 'set null' }), // Optional: Can link memory to specific task
     content: text('content').notNull(), // The summary text
-    embedding: customType<{ data: number[]; driverData: string }>({ dataType() { return 'vector(1536)'; }, toDriver(value: number[]) { return JSON.stringify(value); }, fromDriver(value: string) { return JSON.parse(value); } })('embedding'), // OpenAI text-embedding-3-small dimension
+    embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small dimension
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
     userIdIdx: index('memories_user_id_idx').on(table.userId),
-    // We would ideally create a vector index here like hnsw, but we'll do that in SQL if needed
-    // or just let pgvector do exact nearest neighbor on smaller datasets.
+    embeddingIdx: index('memories_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
   }),
 )
 

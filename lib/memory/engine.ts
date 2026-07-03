@@ -34,6 +34,10 @@ export async function saveMemory(userId: string, content: string, taskId?: strin
 }
 
 export async function retrieveRelevantMemories(userId: string, prompt: string, topK: number = 5, threshold: number = 0.5) {
+  // Normalize and validate inputs to prevent DB errors
+  const normalizedTopK = Math.max(1, Math.min(Math.floor(topK) || 5, 100))
+  const normalizedThreshold = Math.max(0, Math.min(Number(threshold) || 0.5, 1))
+
   const promptEmbedding = await generateEmbedding(prompt)
   const embeddingArray = `[${promptEmbedding.join(',')}]`
 
@@ -44,9 +48,9 @@ export async function retrieveRelevantMemories(userId: string, prompt: string, t
       1 - (embedding <=> ${embeddingArray}::vector) as similarity
     FROM memories
     WHERE user_id = ${userId}
-      AND 1 - (embedding <=> ${embeddingArray}::vector) > ${threshold}
+      AND 1 - (embedding <=> ${embeddingArray}::vector) > ${normalizedThreshold}
     ORDER BY similarity DESC
-    LIMIT ${topK}
+    LIMIT ${normalizedTopK}
   `)
 
   if (results.length > 0) {

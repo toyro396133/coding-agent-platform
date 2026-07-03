@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core'
+import { customType } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 
 // Log entry types
@@ -432,3 +433,45 @@ export type InsertSetting = z.infer<typeof insertSettingSchema>
 export const userConnections = accounts
 export type UserConnection = Account
 export type InsertUserConnection = InsertAccount
+
+// Memories table - stores summaries of completed tasks with vector embeddings for semantic search
+export const memories = pgTable(
+  'memories',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    taskId: text('task_id')
+      .references(() => tasks.id, { onDelete: 'cascade' }), // Optional: Can link memory to specific task
+    content: text('content').notNull(), // The summary text
+    embedding: customType<{ data: number[]; driverData: string }>({ dataType() { return 'vector(1536)'; }, toDriver(value: number[]) { return JSON.stringify(value); }, fromDriver(value: string) { return JSON.parse(value); } })('embedding'), // OpenAI text-embedding-3-small dimension
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('memories_user_id_idx').on(table.userId),
+    // We would ideally create a vector index here like hnsw, but we'll do that in SQL if needed
+    // or just let pgvector do exact nearest neighbor on smaller datasets.
+  }),
+)
+
+export const insertMemorySchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().min(1, 'User ID is required'),
+  taskId: z.string().optional(),
+  content: z.string().min(1, 'Content is required'),
+  // We typically don't expose the embedding in Zod input for the API directly
+  createdAt: z.date().optional(),
+})
+
+export const selectMemorySchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  taskId: z.string().nullable(),
+  content: z.string(),
+  createdAt: z.date(),
+  // Omit embedding from default select schema for cleaner API responses
+})
+
+export type Memory = z.infer<typeof selectMemorySchema>
+export type InsertMemory = z.infer<typeof insertMemorySchema>

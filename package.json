@@ -17,6 +17,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.7",
     "@git-diff-view/file": "^0.0.32",
     "@git-diff-view/react": "^0.0.32",
     "@monaco-editor/react": "^4.7.0",
@@ -56,6 +57,7 @@
     "nanoid": "^5.1.6",
     "next": "16.0.10",
     "next-themes": "^0.4.6",
+    "pgvector": "^0.3.0",
     "postgres": "^3.4.8",
     "react": "19.2.1",
     "react-dom": "19.2.1",

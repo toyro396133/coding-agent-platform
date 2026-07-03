@@ -33,11 +33,16 @@ export async function updateDynamicRoute(subTaskType: string, modelName: string)
 
   const keyName = `routing:dynamic_${subTaskType}`
 
-  // Use atomic upsert to avoid race conditions
-  // PostgreSQL's ON CONFLICT clause ensures atomicity
-  await db
-    .insert(settings)
-    .values({
+  const existing = await db
+    .select()
+    .from(settings)
+    .where(and(eq(settings.userId, session.user.id), eq(settings.key, keyName)))
+    .limit(1)
+
+  if (existing.length > 0) {
+    await db.update(settings).set({ value: modelName, updatedAt: new Date() }).where(eq(settings.id, existing[0].id))
+  } else {
+    await db.insert(settings).values({
       id: generateId(),
       userId: session.user.id,
       key: keyName,
@@ -45,13 +50,7 @@ export async function updateDynamicRoute(subTaskType: string, modelName: string)
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-    .onConflictDoUpdate({
-      target: [settings.userId, settings.key],
-      set: {
-        value: modelName,
-        updatedAt: new Date(),
-      },
-    })
+  }
 
   revalidatePath('/settings')
 }

@@ -19,5 +19,15 @@ export async function createMemory(data: Omit<InsertMemory, 'id'> & { embedding:
 }
 
 export async function getMemoriesForUser(userId: string) {
-  return db.select().from(memories).where(eq(memories.userId, userId))
+  return db
+    .select({
+      id: memories.id,
+      userId: memories.userId,
+      taskId: memories.taskId,
+      content: memories.content,
+      createdAt: memories.createdAt,
+    })
+    .from(memories)
+    .where(eq(memories.userId, userId))
+    .orderBy(desc(memories.createdAt))
 }

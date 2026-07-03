@@ -3,7 +3,10 @@ import { memories, type InsertMemory } from './schema'
 import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
+import { insertMemorySchema } from './schema'
+
 export async function createMemory(data: Omit<InsertMemory, 'id'> & { embedding: number[] }) {
+  insertMemorySchema.omit({ id: true }).parse(data)
   const id = nanoid()
   const [memory] = await db
     .insert(memories)

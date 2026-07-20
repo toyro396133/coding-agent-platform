@@ -27,5 +27,18 @@ jobs:
         uses: Codium-ai/pr-agent@main
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+          PR_AGENT__MODEL_PROVIDER: google
+          PR_AGENT__MODEL: gemini-3.5-flash
+
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # הפעלת סקירה ותיאור אוטומטיים
+          PR_AGENT__GITHUB__AUTO_REVIEW: "true"
+          PR_AGENT__GITHUB__AUTO_DESCRIBE: "true"
+
+          # שינוי ל-true כדי לאפשר תיקונים ושיפורים אוטומטיים ללא צורך בתגובה
+          PR_AGENT__GITHUB__AUTO_IMPROVE: "true"
+
+          # הגדרת זמן תגובה מירבי לפניות ה-API של המודל
+          PR_AGENT__CONFIG__REQUEST_TIMEOUT: 60

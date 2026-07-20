@@ -1,6 +1,7 @@
 name: PR Agent
 
 on:
+  workflow_dispatch: # מאפשר כפתור הפעלה ידני
   pull_request:
     types: [opened, reopened, synchronize]
   issue_comment:

@@ -26,15 +26,19 @@ jobs:
       - name: Run PR Agent Action
         uses: Codium-ai/pr-agent@main
         env:
-          # מפתח ה-API שהגדרת ב-Repository Secrets
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           
-          # הגדרת ספק המודל והמודל עצמו (ללא נקודות כפי שסוכם)
           PR_AGENT__MODEL_PROVIDER: google
           PR_AGENT__MODEL: gemini-3.5-flash
           
-          # הגדרות הרצה כלליות
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+          # הפעלת סקירה ותיאור אוטומטיים
           PR_AGENT__GITHUB__AUTO_REVIEW: "true"
           PR_AGENT__GITHUB__AUTO_DESCRIBE: "true"
-          PR_AGENT__GITHUB__AUTO_IMPROVE: "false"
+          
+          # שינוי ל-true כדי לאפשר תיקונים ושיפורים אוטומטיים ללא צורך בתגובה
+          PR_AGENT__GITHUB__AUTO_IMPROVE: "true"
+          
+          # הגדרת זמן תגובה מירבי לפניות ה-API של המודל
+          PR_AGENT__CONFIG__REQUEST_TIMEOUT: 60

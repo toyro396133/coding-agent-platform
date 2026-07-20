@@ -1,25 +1,11 @@
-name: PR Agent
+name: Test Workflow
 
 on:
-  workflow_dispatch: # מאפשר כפתור הפעלה ידני
-  pull_request:
-    types: [opened, reopened, synchronize]
-  issue_comment:
-    types: [created]
+  workflow_dispatch:
 
 jobs:
-  pr_agent_job:
+  test_job:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-      contents: write
-    name: Run pr agent
     steps:
-      - name: PR Agent action
-        uses: Codium-ai/pr-agent@main
-        env:
-          PR_AGENT__MODEL_PROVIDER: "google"
-          PR_AGENT__MODEL: "gemini/gemini-3.5-flash" 
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Hello World
+        run: echo "Actions are working"

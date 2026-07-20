@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server'
-import { generateText, tool } from 'ai'
+import { generateText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
 import { getSubAgentModel } from '@/lib/ai/router'
 import { getModelClient } from '@/lib/ai/models'
@@ -590,8 +590,29 @@ async function processTask(
       await logger.info('Warning: Could not fetch MCP servers, continuing without them')
     }
 
+    // Parse mentions and inject context from previous tasks and memories
+    let promptWithContext = prompt
+    let memoryContext = ''
+    try {
+      promptWithContext = await parseMentionsAndInjectContext(userId, prompt)
+
+      // Retrieve relevant memories based on semantic similarity
+      const relevantMemories = await retrieveRelevantMemories(userId, prompt, 3, 0.5)
+      if (relevantMemories.length > 0) {
+        memoryContext = '\n\n--- Relevant Past Learnings ---\n'
+        relevantMemories.forEach((mem) => {
+          memoryContext += `- ${mem.content}\n`
+        })
+      }
+    } catch (enrichmentError) {
+      console.error('Context enrichment failed, continuing with original prompt:', enrichmentError)
+      await logger.info('Memory retrieval skipped, proceeding with original prompt')
+    }
+
+    const enrichedPrompt = promptWithContext + memoryContext
+
     // Sanitize prompt to prevent CLI option parsing issues
-    const sanitizedPrompt = prompt
+    const sanitizedPrompt = enrichedPrompt
       .replace(/`/g, "'") // Replace backticks with single quotes
       .replace(/\$/g, '') // Remove dollar signs
       .replace(/\\/g, '') // Remove backslashes
@@ -599,208 +620,84 @@ async function processTask(
 
     // === ORCHESTRATOR SUB-AGENT LOGIC ===
     let finalPrompt = sanitizedPrompt
-    let isAwaitingUserInput = false
+    try {
+      await logger.info('Orchestrator evaluating task for sub-agents...')
+      const orchestratorModel = getModelClient(selectedModel || 'gpt-4o-mini')
+
+      const { text } = await generateText({
+        model: orchestratorModel,
+        system:
+          "You are the Orchestrator Agent. Your job is to evaluate the user's prompt. If the task is complex and requires specialized knowledge (like CSS fixes, API reading, syntax checking, etc.), you can spawn sub-agents to do preliminary work or analysis using the `spawnSubAgent` tool. You can call it multiple times. Once you have all the necessary sub-agent results, summarize how the main Sandbox Agent should proceed and combine that with the original prompt. If no sub-agents are needed, just output the original prompt or a slightly clarified version of it.",
+        prompt: finalPrompt,
+        stopWhen: stepCountIs(5),
+        tools: {
+          spawnSubAgent: tool({
+            description: 'Spawn a specialized sub-agent to handle a specific part of the task.',
+            inputSchema: z.object({
+              subTaskType: z
+                .string()
+                .describe(
+                  'A descriptive identifier for the sub-task (e.g., "css_specialist", "api_doc_reader", "patch_writer").',
+                ),
+              prompt: z.string().describe('The specific prompt or assignment for this sub-agent.'),
+            }),
+            execute: async ({ subTaskType, prompt: subPrompt }) => {
+              await logger.info(`Spawning sub-agent: ${subTaskType}`)
+              const userId = (await getServerSession())?.user?.id || 'anonymous'
+              const subModelName = await getSubAgentModel(subTaskType, userId)
+              const subModel = getModelClient(subModelName)
+
+              await logger.info(`Sub-agent ${subTaskType} using model ${subModelName}`)
+
+              const { text: subResult } = await generateText({
+                model: subModel,
+                system: `You are a specialized sub-agent of type: ${subTaskType}. Help the orchestrator solve this sub-task.`,
+                prompt: subPrompt,
+              })
+
+              await logger.info(`Sub-agent ${subTaskType} completed its task`)
+              return subResult
+            },
+          }),
+        },
+      })
+
+      if (text) {
+        finalPrompt = text
+        await logger.info('Orchestrator refined the prompt.')
+      }
+    } catch (orchError) {
+      console.error('Orchestrator evaluation failed, falling back to original prompt:', orchError)
+      await logger.info('Orchestrator skipped due to error, proceeding with standard execution.')
+    }
+    // === END ORCHESTRATOR ===
 
     // Generate agent message ID for streaming updates
     const agentMessageId = generateId()
 
-    // Let us first define sub-tasks by the orchestrator
-    await logger.info('Orchestrator evaluating task for sub-tasks...')
-    const orchestratorModel = getModelClient(selectedModel || 'gpt-4o-mini')
+    const agentResult = await executeAgentInSandbox(
+      sandbox,
+      finalPrompt,
+      selectedAgent as AgentType,
+      logger,
+      selectedModel,
+      mcpServers,
+      undefined,
+      apiKeys,
+      undefined, // isResumed
+      undefined, // sessionId
+      taskId, // taskId for streaming updates
+      agentMessageId, // agentMessageId for streaming updates
+    )
 
-    let agentResult: any = null
-
-    try {
-      // We use the orchestrator to break down the task
-      const taskBreakdownPrompt = `
-      Break down the following user request into logical sub-tasks.
-      Return ONLY a JSON array of objects, where each object has:
-      - id: A unique string ID for the sub-task (e.g. "task_1", "task_setup").
-      - title: A short title.
-      - description: A detailed description of what needs to be done.
-
-      User Request:
-      ${finalPrompt}
-      `
-
-      const { text: subTasksJsonText } = await generateText({
-        model: orchestratorModel,
-        system:
-          'You are the Orchestrator Agent. Your job is to break down tasks into sub-tasks and output valid JSON. You maintain an internal state machine (todo-list). Keep sub-tasks highly independent so if one pauses for user input, others can proceed.',
-        prompt: taskBreakdownPrompt,
-      })
-
-      try {
-        let parsedText = subTasksJsonText.trim()
-        if (parsedText.startsWith('```json')) {
-          parsedText = parsedText.replace(/^```json\n?/, '').replace(/\n?```$/, '')
-        }
-        const parsedSubTasks = JSON.parse(parsedText)
-        const subTasksWithStatus = parsedSubTasks.map((t: any) => ({ ...t, status: 'pending' }))
-
-        // Save to DB
-        await db
-          .update(tasks)
-          .set({
-            subTasks: subTasksWithStatus,
-            updatedAt: new Date(),
-          })
-          .where(eq(tasks.id, taskId))
-
-        await logger.info(`Created ${subTasksWithStatus.length} sub-tasks.`)
-
-        // For now, we simply pass the full prompt to the agent, but we could make it iterative
-        // Since we are refactoring the Orchestrator to run as a persistent Main Agent Loop in the NEXT step (multi-tasking),
-        // we will implement the while loop that iterates over these sub-tasks.
-      } catch (parseError) {
-        console.error('Failed to parse sub-tasks JSON:', parseError)
-        await logger.info('Failed to parse sub-tasks, proceeding as single task.')
-      }
-    } catch (orchError) {
-      console.error('Orchestrator sub-task generation failed:', orchError)
-    }
-
-    // === END ORCHESTRATOR SUB-TASK CREATION ===
-
-    // We will retrieve subtasks from the DB and iterate through them
-    let currentSubTasks = []
-    try {
-      const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId))
-      if (task?.subTasks) {
-        currentSubTasks = task.subTasks as any[]
-      }
-    } catch (e) {
-      console.error('Failed to get subtasks', e)
-    }
-
-    if (currentSubTasks.length === 0) {
-      // Fallback
-      agentResult = await executeAgentInSandbox(
-        sandbox,
-        finalPrompt,
-        selectedAgent as AgentType,
-        logger,
-        selectedModel,
-        mcpServers,
-        undefined,
-        apiKeys,
-        undefined, // isResumed
-        undefined, // sessionId
-        taskId, // taskId for streaming updates
-        agentMessageId, // agentMessageId for streaming updates
-      )
-    } else {
-      for (let i = 0; i < currentSubTasks.length; i++) {
-        const subTask = currentSubTasks[i]
-
-        if (subTask.status === 'completed' || subTask.status === 'error') {
-          continue // skip finished
-        }
-
-        if (subTask.status === 'awaiting_user_input') {
-          // In the real full loop, we would yield here, but let us assume for this pass
-          // we pause and return? Actually we should skip to the NEXT independent task
-          // But for simplicity, we just mark task as awaiting_user_input and break.
-          // Wait, the instructions say:
-          // "Instruct the Orchestrator that when a sub-task hits an askUserClarification tool call,
-          // that sub-agent pushes its current state to a paused queue and yields. The Orchestrator
-          // then loops to the next independent task item using sequential loop iteration rather than
-          // complex Promise.all concurrency, to prevent race conditions inside the Vercel Sandbox."
-          continue
-        }
-
-        // Mark as processing
-        currentSubTasks[i].status = 'processing'
-        await db.update(tasks).set({ subTasks: currentSubTasks, updatedAt: new Date() }).where(eq(tasks.id, taskId))
-        await logger.info(`Starting sub-task: ${subTask.title}`)
-
-        // Run the agent on this specific sub-task
-        const subPrompt = `
-        Original request: ${finalPrompt}
-
-        Your specific sub-task:
-        Title: ${subTask.title}
-        Description: ${subTask.description}
-
-        TOOLS INSTRUCTION:
-        1. If you need to ask the user a clarifying question before you can proceed, output EXACTLY the following string format and nothing else:
-        [ASK_USER]: <your question here>
-
-        2. To execute sandbox commands (e.g., npm install, running scripts), use your built-in Bash tool.
-
-        3. To author or edit dynamic tool scripts inside the sandbox, use your built-in Edit/Write tool.
-
-        Focus ONLY on completing this sub-task.
-        `
-
-        agentResult = await executeAgentInSandbox(
-          sandbox,
-          subPrompt,
-          selectedAgent as AgentType,
-          logger,
-          selectedModel,
-          mcpServers,
-          undefined,
-          apiKeys,
-          undefined,
-          undefined,
-          taskId,
-          generateId(),
-        )
-
-        // Right after execution, we would normally check if the agent triggered askUserClarification
-        // and update its status. We will simulate that for now.
-        if (agentResult?.success) {
-          // Check if it outputted the [ASK_USER] token
-          if (agentResult.agentResponse && agentResult.agentResponse.includes('[ASK_USER]:')) {
-            currentSubTasks[i].status = 'awaiting_user_input'
-
-            // Extract the question
-            const match = agentResult.agentResponse.match(/\[ASK_USER\]:([\s\S]*)/)
-            const question = match ? match[1].trim() : 'I need some clarification to proceed.'
-
-            // Add question to taskMessages
-            await db.insert(taskMessages).values({
-              id: generateId(12),
-              taskId,
-              role: 'agent',
-              content: question,
-            })
-
-            await db
-              .update(tasks)
-              .set({
-                status: 'awaiting_user_input',
-                subTasks: currentSubTasks,
-                updatedAt: new Date(),
-              })
-              .where(eq(tasks.id, taskId))
-          } else {
-            currentSubTasks[i].status = 'completed'
-            await db.update(tasks).set({ subTasks: currentSubTasks, updatedAt: new Date() }).where(eq(tasks.id, taskId))
-          }
-        } else {
-          // Wait, what if it was marked as awaiting_user_input internally?
-          // We will handle that by checking the DB or the agentResult
-          // For now, let us just mark as error if it fails
-          if (agentResult.error === 'Awaiting user input') {
-            currentSubTasks[i].status = 'awaiting_user_input'
-          } else {
-            currentSubTasks[i].status = 'error'
-          }
-          await db.update(tasks).set({ subTasks: currentSubTasks, updatedAt: new Date() }).where(eq(tasks.id, taskId))
-          break // Stop on error
-        }
-      }
-    }
     console.log('Agent execution completed')
 
     // Update agent session ID if provided (for Cursor agent resumption)
-    if (agentResult?.sessionId) {
+    if (agentResult.sessionId) {
       await db.update(tasks).set({ agentSessionId: agentResult.sessionId }).where(eq(tasks.id, taskId))
     }
 
-    if (agentResult?.success) {
+    if (agentResult.success) {
       // Log agent completion
       await logger.success('Agent execution completed')
       await logger.info('Code changes applied successfully')
@@ -887,6 +784,7 @@ async function processTask(
           await summarizeAndStoreTask(userId, taskId, prompt, agentResult.agentResponse || null)
         })
 
+
         console.log('Task completed successfully')
       }
     } else {
@@ -896,7 +794,7 @@ async function processTask(
       // Agent execution logs are already logged in real-time by the agent
       // No need to log them again here
 
-      throw new Error(agentResult?.error || 'Agent execution failed')
+      throw new Error(agentResult.error || 'Agent execution failed')
     }
   } catch (error) {
     console.error('Error processing task:', error)

@@ -104,13 +104,10 @@ export class TaskLogger {
    * Update task status along with a log message
    * Note: completedAt is only set when PR is merged, not when status changes to 'completed'
    */
-  async updateStatus(
-    status: 'pending' | 'processing' | 'completed' | 'error' | 'awaiting_user_input',
-    message?: string,
-  ): Promise<void> {
+  async updateStatus(status: 'pending' | 'processing' | 'completed' | 'error', message?: string): Promise<void> {
     try {
       const updates: {
-        status: 'pending' | 'processing' | 'completed' | 'error' | 'awaiting_user_input'
+        status: 'pending' | 'processing' | 'completed' | 'error'
         updatedAt: Date
         logs?: LogEntry[]
       } = {

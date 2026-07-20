@@ -33,25 +33,25 @@ export async function saveMemory(userId: string, content: string, taskId?: strin
   return memory
 }
 
-export async function retrieveRelevantMemories(
-  userId: string,
-  prompt: string,
-  topK: number = 5,
-  threshold: number = 0.5,
-) {
+export async function retrieveRelevantMemories(userId: string, prompt: string, topK: number = 5, threshold: number = 0.5) {
+  // Normalize and validate inputs to prevent DB errors
+  const safeTopK = Number.isFinite(topK) ? topK : 5
+  const normalizedTopK = Math.max(1, Math.min(Math.floor(safeTopK), 100))
+  const safeThreshold = Number.isFinite(Number(threshold)) ? Number(threshold) : 0.5
+  const normalizedThreshold = Math.max(0, Math.min(safeThreshold, 1))
   const promptEmbedding = await generateEmbedding(prompt)
   const embeddingArray = `[${promptEmbedding.join(',')}]`
 
-  const results = await db.execute(sql`
+  const results = await db.execute<{ id: string; content: string; similarity: number }>(sql`
     SELECT
       id,
       content,
       1 - (embedding <=> ${embeddingArray}::vector) as similarity
     FROM memories
     WHERE user_id = ${userId}
-      AND 1 - (embedding <=> ${embeddingArray}::vector) > ${threshold}
+      AND 1 - (embedding <=> ${embeddingArray}::vector) > ${normalizedThreshold}
     ORDER BY similarity DESC
-    LIMIT ${topK}
+    LIMIT ${normalizedTopK}
   `)
 
   if (results.length > 0) {
@@ -69,5 +69,5 @@ export async function retrieveRelevantMemories(
     .orderBy(sql`${memories.createdAt} DESC`)
     .limit(2)
 
-  return fallbackResults.map((r) => ({ ...r, similarity: 0 }))
+  return fallbackResults.map(r => ({ ...r, similarity: 0 }))
 }

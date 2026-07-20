@@ -1,5 +1,4 @@
-import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core'
-import { customType } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 
 // Log entry types
@@ -10,15 +9,6 @@ export const logEntrySchema = z.object({
 })
 
 export type LogEntry = z.infer<typeof logEntrySchema>
-
-export const subTaskSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  status: z.enum(['pending', 'processing', 'completed', 'awaiting_user_input', 'error']),
-})
-
-export type SubTask = z.infer<typeof subTaskSchema>
 
 // Users table - user profile and primary OAuth account
 export const users = pgTable(
@@ -98,13 +88,12 @@ export const tasks = pgTable('tasks', {
   keepAlive: boolean('keep_alive').default(false),
   enableBrowser: boolean('enable_browser').default(false),
   status: text('status', {
-    enum: ['pending', 'processing', 'completed', 'error', 'stopped', 'awaiting_user_input'],
+    enum: ['pending', 'processing', 'completed', 'error', 'stopped'],
   })
     .notNull()
     .default('pending'),
   progress: integer('progress').default(0),
   logs: jsonb('logs').$type<LogEntry[]>(),
-  subTasks: jsonb('sub_tasks').$type<SubTask[]>(),
   error: text('error'),
   branchName: text('branch_name'),
   sandboxId: text('sandbox_id'),
@@ -137,10 +126,9 @@ export const insertTaskSchema = z.object({
   maxDuration: z.number().default(parseInt(process.env.MAX_SANDBOX_DURATION || '300', 10)),
   keepAlive: z.boolean().default(false),
   enableBrowser: z.boolean().default(false),
-  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped', 'awaiting_user_input']).default('pending'),
+  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped']).default('pending'),
   progress: z.number().min(0).max(100).default(0),
   logs: z.array(logEntrySchema).optional(),
-  subTasks: z.array(subTaskSchema).optional(),
   error: z.string().optional(),
   branchName: z.string().optional(),
   sandboxId: z.string().optional(),
@@ -170,10 +158,9 @@ export const selectTaskSchema = z.object({
   maxDuration: z.number().nullable(),
   keepAlive: z.boolean().nullable(),
   enableBrowser: z.boolean().nullable(),
-  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped', 'awaiting_user_input']),
+  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped']),
   progress: z.number().nullable(),
   logs: z.array(logEntrySchema).nullable(),
-  subTasks: z.array(subTaskSchema).nullable(),
   error: z.string().nullable(),
   branchName: z.string().nullable(),
   sandboxId: z.string().nullable(),
@@ -454,25 +441,15 @@ export const memories = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }), // Optional: Can link memory to specific task
+    taskId: text('task_id')
+      .references(() => tasks.id, { onDelete: 'set null' }), // Optional: Can link memory to specific task
     content: text('content').notNull(), // The summary text
-    embedding: customType<{ data: number[]; driverData: string }>({
-      dataType() {
-        return 'vector(1536)'
-      },
-      toDriver(value: number[]) {
-        return JSON.stringify(value)
-      },
-      fromDriver(value: string) {
-        return JSON.parse(value)
-      },
-    })('embedding'), // OpenAI text-embedding-3-small dimension
+    embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small dimension
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
     userIdIdx: index('memories_user_id_idx').on(table.userId),
-    // We would ideally create a vector index here like hnsw, but we'll do that in SQL if needed
-    // or just let pgvector do exact nearest neighbor on smaller datasets.
+    embeddingIdx: index('memories_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
   }),
 )
 

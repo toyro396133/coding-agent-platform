@@ -231,7 +231,6 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
       status: 'pending',
       progress: 0,
       logs: [],
-      subTasks: null,
       error: null,
       branchName: null,
       sandboxId: null,

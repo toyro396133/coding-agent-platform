@@ -162,13 +162,6 @@
       "when": 1783055014279,
       "tag": "0022_round_maestro",
       "breakpoints": true
-    },
-    {
-      "idx": 23,
-      "version": "7",
-      "when": 1783067815949,
-      "tag": "0023_square_millenium_guard",
-      "breakpoints": true
     }
   ]
 }

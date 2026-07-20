@@ -1,0 +1,44 @@
+name: PR Agent
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr_agent_job:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/'))
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run PR Agent Action
+        uses: Codium-ai/pr-agent@main
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+          PR_AGENT__MODEL_PROVIDER: google
+          PR_AGENT__MODEL: gemini-3.5-flash
+
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # הפעלת סקירה ותיאור אוטומטיים
+          PR_AGENT__GITHUB__AUTO_REVIEW: "true"
+          PR_AGENT__GITHUB__AUTO_DESCRIBE: "true"
+
+          # שינוי ל-true כדי לאפשר תיקונים ושיפורים אוטומטיים ללא צורך בתגובה
+          PR_AGENT__GITHUB__AUTO_IMPROVE: "true"
+
+          # הגדרת זמן תגובה מירבי לפניות ה-API של המודל
+          PR_AGENT__CONFIG__REQUEST_TIMEOUT: 60

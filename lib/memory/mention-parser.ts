@@ -1,9 +1,10 @@
 import { db } from '../db/client'
 import { tasks, memories } from '../db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
+
 
 export async function parseMentionsAndInjectContext(userId: string, prompt: string): Promise<string> {
-  const taskMentions = prompt.match(/@task_([a-zA-Z0-9]+)/g) || []
+  const taskMentions = prompt.match(/@task_([a-zA-Z0-9_-]+)/g) || []
   let contextInjection = ''
 
   if (taskMentions.length > 0) {
@@ -24,11 +25,13 @@ export async function parseMentionsAndInjectContext(userId: string, prompt: stri
 
         // Try to fetch memory summary if it exists
         const memoriesData = await db
-          .select()
+          .select({ content: memories.content })
           .from(memories)
           .where(and(eq(memories.taskId, taskId), eq(memories.userId, userId)))
+          .orderBy(sql`${memories.createdAt} DESC`)
+          .limit(1)
         if (memoriesData.length > 0) {
-          contextInjection += `Summary/Learnings: ${memoriesData[0].content}\n`
+            contextInjection += `Summary/Learnings: ${memoriesData[0].content}\n`
         }
 
         contextInjection += `Status: ${task.status}\n`

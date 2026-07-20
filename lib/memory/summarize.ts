@@ -53,9 +53,8 @@ Create a concise summary (1-3 sentences) that will be useful for future tasks. I
 
       clearTimeout(timeoutId)
 
-      const trimmedText = text.trim()
-      if (trimmedText !== 'NO_MEMORY' && trimmedText.length > 0) {
-        const sanitizedMemory = redactSensitiveData(trimmedText)
+      if (text !== 'NO_MEMORY' && text.trim().length > 0) {
+        const sanitizedMemory = redactSensitiveData(text.trim())
         await saveMemory(userId, sanitizedMemory, taskId)
         console.log(`[Memory] Saved memory for task ${taskId}`)
       }

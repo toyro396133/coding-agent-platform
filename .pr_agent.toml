@@ -1,0 +1,8 @@
+[config]
+model = "google/gemini-3.5-flash"
+fallback_models = ["google/gemini-3.5-flash"]
+
+[github]
+auto_review = true
+auto_describe = true
+auto_improve = true

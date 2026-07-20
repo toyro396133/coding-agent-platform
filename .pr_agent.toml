@@ -1,0 +1,9 @@
+[config]
+model = "gemini/gemini-3.5-flash"
+fallback_models = ["gemini/gemini-2.5-flash"]
+custom_model_max_tokens = 1000000
+
+[github]
+auto_review = true
+auto_describe = true
+auto_improve = true

@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run PR Agent Action
-        uses: Codium-ai/pr-agent@main
+        uses: Codium-ai/pr-agent@v0.22
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 

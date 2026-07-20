@@ -26,20 +26,6 @@ jobs:
       - name: Run PR Agent Action
         uses: Codium-ai/pr-agent@main
         env:
-          # הגדרת מפתח ה-API עבור רכיבי גוגל ו-LiteLLM
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          
-          # ציון ספק המודל והמודל במחרוזת אחת כדי למנוע פנייה ל-OpenAI
-          PR_AGENT__MODEL: "google/gemini-3.5-flash"
-          
-          # טוקן הגישה של GitHub לניהול ה-PR
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-          # הגדרות הרצה אוטומטיות עם פתיחת ה-PR
-          PR_AGENT__GITHUB__AUTO_REVIEW: "true"
-          PR_AGENT__GITHUB__AUTO_DESCRIBE: "true"
-          PR_AGENT__GITHUB__AUTO_IMPROVE: "true"
-          
-          # הגדרת זמן תגובה מירבי לפניות ה-API של המודל
-          PR_AGENT__CONFIG__REQUEST_TIMEOUT: 60

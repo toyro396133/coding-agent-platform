@@ -136,6 +136,7 @@ export function InteractiveTaskPanel() {
                   <Switch
                     checked={test.isEnabled ?? false}
                     onCheckedChange={(checked) => handleToggleTest(test.id, checked)}
+                    aria-label={`Toggle ${test.name} test`}
                   />
                 </CardContent>
               </Card>

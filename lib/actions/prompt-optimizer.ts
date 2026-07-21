@@ -34,7 +34,7 @@ export async function optimizePrompt(rawPrompt: string): Promise<string> {
     .orderBy(sql`${memories.embedding} <=> ${embeddingString}::vector`)
     .limit(5)
 
-  const contextContexts = similarMemories.map((m) => m.content).join('\n\n')
+  const contextString = similarMemories.map((m) => m.content).join('\n\n')
 
   // 3. Call LLM to enhance the prompt
   const systemPrompt = `You are an expert software engineering assistant.
@@ -48,7 +48,7 @@ Output ONLY the enhanced prompt.`
 ${rawPrompt}
 
 Relevant Context from Past Memories:
-${contextContexts ? contextContexts : 'No relevant past memories found.'}
+${contextString ? contextString : 'No relevant past memories found.'}
 
 Please provide the enhanced prompt:`
 

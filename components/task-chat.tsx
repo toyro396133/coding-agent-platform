@@ -1,6 +1,6 @@
-import { optimizePrompt } from '@/lib/actions/prompt-optimizer'
-;('use client')
+'use client'
 
+import { optimizePrompt } from '@/lib/actions/prompt-optimizer'
 import { TaskMessage, Task } from '@/lib/db/schema'
 import { useState, useEffect, useRef, useCallback, Children, isValidElement } from 'react'
 import { Card } from '@/components/ui/card'
@@ -1310,17 +1310,21 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={handleOptimizePrompt}
                   disabled={!newMessage.trim() || isOptimizing || isSending}
                   className="absolute bottom-2 right-9 rounded-full h-5 w-5 bg-secondary text-secondary-foreground hover:bg-secondary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Enhance Prompt"
+                  aria-label="Optimize prompt with AI enhancement"
                 >
                   {isOptimizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                 </button>
                 <button
+                  type="button"
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || isSending}
                   className="absolute bottom-2 right-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Send message"
                 >
                   {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3 w-3" />}
                 </button>

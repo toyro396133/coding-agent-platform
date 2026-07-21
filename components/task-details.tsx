@@ -1,5 +1,6 @@
+'use client'
+
 import { InteractiveTaskPanel } from '@/components/tasks/interactive-task-panel'
-;('use client')
 
 import { Task, Connector } from '@/lib/db/schema'
 import { Button } from '@/components/ui/button'

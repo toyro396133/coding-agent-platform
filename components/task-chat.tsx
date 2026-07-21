@@ -1,5 +1,6 @@
 'use client'
 
+import { optimizePrompt } from '@/lib/actions/prompt-optimizer'
 import { TaskMessage, Task } from '@/lib/db/schema'
 import { useState, useEffect, useRef, useCallback, Children, isValidElement } from 'react'
 import { Card } from '@/components/ui/card'
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
   ArrowUp,
+  Wand2,
   Loader2,
   Copy,
   Check,
@@ -67,6 +69,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
   const [currentTime, setCurrentTime] = useState(Date.now())
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [isStopping, setIsStopping] = useState(false)
+  const [isOptimizing, setIsOptimizing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const previousMessageCountRef = useRef(0)
@@ -126,7 +129,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
           setError(data.error || 'Failed to fetch messages')
         }
       } catch (err) {
-        console.error('Error fetching messages:', err)
+        console.error('Error fetching messages')
         setError('Failed to fetch messages')
       } finally {
         if (showLoading) {
@@ -160,7 +163,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
           setCommentsError(data.error || 'Failed to fetch comments')
         }
       } catch (err) {
-        console.error('Error fetching PR comments:', err)
+        console.error('Error fetching PR comments')
         setCommentsError('Failed to fetch comments')
       } finally {
         if (showLoading) {
@@ -194,7 +197,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
           setActionsError(data.error || 'Failed to fetch check runs')
         }
       } catch (err) {
-        console.error('Error fetching check runs:', err)
+        console.error('Error fetching check runs')
         setActionsError('Failed to fetch check runs')
       } finally {
         if (showLoading) {
@@ -226,7 +229,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
           setDeploymentError(data.error || 'Failed to fetch deployment')
         }
       } catch (err) {
-        console.error('Error fetching deployment:', err)
+        console.error('Error fetching deployment')
         setDeploymentError('Failed to fetch deployment')
       } finally {
         if (showLoading) {
@@ -460,6 +463,21 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
 
+  const handleOptimizePrompt = async () => {
+    if (!newMessage.trim() || isOptimizing || isSending) return
+    setIsOptimizing(true)
+    try {
+      const optimized = await optimizePrompt(newMessage)
+      setNewMessage(optimized)
+      toast.success('Prompt optimized!')
+    } catch (err) {
+      console.error('Failed to optimize prompt')
+      toast.error('Failed to optimize prompt')
+    } finally {
+      setIsOptimizing(false)
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isSending) return
 
@@ -491,7 +509,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
         setNewMessage(messageToSend) // Restore the message on error
       }
     } catch (err) {
-      console.error('Error sending message:', err)
+      console.error('Error sending message')
       toast.error('Failed to send message')
       setNewMessage(messageToSend) // Restore the message on error
     } finally {
@@ -512,7 +530,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
       setCopiedMessageId(messageId)
       setTimeout(() => setCopiedMessageId(null), 2000)
     } catch (err) {
-      console.error('Failed to copy message:', err)
+      console.error('Failed to copy message')
       toast.error('Failed to copy message')
     }
   }
@@ -542,7 +560,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
         toast.error(data.error || 'Failed to resend message')
       }
     } catch (err) {
-      console.error('Error resending message:', err)
+      console.error('Error resending message')
       toast.error('Failed to resend message')
     } finally {
       setIsSending(false)
@@ -569,7 +587,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
         toast.error(error.error || 'Failed to stop task')
       }
     } catch (error) {
-      console.error('Error stopping task:', error)
+      console.error('Error stopping task')
       toast.error('Failed to stop task')
     } finally {
       setIsStopping(false)
@@ -1290,13 +1308,27 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
                 <Square className="h-3 w-3" fill="currentColor" />
               </button>
             ) : (
-              <button
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim() || isSending}
-                className="absolute bottom-2 right-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3 w-3" />}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleOptimizePrompt}
+                  disabled={!newMessage.trim() || isOptimizing || isSending}
+                  className="absolute bottom-2 right-9 rounded-full h-5 w-5 bg-secondary text-secondary-foreground hover:bg-secondary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Enhance Prompt"
+                  aria-label="Optimize prompt with AI enhancement"
+                >
+                  {isOptimizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || isSending}
+                  className="absolute bottom-2 right-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Send message"
+                >
+                  {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3 w-3" />}
+                </button>
+              </>
             )}
           </div>
         </div>

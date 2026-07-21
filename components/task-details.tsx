@@ -1,5 +1,7 @@
 'use client'
 
+import { InteractiveTaskPanel } from '@/components/tasks/interactive-task-panel'
+
 import { Task, Connector } from '@/lib/db/schema'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -2119,10 +2121,18 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
               </div>
             )}
 
-            {/* Chat */}
+            {/* Chat & Interactive Panel */}
             {showChatPane && (
-              <div className="h-auto min-h-0 flex-shrink-0" style={{ width: `${chatPaneWidth}px` }}>
-                <TaskChat taskId={task.id} task={task} />
+              <div
+                className="h-auto min-h-0 flex-shrink-0 flex flex-col gap-4 border-l overflow-y-auto"
+                style={{ width: `${chatPaneWidth}px` }}
+              >
+                <div className="flex-1 flex flex-col min-h-[400px]">
+                  <TaskChat taskId={task.id} task={task} />
+                </div>
+                <div className="h-1/3 min-h-[300px] border-t overflow-hidden">
+                  <InteractiveTaskPanel />
+                </div>
               </div>
             )}
           </div>
@@ -2175,8 +2185,13 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
               </div>
 
               {/* Chat Tab */}
-              <div className={cn('h-full', activeTab !== 'chat' && 'hidden')}>
-                <TaskChat taskId={task.id} task={task} />
+              <div className={cn('h-full flex flex-col overflow-y-auto', activeTab !== 'chat' && 'hidden')}>
+                <div className="flex-1 min-h-[400px]">
+                  <TaskChat taskId={task.id} task={task} />
+                </div>
+                <div className="flex-shrink-0 border-t min-h-[300px]">
+                  <InteractiveTaskPanel />
+                </div>
               </div>
 
               {/* Preview Tab */}

@@ -833,12 +833,12 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                               </a>
                             ),
                             ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
-                              <ul className="text-xs list-disc ml-4" {...props}>
+                              <ul className="text-xs list-disc ms-4" {...props}>
                                 {children}
                               </ul>
                             ),
                             ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
-                              <ol className="text-xs list-decimal ml-4" {...props}>
+                              <ol className="text-xs list-decimal ms-4" {...props}>
                                 {children}
                               </ol>
                             ),
@@ -861,7 +861,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleSendCommentAsFollowUp(comment)}>
-                          <MessageSquare className="h-4 w-4 mr-2" />
+                          <MessageSquare className="h-4 w-4 me-2" />
                           Send as Follow-Up
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -956,12 +956,12 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                             </p>
                           ),
                           ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
-                            <ul className="text-xs list-disc ml-4" {...props}>
+                            <ul className="text-xs list-disc ms-4" {...props}>
                               {children}
                             </ul>
                           ),
                           ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
-                            <ol className="text-xs list-decimal ml-4" {...props}>
+                            <ol className="text-xs list-decimal ms-4" {...props}>
                               {children}
                             </ol>
                           ),
@@ -976,7 +976,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                       </Streamdown>
                     </div>
                     {overflowingMessages.has(group.userMessage.id) && (
-                      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                      <div className="absolute bottom-0 start-0 end-0 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
                     )}
                   </div>
                   <div className="flex items-center gap-0.5 justify-end">
@@ -1127,12 +1127,12 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                                     )
                                   },
                                   ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
-                                    <ul className="text-xs list-disc ml-4" {...props}>
+                                    <ul className="text-xs list-disc ms-4" {...props}>
                                       {children}
                                     </ul>
                                   ),
                                   ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
-                                    <ol className="text-xs list-decimal ml-4" {...props}>
+                                    <ol className="text-xs list-decimal ms-4" {...props}>
                                       {children}
                                     </ol>
                                   ),
@@ -1196,7 +1196,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Setting up sandbox...
                         </div>
-                        <div className="space-y-0.5 pl-5">
+                        <div className="space-y-0.5 ps-5">
                           {setupLogs.map((log, idx) => {
                             const isLatest = idx === setupLogs.length - 1
                             return (
@@ -1306,7 +1306,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Send a follow-up message..."
-              className="w-full min-h-[60px] max-h-[120px] resize-none pr-12 text-base md:text-xs"
+              className="w-full min-h-[60px] max-h-[120px] resize-none pe-12 text-base md:text-xs"
               disabled={isSending}
             />
             {task.status === 'processing' || task.status === 'pending' ? (

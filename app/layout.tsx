@@ -25,6 +25,12 @@ export const metadata: Metadata = {
     'AI-powered coding agent template supporting Claude Code, OpenAI Codex CLI, Cursor CLI, and opencode with Vercel Sandbox',
 }
 
+/**
+ * Defines the root document layout for the application and renders its child content within the configured providers.
+ *
+ * @param children - The page content rendered inside the application layout
+ * @returns The root HTML document containing the application content
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

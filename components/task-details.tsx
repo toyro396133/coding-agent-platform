@@ -173,10 +173,10 @@ const DEFAULT_MODELS = {
 } as const
 
 /**
- * Renders the task detail interface, including task actions, file browsing and editing, sandbox preview, pull request controls, chat, and interactive task management.
+ * Renders the task detail interface with task actions, file browsing and editing, sandbox preview, pull request controls, chat, and interactive task management.
  *
  * @param task - The task to display and manage.
- * @param maxSandboxDuration - Maximum sandbox duration used as the fallback for retry settings.
+ * @param maxSandboxDuration - Fallback maximum sandbox duration, in minutes, for retry settings.
  */
 export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps) {
   const [optimisticStatus, setOptimisticStatus] = useState<Task['status'] | null>(null)

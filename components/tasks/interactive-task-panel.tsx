@@ -11,6 +11,9 @@ import { Proposal, BackgroundTest } from '@/lib/db/schema'
 import { toast } from 'sonner'
 import { Check, X, Loader2 } from 'lucide-react'
 
+/**
+ * Displays proposals and background tests, allowing users to update proposal statuses and toggle test availability.
+ */
 export function InteractiveTaskPanel() {
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [backgroundTests, setBackgroundTests] = useState<BackgroundTest[]>([])

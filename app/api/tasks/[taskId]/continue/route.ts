@@ -119,6 +119,21 @@ export async function POST(req: NextRequest, context: { params: Promise<{ taskId
   }
 }
 
+/**
+ * Continues a task in a sandbox, executes the selected agent, and applies the resulting changes to the specified branch.
+ *
+ * @param taskId - The identifier of the task to continue
+ * @param prompt - The follow-up request for the agent
+ * @param repoUrl - The repository URL containing the task's code
+ * @param branchName - The branch to update with the agent's changes
+ * @param maxDuration - The maximum sandbox duration in minutes
+ * @param selectedAgent - The agent to use for execution
+ * @param selectedModel - The model to use for execution
+ * @param installDependencies - Whether to install repository dependencies
+ * @param apiKeys - API keys available to the sandbox and agent
+ * @param githubToken - GitHub token used for repository access
+ * @param githubUser - GitHub identity used for commits
+ */
 async function continueTask(
   taskId: string,
   prompt: string,

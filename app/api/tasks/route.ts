@@ -375,6 +375,23 @@ async function isTaskStopped(taskId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Executes a task in a sandbox, applies the requested agent changes, and updates its lifecycle status.
+ *
+ * @param userId - The user who owns the task
+ * @param taskId - The task to process
+ * @param prompt - The task instructions sent to the agent
+ * @param repoUrl - The repository to prepare and update
+ * @param maxDuration - Maximum sandbox duration in minutes
+ * @param selectedAgent - Agent used to execute the task
+ * @param selectedModel - Model used by the agent and orchestrator
+ * @param installDependencies - Whether to install repository dependencies
+ * @param keepAlive - Whether to keep the sandbox running after execution
+ * @param enableBrowser - Whether to enable browser access in the sandbox
+ * @param apiKeys - API keys available to the selected agent
+ * @param githubToken - GitHub token used for repository access
+ * @param githubUser - GitHub identity used for repository changes
+ */
 async function processTask(
   userId: string,
   taskId: string,

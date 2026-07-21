@@ -170,6 +170,12 @@ const DEFAULT_MODELS = {
   opencode: 'gpt-5',
 } as const
 
+/**
+ * Renders the task overview, code changes, sandbox preview, chat panel, and task management controls.
+ *
+ * @param task - The task whose details and associated resources are displayed.
+ * @param maxSandboxDuration - The maximum sandbox duration used when retrying the task.
+ */
 export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps) {
   const [optimisticStatus, setOptimisticStatus] = useState<Task['status'] | null>(null)
   const [mcpServers, setMcpServers] = useState<Connector[]>([])

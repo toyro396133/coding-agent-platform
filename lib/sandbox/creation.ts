@@ -44,6 +44,17 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
   return result
 }
 
+/**
+ * Creates and configures a sandbox for repository development.
+ *
+ * Clones the repository, optionally installs dependencies and browser automation tools,
+ * starts a development server when configured, initializes Git state, and selects a
+ * working branch. Cancellation and operational failures are returned in the result.
+ *
+ * @param config - Sandbox creation, repository, environment, and runtime configuration
+ * @param logger - Logger used to report sandbox setup progress and failures
+ * @returns The configured sandbox details on success, or cancellation and error information on failure
+ */
 export async function createSandbox(config: SandboxConfig, logger: TaskLogger): Promise<SandboxResult> {
   try {
     await logger.info('Processing repository URL')

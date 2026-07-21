@@ -2,6 +2,13 @@ import { db } from '../db/client'
 import { tasks, memories } from '../db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 
+/**
+ * Enriches a prompt with context for mentioned tasks and agents.
+ *
+ * @param userId - The user whose task and memory data may be included
+ * @param prompt - The input prompt to scan for mentions
+ * @returns The original prompt followed by context for any recognized mentions
+ */
 export async function parseMentionsAndInjectContext(userId: string, prompt: string): Promise<string> {
   const taskMentions = prompt.match(/@task_([a-zA-Z0-9_-]+)/g) || []
   let contextInjection = ''

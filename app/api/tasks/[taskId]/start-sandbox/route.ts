@@ -85,7 +85,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
     // Detect the appropriate port for the project
     const port = task.repoUrl ? await detectPortFromRepo(task.repoUrl, githubToken) : 3000
-    console.log('Action logged')
+    console.log('Action logged, port:', port)
 
     // Create a new sandbox by cloning the repo
     const sandbox = await Sandbox.create({

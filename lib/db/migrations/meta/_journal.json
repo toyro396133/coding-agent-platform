@@ -169,6 +169,13 @@
       "when": 1784601947762,
       "tag": "0023_oval_wild_child",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1784601947763,
+      "tag": "0024_memories_embedding_idx",
+      "breakpoints": true
     }
   ]
 }

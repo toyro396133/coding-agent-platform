@@ -61,12 +61,12 @@ Create a concise summary (1-3 sentences) that will be useful for future tasks. I
       if (text !== 'NO_MEMORY' && text.trim().length > 0) {
         const sanitizedMemory = redactSensitiveData(text.trim())
         await saveMemory(userId, sanitizedMemory, taskId)
-        console.log('Action logged')
+        console.log('[Memory] Successfully saved memory for task')
       }
     } catch (error) {
       clearTimeout(timeoutId)
       if (error instanceof Error && error.name === 'AbortError') {
-        console.error('Action logged')
+        console.error('[Memory] Memory summarization timed out')
       } else {
         console.error(`[Memory] Error summarizing task ${taskId}:`, error)
       }

@@ -5,7 +5,12 @@ const path = require('path');
 let schema = fs.readFileSync('lib/db/schema.ts', 'utf8');
 if (!schema.includes("proposalsBank")) {
     schema = schema.replace("import { z } from 'zod'", "import { z } from 'zod'\nimport { nanoid } from 'nanoid'");
-    schema = schema.replace(/(export const memories = pgTable\(\s*'memories',\s*\{\s*id:\s*text\('id'\)\.primaryKey\(\)),/, "$1.$defaultFn(() => nanoid()),");
+    const memoriesRegex = /(export const memories = pgTable\(\s*'memories',\s*\{\s*id:\s*text\('id'\)\.primaryKey\(\)),/;
+    const beforeReplace = schema;
+    schema = schema.replace(memoriesRegex, "$1.$defaultFn(() => nanoid()),");
+    if (schema === beforeReplace) {
+        throw new Error("Failed to inject $defaultFn(() => nanoid()) into memories table - regex did not match");
+    }
     schema += `
 
 export const proposalsBank = pgTable('proposals_bank', {

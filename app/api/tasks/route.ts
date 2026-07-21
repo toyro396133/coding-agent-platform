@@ -455,7 +455,7 @@ async function processTask(
 
     // Detect the appropriate port for the project
     const port = await detectPortFromRepo(repoUrl, githubToken)
-    console.log('Action logged')
+    console.log('Action logged, port:', port)
 
     // Create sandbox with progress callback and 5-minute timeout
     const sandboxResult = await createSandbox(
@@ -642,12 +642,12 @@ async function processTask(
               prompt: z.string().describe('The specific prompt or assignment for this sub-agent.'),
             }),
             execute: async ({ subTaskType, prompt: subPrompt }) => {
-              await logger.info('Action logged')
+              await logger.info(`Spawning sub-agent of type: ${subTaskType}`)
               const userId = (await getServerSession())?.user?.id || 'anonymous'
               const subModelName = await getSubAgentModel(subTaskType, userId)
               const subModel = getModelClient(subModelName)
 
-              await logger.info('Action logged')
+              await logger.info(`Using model: ${subModelName}`)
 
               const { text: subResult } = await generateText({
                 model: subModel,
@@ -655,7 +655,7 @@ async function processTask(
                 prompt: subPrompt,
               })
 
-              await logger.info('Action logged')
+              await logger.info(`Sub-agent ${subTaskType} completed`)
               return subResult
             },
           }),

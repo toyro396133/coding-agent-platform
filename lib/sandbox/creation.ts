@@ -149,8 +149,8 @@ export async function createSandbox(config: SandboxConfig, logger: TaskLogger): 
 
       // Check if this is a timeout error
       if (errorMessage?.includes('timeout') || errorCode === 'ETIMEDOUT' || errorName === 'TimeoutError') {
-        await logger.error('Action logged')
-        await logger.error('Action logged')
+        await logger.error(`Timeout error: ${errorName} - ${errorMessage}${errorCode ? ` (code: ${errorCode})` : ''}`)
+        await logger.error('Sandbox creation timed out during initialization')
         throw new Error('Sandbox creation timed out. Try with a smaller repository or fewer dependencies.')
       }
 

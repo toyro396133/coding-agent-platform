@@ -6,26 +6,36 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { fetchProposals, updateProposalStatus } from '@/lib/actions/proposals'
-import { fetchBackgroundTests, toggleTestEnabled } from '@/lib/actions/tests'
+import { fetchBackgroundTests, toggleTestEnabled, fetchBackgroundTestExecutionsByTaskId } from '@/lib/actions/tests'
 import { Proposal, BackgroundTest } from '@/lib/db/schema'
 import { toast } from 'sonner'
 import { Check, X, Loader2 } from 'lucide-react'
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
+import { getDictionary, Locale } from '@/dictionaries'
+import { redactSensitiveInfo } from '@/lib/utils/logging'
 
 /**
  * Displays proposals and background tests, allowing users to update proposal statuses and toggle test availability.
  */
-export function InteractiveTaskPanel() {
+export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: string; locale?: Locale }) {
+  const t = getDictionary(locale)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [backgroundTests, setBackgroundTests] = useState<BackgroundTest[]>([])
+  const [executions, setExecutions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
       try {
         setIsLoading(true)
-        const [fetchedProposals, fetchedTests] = await Promise.all([fetchProposals(), fetchBackgroundTests()])
+        const [fetchedProposals, fetchedTests, fetchedExecutions] = await Promise.all([
+          fetchProposals(),
+          fetchBackgroundTests(),
+          taskId ? fetchBackgroundTestExecutionsByTaskId(taskId) : Promise.resolve([]),
+        ])
         setProposals(fetchedProposals)
         setBackgroundTests(fetchedTests)
+        setExecutions(fetchedExecutions)
       } catch (err) {
         console.error('Failed to load interactive task panel data')
         toast.error('Failed to load panel data')
@@ -34,7 +44,7 @@ export function InteractiveTaskPanel() {
       }
     }
     loadData()
-  }, [])
+  }, [taskId])
 
   const handleUpdateProposal = async (id: string, status: 'accepted' | 'rejected') => {
     try {
@@ -105,14 +115,14 @@ export function InteractiveTaskPanel() {
                         className="h-7 px-2 text-xs"
                         onClick={() => handleUpdateProposal(proposal.id, 'rejected')}
                       >
-                        <X className="h-3 w-3 mr-1" /> Decline
+                        <X className="h-3 w-3 me-1" /> Decline
                       </Button>
                       <Button
                         size="sm"
                         className="h-7 px-2 text-xs"
                         onClick={() => handleUpdateProposal(proposal.id, 'accepted')}
                       >
-                        <Check className="h-3 w-3 mr-1" /> Accept
+                        <Check className="h-3 w-3 me-1" /> Accept
                       </Button>
                     </div>
                   )}
@@ -122,6 +132,44 @@ export function InteractiveTaskPanel() {
           </div>
         )}
       </div>
+
+      {executions.length > 0 && (
+        <div className="space-y-4 mt-4">
+          <h3 className="font-semibold text-sm tracking-tight">{t.testExecutions}</h3>
+          <Accordion type="single" collapsible className="w-full space-y-2">
+            {executions.map((exec) => (
+              <AccordionItem key={exec.id} value={exec.id} className="border rounded-md px-3 bg-card">
+                <AccordionTrigger className="hover:no-underline py-2 text-sm flex gap-2">
+                  <div className="flex items-center gap-2 w-full text-start">
+                    <Badge
+                      variant={
+                        exec.status === 'passed' ? 'default' : exec.status === 'failed' ? 'destructive' : 'secondary'
+                      }
+                      className="text-[10px]"
+                    >
+                      {t[exec.status as keyof typeof t] || exec.status}
+                    </Badge>
+                    <span className="font-medium truncate">{exec.testId}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-1 pb-3">
+                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap font-mono">
+                    {exec.logs ? redactSensitiveInfo(exec.logs) : t.noLogsAvailable}
+                  </div>
+                  {exec.remediationPatch && (
+                    <div className="mt-2 text-xs">
+                      <p className="font-semibold mb-1">{t.remediationApplied}:</p>
+                      <pre className="bg-muted p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap font-mono">
+                        {redactSensitiveInfo(JSON.stringify(exec.remediationPatch, null, 2))}
+                      </pre>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      )}
 
       <div className="space-y-4 mt-4">
         <h3 className="font-semibold text-sm tracking-tight">Background Tests</h3>

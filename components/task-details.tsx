@@ -2137,7 +2137,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   <TaskChat taskId={task.id} task={task} />
                 </div>
                 <div className="h-1/3 min-h-[300px] border-t overflow-hidden">
-                  <InteractiveTaskPanel />
+                  <InteractiveTaskPanel taskId={task.id} />
                 </div>
               </div>
             )}
@@ -2196,7 +2196,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   <TaskChat taskId={task.id} task={task} />
                 </div>
                 <div className="flex-shrink-0 border-t min-h-[300px]">
-                  <InteractiveTaskPanel />
+                  <InteractiveTaskPanel taskId={task.id} />
                 </div>
               </div>
 

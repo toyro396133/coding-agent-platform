@@ -3,6 +3,7 @@
 import { optimizePrompt } from '@/lib/actions/prompt-optimizer'
 import { TaskMessage, Task } from '@/lib/db/schema'
 import { useState, useEffect, useRef, useCallback, Children, isValidElement } from 'react'
+import { getDictionary, Locale } from '@/dictionaries'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -30,6 +31,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 interface TaskChatProps {
   taskId: string
   task: Task
+  locale?: Locale
 }
 
 interface PRComment {
@@ -65,8 +67,10 @@ interface DeploymentInfo {
  *
  * @param taskId - The identifier of the task.
  * @param task - The task whose messages and related data are displayed.
+ * @param locale - The active locale for internationalization.
  */
-export function TaskChat({ taskId, task }: TaskChatProps) {
+export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
+  const t = getDictionary(locale)
   const [messages, setMessages] = useState<TaskMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1309,7 +1313,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
               <button
                 onClick={handleStopTask}
                 disabled={isStopping}
-                className="absolute bottom-2 right-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute bottom-2 end-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Square className="h-3 w-3" fill="currentColor" />
               </button>
@@ -1319,8 +1323,8 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
                   type="button"
                   onClick={handleOptimizePrompt}
                   disabled={!newMessage.trim() || isOptimizing || isSending}
-                  className="absolute bottom-2 right-9 rounded-full h-5 w-5 bg-secondary text-secondary-foreground hover:bg-secondary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Enhance Prompt"
+                  className="absolute bottom-2 end-9 rounded-full h-5 w-5 bg-secondary text-secondary-foreground hover:bg-secondary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={t.enhancePrompt}
                   aria-label="Optimize prompt with AI enhancement"
                 >
                   {isOptimizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
@@ -1329,7 +1333,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
                   type="button"
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || isSending}
-                  className="absolute bottom-2 right-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute bottom-2 end-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send message"
                 >
                   {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3 w-3" />}

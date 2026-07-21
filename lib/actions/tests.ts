@@ -1,8 +1,8 @@
 'use server'
 
 import { db } from '../db/client'
-import { backgroundTestsBank } from '../db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { backgroundTestsBank, backgroundTestExecutions, tasks } from '../db/schema'
+import { eq, desc, and } from 'drizzle-orm'
 import { getServerSession } from '../session/get-server-session'
 import { revalidatePath } from 'next/cache'
 
@@ -38,4 +38,31 @@ export async function toggleTestEnabled(id: string, isEnabled: boolean) {
   await db.update(backgroundTestsBank).set({ isEnabled }).where(eq(backgroundTestsBank.id, id))
 
   revalidatePath('/tasks')
+}
+
+export async function fetchBackgroundTestExecutionsByTaskId(taskId: string) {
+  const session = await getServerSession()
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized')
+  }
+
+  // Verify task ownership before fetching executions
+  const task = await db
+    .select({ id: tasks.id, userId: tasks.userId })
+    .from(tasks)
+    .where(and(eq(tasks.id, taskId), eq(tasks.userId, session.user.id)))
+    .limit(1)
+
+  if (!task || task.length === 0) {
+    throw new Error('Task not found or access denied')
+  }
+
+  const executions = await db
+    .select()
+    .from(backgroundTestExecutions)
+    .where(eq(backgroundTestExecutions.taskId, taskId))
+    .orderBy(desc(backgroundTestExecutions.createdAt))
+    .limit(50)
+
+  return executions
 }

@@ -55,6 +55,22 @@ function getLanguageFromPath(path: string): string {
   return map[ext || ''] || 'plaintext'
 }
 
+/**
+ * Renders a Monaco-based editor for viewing and editing a file.
+ *
+ * Supports theme-aware syntax highlighting, responsive editor sizing, save shortcuts,
+ * unsaved-change tracking, read-only modes, and sandbox LSP-based definition navigation.
+ *
+ * @param filename - The file path displayed in the editor.
+ * @param initialContent - The file content used to initialize or reset the editor.
+ * @param language - The file language configuration.
+ * @param taskId - The identifier of the task associated with the file.
+ * @param viewMode - Controls whether the file is editable or read-only.
+ * @param onUnsavedChanges - Called when the editor's unsaved-change state changes.
+ * @param onSavingStateChange - Called when saving starts or finishes.
+ * @param onOpenFile - Called to open a definition located in another file.
+ * @param onSaveSuccess - Called after the file is saved successfully.
+ */
 export function FileEditor({
   filename,
   initialContent,

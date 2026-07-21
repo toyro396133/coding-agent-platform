@@ -15,6 +15,13 @@ interface GitHubUser {
   avatar_url: string
 }
 
+/**
+ * Creates a session for a user authenticated through GitHub.
+ *
+ * @param accessToken - The GitHub OAuth access token
+ * @param scope - The OAuth scopes granted to the access token
+ * @returns A GitHub-authenticated session, or `undefined` if the GitHub user profile cannot be fetched
+ */
 export async function createGitHubSession(accessToken: string, scope?: string): Promise<Session | undefined> {
   // Fetch GitHub user info
   const userResponse = await fetch('https://api.github.com/user', {

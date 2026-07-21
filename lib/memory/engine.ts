@@ -15,6 +15,14 @@ export async function generateEmbedding(text: string) {
   return embedding
 }
 
+/**
+ * Saves a user's content as an embedded memory.
+ *
+ * @param userId - The ID of the user who owns the memory
+ * @param content - The content to store
+ * @param taskId - The optional ID of the associated task
+ * @returns The saved memory's ID and content
+ */
 export async function saveMemory(userId: string, content: string, taskId?: string) {
   const embedding = await generateEmbedding(content)
   const id = nanoid()
@@ -33,6 +41,15 @@ export async function saveMemory(userId: string, content: string, taskId?: strin
   return memory
 }
 
+/**
+ * Finds memories relevant to a prompt for a user, with a recency-based fallback.
+ *
+ * @param userId - The user whose memories are searched
+ * @param prompt - The text used to determine memory relevance
+ * @param topK - The maximum number of relevant memories to return
+ * @param threshold - The minimum similarity required for a memory to be considered relevant
+ * @returns Matching memories with similarity scores, or up to two recent memories with a similarity of `0` when no matches meet the threshold
+ */
 export async function retrieveRelevantMemories(
   userId: string,
   prompt: string,

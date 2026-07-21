@@ -2,6 +2,12 @@ import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { saveMemory } from './engine'
 
+/**
+ * Redacts likely secrets and email addresses from text.
+ *
+ * @param text - The text to sanitize
+ * @returns The text with detected secrets replaced by redaction placeholders
+ */
 function redactSensitiveData(text: string): string {
   let redacted = text
   // Redact GitHub tokens (ghp_, gho_, ghu_, ghs_, ghr_ followed by alphanumerics/underscores)
@@ -25,6 +31,14 @@ function redactSensitiveData(text: string): string {
   return redacted
 }
 
+/**
+ * Extracts significant long-term memory from a task interaction and stores it for future use.
+ *
+ * @param userId - The user whose memory is being stored
+ * @param taskId - The task associated with the memory
+ * @param prompt - The user's task request
+ * @param agentResponse - The agent's response, or `null` when no response is available
+ */
 export async function summarizeAndStoreTask(
   userId: string,
   taskId: string,

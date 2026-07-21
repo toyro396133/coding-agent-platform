@@ -141,6 +141,13 @@ async function getFileContent(
   }
 }
 
+/**
+ * Retrieves the old and new content for a task file from a local sandbox or GitHub.
+ *
+ * @param request - The request containing the filename and optional diff mode.
+ * @param params - Route parameters containing the task identifier.
+ * @returns A response containing file contents and metadata, or an error response.
+ */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
     const session = await getServerSession()

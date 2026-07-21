@@ -78,7 +78,12 @@ export type InsertBackgroundTest = z.infer<typeof insertBackgroundTestSchema>
     fs.writeFileSync('lib/db/schema.ts', schema);
 }
 
-// 2. Exact Logs Replace - avoiding regex to prevent syntax errors
+/**
+ * Replaces the first matching occurrence in an existing file.
+ * @param {string} filePath - Path to the file to update.
+ * @param {string} matchStr - Text to replace.
+ * @param {string} replaceStr - Replacement text.
+ */
 
 function replaceLine(filePath, matchStr, replaceStr) {
     if (fs.existsSync(filePath)) {
@@ -88,6 +93,12 @@ function replaceLine(filePath, matchStr, replaceStr) {
     }
 }
 
+/**
+ * Replaces matching content in an existing file and writes the updated content back.
+ * @param {string} filePath - The path to the file to modify.
+ * @param {RegExp} regex - The pattern used to find content to replace.
+ * @param {string} replaceStr - The replacement content.
+ */
 function replaceGlobal(filePath, regex, replaceStr) {
     if (fs.existsSync(filePath)) {
         let content = fs.readFileSync(filePath, 'utf8');
@@ -143,7 +154,11 @@ replaceGlobal('scripts/migrate-production.ts', /console\.log\(\s*`\s*Current env
 replaceGlobal('app/api/tasks/[taskId]/continue/route.ts', /console\.log\(\s*'Checking for existing sandbox:',\s*\{\s*hasSandboxId: !!currentTask\.sandboxId,\s*keepAlive: currentTask\.keepAlive,\s*\}\s*\)/g, "console.log('Checking for existing sandbox')");
 
 
-// Replace template strings dynamically
+/**
+ * Recursively visits supported JavaScript and TypeScript files in a directory.
+ * @param {string} dir - The directory to traverse.
+ * @param {(filepath: string) => void} callback - The function to call for each supported file.
+ */
 function walkSync(dir, callback) {
   const files = fs.readdirSync(dir);
   for (const file of files) {

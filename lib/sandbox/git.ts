@@ -2,6 +2,13 @@ import { Sandbox } from '@vercel/sandbox'
 import { runCommandInSandbox, runInProject } from './commands'
 import { TaskLogger } from '@/lib/utils/task-logger'
 
+/**
+ * Commits local changes in a sandbox and attempts to push them to a remote branch.
+ *
+ * @param branchName - The name of the remote branch to update
+ * @param commitMessage - The message for the new commit
+ * @returns An object indicating whether the operation completed; `pushFailed` is `true` when changes were committed locally but could not be pushed
+ */
 export async function pushChangesToBranch(
   sandbox: Sandbox,
   branchName: string,

@@ -8,6 +8,12 @@ import { upsertUser } from '@/lib/db/users'
 import { encrypt } from '@/lib/crypto'
 import ms from 'ms'
 
+/**
+ * Creates a session for an authenticated Vercel user.
+ *
+ * @param tokens - Vercel access and optional refresh tokens used to identify the user
+ * @returns The created session, or `undefined` if the user cannot be fetched
+ */
 export async function createSession(tokens: Tokens): Promise<Session | undefined> {
   const user = await fetchUser(tokens.accessToken)
 

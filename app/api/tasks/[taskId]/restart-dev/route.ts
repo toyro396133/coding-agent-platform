@@ -8,6 +8,12 @@ import { runCommandInSandbox, runInProject, PROJECT_DIR } from '@/lib/sandbox/co
 import { detectPackageManager } from '@/lib/sandbox/package-manager'
 import { createTaskLogger } from '@/lib/utils/task-logger'
 
+/**
+ * Restarts the development server for an owned task's active sandbox.
+ *
+ * @param params - Route parameters containing the task identifier.
+ * @returns A JSON response indicating success or describing the validation or server error.
+ */
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
     const session = await getServerSession()

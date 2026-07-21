@@ -13,6 +13,11 @@ import { createTaskLogger } from '@/lib/utils/task-logger'
 import { getMaxSandboxDuration } from '@/lib/db/settings'
 import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
 
+/**
+ * Starts a keep-alive sandbox for the specified task or reports that an accessible sandbox is already running.
+ *
+ * @returns A response indicating success or an error status for authentication, authorization, task, sandbox, or startup failures.
+ */
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
     const session = await getServerSession()

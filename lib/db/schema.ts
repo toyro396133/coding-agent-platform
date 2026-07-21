@@ -541,3 +541,39 @@ export const selectBackgroundTestSchema = z.object({
 
 export type BackgroundTest = z.infer<typeof selectBackgroundTestSchema>
 export type InsertBackgroundTest = z.infer<typeof insertBackgroundTestSchema>
+
+export const backgroundTestExecutions = pgTable('background_test_executions', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  testId: text('test_id')
+    .notNull()
+    .references(() => backgroundTestsBank.id, { onDelete: 'cascade' }),
+  status: text('status', {
+    enum: ['passed', 'failed', 'remediated'],
+  }).notNull(),
+  logs: text('logs'),
+  remediationPatch: jsonb('remediation_patch'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const insertBackgroundTestExecutionSchema = z.object({
+  id: z.string().optional(),
+  testId: z.string().min(1, 'Test ID is required'),
+  status: z.enum(['passed', 'failed', 'remediated']),
+  logs: z.string().optional().nullable(),
+  remediationPatch: z.any().optional().nullable(),
+  createdAt: z.date().optional(),
+})
+
+export const selectBackgroundTestExecutionSchema = z.object({
+  id: z.string(),
+  testId: z.string(),
+  status: z.enum(['passed', 'failed', 'remediated']),
+  logs: z.string().nullable(),
+  remediationPatch: z.any().nullable(),
+  createdAt: z.date(),
+})
+
+export type BackgroundTestExecution = z.infer<typeof selectBackgroundTestExecutionSchema>
+export type InsertBackgroundTestExecution = z.infer<typeof insertBackgroundTestExecutionSchema>

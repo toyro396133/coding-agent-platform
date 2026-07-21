@@ -84,6 +84,7 @@ export async function runBackgroundTests(options?: { taskId?: string; sandboxId?
 
       await db.insert(backgroundTestExecutions).values({
         testId: test.id,
+        taskId: options?.taskId || null,
         status: executionStatus as any,
         logs,
         remediationPatch,
@@ -93,6 +94,7 @@ export async function runBackgroundTests(options?: { taskId?: string; sandboxId?
 
       await db.insert(backgroundTestExecutions).values({
         testId: test.id,
+        taskId: options?.taskId || null,
         status: 'failed',
         logs: error instanceof Error ? error.message : String(error),
       })

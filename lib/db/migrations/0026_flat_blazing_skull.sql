@@ -1,0 +1,2 @@
+ALTER TABLE "background_test_executions" ADD COLUMN "task_id" text;--> statement-breakpoint
+ALTER TABLE "background_test_executions" ADD CONSTRAINT "background_test_executions_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE cascade ON UPDATE no action;

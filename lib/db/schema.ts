@@ -549,6 +549,7 @@ export const backgroundTestExecutions = pgTable('background_test_executions', {
   testId: text('test_id')
     .notNull()
     .references(() => backgroundTestsBank.id, { onDelete: 'cascade' }),
+  taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
   status: text('status', {
     enum: ['passed', 'failed', 'remediated'],
   }).notNull(),
@@ -560,6 +561,7 @@ export const backgroundTestExecutions = pgTable('background_test_executions', {
 export const insertBackgroundTestExecutionSchema = z.object({
   id: z.string().optional(),
   testId: z.string().min(1, 'Test ID is required'),
+  taskId: z.string().optional().nullable(),
   status: z.enum(['passed', 'failed', 'remediated']),
   logs: z.string().optional().nullable(),
   remediationPatch: z.any().optional().nullable(),

@@ -149,8 +149,8 @@ export async function createSandbox(config: SandboxConfig, logger: TaskLogger): 
 
       // Check if this is a timeout error
       if (errorMessage?.includes('timeout') || errorCode === 'ETIMEDOUT' || errorName === 'TimeoutError') {
-        await logger.error(`Sandbox creation timed out after 5 minutes`)
-        await logger.error(`This usually happens when the repository is large or has many dependencies`)
+        await logger.error('Action logged')
+        await logger.error('Action logged')
         throw new Error('Sandbox creation timed out. Try with a smaller repository or fewer dependencies.')
       }
 
@@ -426,7 +426,7 @@ fi
                   .split('\n')
                   .filter((line) => line.trim())
                 for (const line of lines) {
-                  logger.info(`[SERVER] ${line}`).catch(() => {})
+                  logger.info('Action logged').catch(() => {})
                 }
                 callback()
               },
@@ -439,7 +439,7 @@ fi
                   .split('\n')
                   .filter((line) => line.trim())
                 for (const line of lines) {
-                  logger.info(`[SERVER] ${line}`).catch(() => {})
+                  logger.info('Action logged').catch(() => {})
                 }
                 callback()
               },

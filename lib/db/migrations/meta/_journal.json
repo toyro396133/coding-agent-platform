@@ -162,6 +162,13 @@
       "when": 1783055014279,
       "tag": "0022_round_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1784601947762,
+      "tag": "0023_oval_wild_child",
+      "breakpoints": true
     }
   ]
 }

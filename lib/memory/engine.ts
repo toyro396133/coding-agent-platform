@@ -33,7 +33,12 @@ export async function saveMemory(userId: string, content: string, taskId?: strin
   return memory
 }
 
-export async function retrieveRelevantMemories(userId: string, prompt: string, topK: number = 5, threshold: number = 0.5) {
+export async function retrieveRelevantMemories(
+  userId: string,
+  prompt: string,
+  topK: number = 5,
+  threshold: number = 0.5,
+) {
   // Normalize and validate inputs to prevent DB errors
   const safeTopK = Number.isFinite(topK) ? topK : 5
   const normalizedTopK = Math.max(1, Math.min(Math.floor(safeTopK), 100))
@@ -69,5 +74,5 @@ export async function retrieveRelevantMemories(userId: string, prompt: string, t
     .orderBy(sql`${memories.createdAt} DESC`)
     .limit(2)
 
-  return fallbackResults.map(r => ({ ...r, similarity: 0 }))
+  return fallbackResults.map((r) => ({ ...r, similarity: 0 }))
 }

@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+import { nanoid } from 'nanoid'
 
 // Log entry types
 export const logEntrySchema = z.object({
@@ -437,12 +438,13 @@ export type InsertUserConnection = InsertAccount
 export const memories = pgTable(
   'memories',
   {
-    id: text('id').primaryKey(),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    taskId: text('task_id')
-      .references(() => tasks.id, { onDelete: 'set null' }), // Optional: Can link memory to specific task
+    taskId: text('task_id').references(() => tasks.id, { onDelete: 'set null' }), // Optional: Can link memory to specific task
     content: text('content').notNull(), // The summary text
     embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small dimension
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -473,3 +475,69 @@ export const selectMemorySchema = z.object({
 
 export type Memory = z.infer<typeof selectMemorySchema>
 export type InsertMemory = z.infer<typeof insertMemorySchema>
+
+export const proposalsBank = pgTable('proposals_bank', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  tags: text('tags').array(),
+  status: text('status', {
+    enum: ['pending', 'accepted', 'rejected'],
+  }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const insertProposalSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().min(1, 'Description is required'),
+  tags: z.array(z.string()).optional(),
+  status: z.enum(['pending', 'accepted', 'rejected']).optional(),
+  createdAt: z.date().optional(),
+})
+
+export const selectProposalSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()).nullable(),
+  status: z.enum(['pending', 'accepted', 'rejected']).nullable(),
+  createdAt: z.date(),
+})
+
+export type Proposal = z.infer<typeof selectProposalSchema>
+export type InsertProposal = z.infer<typeof insertProposalSchema>
+
+export const backgroundTestsBank = pgTable('background_tests_bank', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  name: text('name').notNull(),
+  description: text('description'),
+  tags: text('tags').array(),
+  isEnabled: boolean('is_enabled').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const insertBackgroundTestSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  isEnabled: z.boolean().optional(),
+  createdAt: z.date().optional(),
+})
+
+export const selectBackgroundTestSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  tags: z.array(z.string()).nullable(),
+  isEnabled: z.boolean().nullable(),
+  createdAt: z.date(),
+})
+
+export type BackgroundTest = z.infer<typeof selectBackgroundTestSchema>
+export type InsertBackgroundTest = z.infer<typeof insertBackgroundTestSchema>

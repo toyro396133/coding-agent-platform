@@ -25,7 +25,12 @@ function redactSensitiveData(text: string): string {
   return redacted
 }
 
-export async function summarizeAndStoreTask(userId: string, taskId: string, prompt: string, agentResponse: string | null) {
+export async function summarizeAndStoreTask(
+  userId: string,
+  taskId: string,
+  prompt: string,
+  agentResponse: string | null,
+) {
   try {
     // Check if OpenAI API key is available
     if (!process.env.OPENAI_API_KEY) {
@@ -56,12 +61,12 @@ Create a concise summary (1-3 sentences) that will be useful for future tasks. I
       if (text !== 'NO_MEMORY' && text.trim().length > 0) {
         const sanitizedMemory = redactSensitiveData(text.trim())
         await saveMemory(userId, sanitizedMemory, taskId)
-        console.log(`[Memory] Saved memory for task ${taskId}`)
+        console.log('Action logged')
       }
     } catch (error) {
       clearTimeout(timeoutId)
       if (error instanceof Error && error.name === 'AbortError') {
-        console.error(`[Memory] Summarization timed out for task ${taskId}`)
+        console.error('Action logged')
       } else {
         console.error(`[Memory] Error summarizing task ${taskId}:`, error)
       }

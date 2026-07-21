@@ -849,15 +849,15 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
   // Update prUrl, prNumber, and prStatus when task values change
   useEffect(() => {
     if (task.prUrl && task.prUrl !== prUrl) {
-      console.log('[Update] prUrl changed:', task.prUrl)
+      console.log('[Update] prUrl changed')
       setPrUrl(task.prUrl)
     }
     if (task.prNumber && task.prNumber !== prNumber) {
-      console.log('[Update] prNumber changed:', task.prNumber)
+      console.log('[Update] prNumber changed')
       setPrNumber(task.prNumber)
     }
     if (task.prStatus && task.prStatus !== prStatus) {
-      console.log('[Update] prStatus changing from', prStatus, 'to', task.prStatus)
+      console.log('[Update] prStatus changing')
       setPrStatus(task.prStatus as 'open' | 'closed' | 'merged')
     }
   }, [task.prUrl, task.prNumber, task.prStatus, prUrl, prNumber, prStatus])
@@ -1219,7 +1219,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
     if (!prNumber || !task.repoUrl || isReopeningPR) return
 
     setIsReopeningPR(true)
-    console.log('[Reopen] Starting reopen - isReopeningPR:', true, 'prStatus:', prStatus)
+    console.log('[Reopen] Starting reopen')
     try {
       const response = await fetch(`/api/tasks/${task.id}/reopen-pr`, {
         method: 'POST',
@@ -1245,7 +1245,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
     if (!prNumber || !task.repoUrl || isClosingPR) return
 
     setIsClosingPR(true)
-    console.log('[Close] Starting close - isClosingPR:', true, 'prStatus:', prStatus)
+    console.log('[Close] Starting close')
     try {
       const response = await fetch(`/api/tasks/${task.id}/close-pr`, {
         method: 'POST',
@@ -1494,7 +1494,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                 prNumber &&
                 prStatus !== 'open' &&
                 (() => {
-                  console.log('[Render] Reopen button - prStatus:', prStatus, 'isReopeningPR:', isReopeningPR)
+                  console.log('[Render] Reopen button')
                   return true
                 })() && (
                   <Button

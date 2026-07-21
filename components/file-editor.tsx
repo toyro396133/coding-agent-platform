@@ -122,15 +122,9 @@ export function FileEditor({
     const isNodeModules = filename.includes('/node_modules/')
     if (!isNodeModules) {
       const hasChanges = content !== savedContent
-      console.log('[Unsaved Changes] Tracked:', {
-        hasChanges,
-        contentLength: content.length,
-        savedContentLength: savedContent.length,
-        filename,
-        hasCallback: !!onUnsavedChangesRef.current,
-      })
+      console.log('[Unsaved Changes] Tracked')
       if (onUnsavedChangesRef.current) {
-        console.log('[Unsaved Changes] Calling callback with hasChanges:', hasChanges)
+        console.log('[Unsaved Changes] Calling callback')
         onUnsavedChangesRef.current(hasChanges)
       } else {
         console.log('[Unsaved Changes] No callback available!')
@@ -140,7 +134,7 @@ export function FileEditor({
 
   const handleContentChange = (newContent: string | undefined) => {
     if (newContent !== undefined) {
-      console.log('[Content Change] Content changed, length:', newContent.length)
+      console.log('[Content Change] Content changed')
       setContent(newContent)
     }
   }
@@ -148,19 +142,10 @@ export function FileEditor({
   const handleSave = useCallback(async () => {
     console.log('[Save] handleSave called')
     const currentContent = editorRef.current?.getValue()
-    console.log('[Save] Current state:', {
-      hasContent: !!currentContent,
-      isSaving,
-      hasChanges: currentContent !== savedContent,
-      filename,
-    })
+    console.log('[Save] Current state')
 
     if (!currentContent || isSaving || currentContent === savedContent) {
-      console.log('[Save] Skipping save:', {
-        noContent: !currentContent,
-        isSaving,
-        noChanges: currentContent === savedContent,
-      })
+      console.log('[Save] Skipping save')
       return
     }
 
@@ -183,7 +168,7 @@ export function FileEditor({
       })
 
       const data = await response.json()
-      console.log('[Save] Response:', { ok: response.ok, data })
+      console.log('[Save] Response')
 
       if (response.ok && data.success) {
         console.log('[Save] Save successful, updating savedContent')
@@ -196,11 +181,7 @@ export function FileEditor({
         setTimeout(() => {
           const latestContent = editorRef.current?.getValue()
           if (latestContent) {
-            console.log('[Save] Post-save check:', {
-              savedLength: currentContent.length,
-              currentLength: latestContent.length,
-              match: latestContent === currentContent,
-            })
+            console.log('[Save] Post-save check')
           }
         }, 100)
       } else {
@@ -350,7 +331,7 @@ export function FileEditor({
 
       // Check if we need to recreate the model with the correct URI
       if (currentUri !== expectedUri) {
-        console.log('[Editor Mount] URI mismatch! Expected:', expectedUri, 'Got:', currentUri)
+        console.log('[Editor Mount] URI mismatch')
 
         // Get current content
         const currentContent = model.getValue()
@@ -381,7 +362,7 @@ export function FileEditor({
           // Set the new model on the editor
           editor.setModel(newModel)
 
-          console.log('[Editor Mount] New model created with URI:', newModel.uri.toString())
+          console.log('[Editor Mount] New model created')
         }
       } else {
         console.log('[Editor Mount] Model URI is correct')
@@ -489,7 +470,7 @@ export function FileEditor({
           }),
         })
 
-        console.log('[Go to Definition] LSP API response status:', response.status)
+        console.log('[Go to Definition] LSP API response')
 
         if (!response.ok) {
           const errorText = await response.text()
@@ -519,7 +500,7 @@ export function FileEditor({
         }
 
         const convertedDefinitions = (data.definitions as LspDefinition[]).map((def) => {
-          console.log('[Go to Definition] Processing definition:', JSON.stringify(def))
+          console.log('[Go to Definition] Processing definition')
 
           const result = {
             uri: monaco.Uri.parse(def.uri),
@@ -530,7 +511,7 @@ export function FileEditor({
               endColumn: def.range.end.character + 1,
             },
           }
-          console.log('[Go to Definition] Converted definition:', JSON.stringify(result))
+          console.log('[Go to Definition] Converted definition')
           return result
         })
 
@@ -589,12 +570,7 @@ export function FileEditor({
         const targetUri = definition.uri.toString()
         const currentUri = model.uri.toString()
 
-        console.log('[F12] Definition found:', {
-          targetUri,
-          currentUri,
-          isSameFile: targetUri === currentUri,
-          range: definition.range,
-        })
+        console.log('[F12] Definition found')
 
         // Check if the definition is in a different file
         if (targetUri !== currentUri) {
@@ -602,7 +578,7 @@ export function FileEditor({
           let filePath = targetUri.replace('file://', '')
           // Remove /vercel/sandbox prefix if present (from sandbox LSP)
           filePath = filePath.replace(/^\/vercel\/sandbox/, '')
-          console.log('[F12] Opening file in new tab:', filePath)
+          console.log('[F12] Opening file in new tab')
 
           // Open in a new tab
           if (onOpenFileRef.current) {
@@ -626,12 +602,7 @@ export function FileEditor({
     // Also handle Cmd/Ctrl + Click (go to definition)
     console.log('[Editor Mount] Setting up mouse handler...')
     editor.onMouseDown(async (e) => {
-      console.log('[Mouse Click] Mouse down event:', {
-        leftButton: e.event.leftButton,
-        ctrlKey: e.event.ctrlKey,
-        metaKey: e.event.metaKey,
-        hasPosition: !!e.target.position,
-      })
+      console.log('[Mouse Click] Mouse down event')
 
       if (e.event.leftButton && (e.event.ctrlKey || e.event.metaKey) && e.target.position) {
         console.log('[Mouse Click] Cmd/Ctrl + Click detected, getting definitions...')
@@ -651,18 +622,14 @@ export function FileEditor({
         const targetUri = definition.uri.toString()
         const currentUri = model.uri.toString()
 
-        console.log('[Mouse Click] Definition found:', {
-          targetUri,
-          currentUri,
-          isSameFile: targetUri === currentUri,
-        })
+        console.log('[Mouse Click] Definition found')
 
         if (targetUri !== currentUri) {
           // Extract the file path from the URI and strip sandbox prefix
           let filePath = targetUri.replace('file://', '')
           // Remove /vercel/sandbox prefix if present (from sandbox LSP)
           filePath = filePath.replace(/^\/vercel\/sandbox/, '')
-          console.log('[Mouse Click] Opening file in new tab:', filePath)
+          console.log('[Mouse Click] Opening file in new tab')
           if (onOpenFileRef.current) {
             onOpenFileRef.current(filePath, definition.range.startLineNumber)
           } else {

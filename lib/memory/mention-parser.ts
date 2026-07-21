@@ -2,7 +2,6 @@ import { db } from '../db/client'
 import { tasks, memories } from '../db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 
-
 export async function parseMentionsAndInjectContext(userId: string, prompt: string): Promise<string> {
   const taskMentions = prompt.match(/@task_([a-zA-Z0-9_-]+)/g) || []
   let contextInjection = ''
@@ -31,7 +30,7 @@ export async function parseMentionsAndInjectContext(userId: string, prompt: stri
           .orderBy(sql`${memories.createdAt} DESC`)
           .limit(1)
         if (memoriesData.length > 0) {
-            contextInjection += `Summary/Learnings: ${memoriesData[0].content}\n`
+          contextInjection += `Summary/Learnings: ${memoriesData[0].content}\n`
         }
 
         contextInjection += `Status: ${task.status}\n`

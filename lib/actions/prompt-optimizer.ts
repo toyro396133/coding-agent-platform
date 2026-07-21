@@ -7,6 +7,13 @@ import { getServerSession } from '../session/get-server-session'
 import { createOpenAI } from '@ai-sdk/openai'
 import { generateText, embed } from 'ai'
 
+/**
+ * Enhances a user prompt using relevant memories and language-model guidance while preserving its original goal.
+ *
+ * @param rawPrompt - The prompt to enhance
+ * @returns The enhanced prompt with leading and trailing whitespace removed
+ * @throws If the current session does not contain a user ID
+ */
 export async function optimizePrompt(rawPrompt: string): Promise<string> {
   const session = await getServerSession()
   if (!session?.user?.id) {

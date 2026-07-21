@@ -60,6 +60,12 @@ interface DeploymentInfo {
   createdAt?: string
 }
 
+/**
+ * Renders a task-focused chat interface with related comments, checks, and deployment information.
+ *
+ * @param taskId - The identifier of the task.
+ * @param task - The task whose messages and related data are displayed.
+ */
 export function TaskChat({ taskId, task }: TaskChatProps) {
   const [messages, setMessages] = useState<TaskMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)

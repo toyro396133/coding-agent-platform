@@ -6,6 +6,12 @@ import { eq, desc } from 'drizzle-orm'
 import { getServerSession } from '../session/get-server-session'
 import { revalidatePath } from 'next/cache'
 
+/**
+ * Retrieves the most recent proposals for the authenticated user.
+ *
+ * @returns The latest 50 proposals, ordered by creation time
+ * @throws Error when no authenticated user is available
+ */
 export async function fetchProposals() {
   const session = await getServerSession()
   if (!session?.user?.id) {
@@ -17,6 +23,12 @@ export async function fetchProposals() {
   return proposals
 }
 
+/**
+ * Updates a proposal's status and refreshes the tasks route.
+ *
+ * @param id - The proposal identifier
+ * @param status - The new proposal status
+ */
 export async function updateProposalStatus(id: string, status: 'accepted' | 'rejected') {
   const session = await getServerSession()
   if (!session?.user?.id) {

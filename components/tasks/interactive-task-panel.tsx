@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { Check, X, Loader2 } from 'lucide-react'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { getDictionary, Locale } from '@/dictionaries'
+import { redactSensitiveInfo } from '@/lib/utils/logging'
 
 /**
  * Displays proposals and background tests, allowing users to update proposal statuses and toggle test availability.
@@ -134,7 +135,7 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
 
       {executions.length > 0 && (
         <div className="space-y-4 mt-4">
-          <h3 className="font-semibold text-sm tracking-tight">Test Executions</h3>
+          <h3 className="font-semibold text-sm tracking-tight">{t.testExecutions}</h3>
           <Accordion type="single" collapsible className="w-full space-y-2">
             {executions.map((exec) => (
               <AccordionItem key={exec.id} value={exec.id} className="border rounded-md px-3 bg-card">
@@ -153,13 +154,13 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
                 </AccordionTrigger>
                 <AccordionContent className="pt-1 pb-3">
                   <div className="text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap font-mono">
-                    {exec.logs || 'No logs available.'}
+                    {exec.logs ? redactSensitiveInfo(exec.logs) : t.noLogsAvailable}
                   </div>
                   {exec.remediationPatch && (
                     <div className="mt-2 text-xs">
-                      <p className="font-semibold mb-1">Remediation applied:</p>
+                      <p className="font-semibold mb-1">{t.remediationApplied}:</p>
                       <pre className="bg-muted p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap font-mono">
-                        {JSON.stringify(exec.remediationPatch, null, 2)}
+                        {redactSensitiveInfo(JSON.stringify(exec.remediationPatch, null, 2))}
                       </pre>
                     </div>
                   )}

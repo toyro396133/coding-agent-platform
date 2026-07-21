@@ -542,21 +542,30 @@ export const selectBackgroundTestSchema = z.object({
 export type BackgroundTest = z.infer<typeof selectBackgroundTestSchema>
 export type InsertBackgroundTest = z.infer<typeof insertBackgroundTestSchema>
 
-export const backgroundTestExecutions = pgTable('background_test_executions', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => nanoid()),
-  testId: text('test_id')
-    .notNull()
-    .references(() => backgroundTestsBank.id, { onDelete: 'cascade' }),
-  taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
-  status: text('status', {
-    enum: ['passed', 'failed', 'remediated'],
-  }).notNull(),
-  logs: text('logs'),
-  remediationPatch: jsonb('remediation_patch'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const backgroundTestExecutions = pgTable(
+  'background_test_executions',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    testId: text('test_id')
+      .notNull()
+      .references(() => backgroundTestsBank.id, { onDelete: 'cascade' }),
+    taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
+    status: text('status', {
+      enum: ['passed', 'failed', 'remediated'],
+    }).notNull(),
+    logs: text('logs'),
+    remediationPatch: jsonb('remediation_patch'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    taskIdCreatedAtIdx: index('background_test_executions_task_id_created_at_idx').on(
+      table.taskId,
+      table.createdAt,
+    ),
+  }),
+)
 
 export const insertBackgroundTestExecutionSchema = z.object({
   id: z.string().optional(),
@@ -571,6 +580,7 @@ export const insertBackgroundTestExecutionSchema = z.object({
 export const selectBackgroundTestExecutionSchema = z.object({
   id: z.string(),
   testId: z.string(),
+  taskId: z.string().nullable(),
   status: z.enum(['passed', 'failed', 'remediated']),
   logs: z.string().nullable(),
   remediationPatch: z.any().nullable(),

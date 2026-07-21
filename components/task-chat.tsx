@@ -31,6 +31,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 interface TaskChatProps {
   taskId: string
   task: Task
+  locale?: Locale
 }
 
 interface PRComment {
@@ -66,8 +67,10 @@ interface DeploymentInfo {
  *
  * @param taskId - The identifier of the task.
  * @param task - The task whose messages and related data are displayed.
+ * @param locale - The active locale for internationalization.
  */
-export function TaskChat({ taskId, task }: TaskChatProps) {
+export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
+  const t = getDictionary(locale)
   const [messages, setMessages] = useState<TaskMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1321,7 +1324,7 @@ export function TaskChat({ taskId, task }: TaskChatProps) {
                   onClick={handleOptimizePrompt}
                   disabled={!newMessage.trim() || isOptimizing || isSending}
                   className="absolute bottom-2 end-9 rounded-full h-5 w-5 bg-secondary text-secondary-foreground hover:bg-secondary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={getDictionary('he').enhancePrompt}
+                  title={t.enhancePrompt}
                   aria-label="Optimize prompt with AI enhancement"
                 >
                   {isOptimizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}

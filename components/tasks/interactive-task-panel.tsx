@@ -14,7 +14,10 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/
 import { getDictionary, Locale } from '@/dictionaries'
 
 /**
- * Displays proposals and background tests, allowing users to update proposal statuses and toggle test availability.
+ * Displays proposals, test executions, and background tests with controls for updating proposal statuses and enabling or disabling tests.
+ *
+ * @param taskId - Optional task identifier used to load its test executions
+ * @param locale - Locale used for translating execution statuses
  */
 export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: string; locale?: Locale }) {
   const t = getDictionary(locale)
@@ -24,6 +27,11 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    /**
+     * Loads proposals, background tests, and task-related test executions into the panel.
+     *
+     * Displays an error notification if loading fails.
+     */
     async function loadData() {
       try {
         setIsLoading(true)

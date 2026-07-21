@@ -8,6 +8,11 @@ import { getModelClient } from '@/lib/ai/models'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 
+/**
+ * Runs all enabled background tests in a sandbox and records their execution outcomes.
+ *
+ * @param options - Optional identifiers for reusing a task-associated or existing sandbox.
+ */
 export async function runBackgroundTests(options?: { taskId?: string; sandboxId?: string }) {
   // Query backgroundTestsBank for enabled tests
   const enabledTests = await db.select().from(backgroundTestsBank).where(eq(backgroundTestsBank.isEnabled, true))

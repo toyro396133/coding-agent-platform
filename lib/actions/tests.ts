@@ -40,6 +40,13 @@ export async function toggleTestEnabled(id: string, isEnabled: boolean) {
   revalidatePath('/tasks')
 }
 
+/**
+ * Retrieves the most recent executions for a background test task.
+ *
+ * @param taskId - The identifier of the background test task
+ * @returns Up to 50 executions ordered from newest to oldest
+ * @throws Error if the user is not authenticated
+ */
 export async function fetchBackgroundTestExecutionsByTaskId(taskId: string) {
   const session = await getServerSession()
   if (!session?.user?.id) {

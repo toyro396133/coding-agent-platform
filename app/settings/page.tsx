@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getDynamicRoutes } from '@/lib/actions/routing'
 import { RoutingForm } from './routing-form'
+import { AdminUsers } from '@/components/auth/admin-users'
 
 export const metadata = {
   title: 'Settings',
@@ -22,6 +23,7 @@ export default async function SettingsPage() {
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="routing">Agent Routing</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
         </TabsList>
         <TabsContent value="general" className="space-y-6">
           <Card>
@@ -49,6 +51,11 @@ export default async function SettingsPage() {
               </Suspense>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="users" className="space-y-6">
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminUsers />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

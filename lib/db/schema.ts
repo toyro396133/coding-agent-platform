@@ -18,7 +18,7 @@ export const users = pgTable(
     id: text('id').primaryKey(), // Internal user ID (we generate this)
     // Primary OAuth account info (how they signed in)
     provider: text('provider', {
-      enum: ['github', 'vercel'],
+      enum: ['github', 'vercel', 'credentials'],
     }).notNull(), // Primary auth provider
     externalId: text('external_id').notNull(), // External ID from OAuth provider
     accessToken: text('access_token').notNull(), // Encrypted OAuth access token
@@ -29,6 +29,7 @@ export const users = pgTable(
     email: text('email'),
     name: text('name'),
     avatarUrl: text('avatar_url'),
+    passwordHash: text('password_hash'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     lastLoginAt: timestamp('last_login_at').defaultNow().notNull(),
@@ -41,7 +42,7 @@ export const users = pgTable(
 
 export const insertUserSchema = z.object({
   id: z.string().optional(), // Auto-generated if not provided
-  provider: z.enum(['github', 'vercel']),
+  provider: z.enum(['github', 'vercel', 'credentials']),
   externalId: z.string().min(1, 'External ID is required'),
   accessToken: z.string(),
   refreshToken: z.string().optional(),
@@ -50,6 +51,7 @@ export const insertUserSchema = z.object({
   email: z.string().email().optional(),
   name: z.string().optional(),
   avatarUrl: z.string().url().optional(),
+  passwordHash: z.string().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   lastLoginAt: z.date().optional(),
@@ -57,7 +59,7 @@ export const insertUserSchema = z.object({
 
 export const selectUserSchema = z.object({
   id: z.string(),
-  provider: z.enum(['github', 'vercel']),
+  provider: z.enum(['github', 'vercel', 'credentials']),
   externalId: z.string(),
   accessToken: z.string(),
   refreshToken: z.string().nullable(),
@@ -66,6 +68,7 @@ export const selectUserSchema = z.object({
   email: z.string().nullable(),
   name: z.string().nullable(),
   avatarUrl: z.string().nullable(),
+  passwordHash: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
   lastLoginAt: z.date(),
@@ -560,10 +563,7 @@ export const backgroundTestExecutions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
-    taskIdCreatedAtIdx: index('background_test_executions_task_id_created_at_idx').on(
-      table.taskId,
-      table.createdAt,
-    ),
+    taskIdCreatedAtIdx: index('background_test_executions_task_id_created_at_idx').on(table.taskId, table.createdAt),
   }),
 )
 

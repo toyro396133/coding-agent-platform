@@ -14,6 +14,8 @@ const SHOW_CODE_PANE_COOKIE = 'show-code-pane'
 const SHOW_PREVIEW_PANE_COOKIE = 'show-preview-pane'
 const SHOW_CHAT_PANE_COOKIE = 'show-chat-pane'
 const ENABLE_BROWSER_COOKIE = 'enable-browser'
+const PREVIEW_DEVICE_SIZE_COOKIE = 'preview-device-size'
+const DEFAULT_PREVIEW_DEVICE_SIZE = 'iphone-14'
 const DEFAULT_SIDEBAR_WIDTH = 288
 const DEFAULT_SIDEBAR_OPEN = false // Default to false to avoid hydration issues
 const DEFAULT_LOGS_PANE_HEIGHT = 200
@@ -497,6 +499,21 @@ export function setChatPaneWidth(width: number): void {
   if (typeof window === 'undefined') return
 
   Cookies.set(CHAT_PANE_WIDTH_COOKIE, width.toString(), {
+    expires: 365,
+    sameSite: 'strict',
+  })
+}
+
+export function getPreviewDeviceSize(): string {
+  if (typeof document === 'undefined') return DEFAULT_PREVIEW_DEVICE_SIZE
+  const value = Cookies.get(PREVIEW_DEVICE_SIZE_COOKIE)
+  return value || DEFAULT_PREVIEW_DEVICE_SIZE
+}
+
+export function setPreviewDeviceSize(size: string): void {
+  if (typeof window === 'undefined') return
+
+  Cookies.set(PREVIEW_DEVICE_SIZE_COOKIE, size, {
     expires: 365,
     sameSite: 'strict',
   })

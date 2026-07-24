@@ -110,6 +110,14 @@ export async function getUserByExternalId(provider: 'github' | 'vercel', externa
 }
 
 /**
+ * Get user by username
+ */
+export async function getUserByUsername(username: string) {
+  const result = await db.select().from(users).where(eq(users.username, username)).limit(1)
+  return result[0] || null
+}
+
+/**
  * Find user by GitHub account connection
  * Used to check if a GitHub account is already connected to a user
  */

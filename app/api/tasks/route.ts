@@ -25,6 +25,7 @@ import { parseMentionsAndInjectContext } from '@/lib/memory/mention-parser'
 import { retrieveRelevantMemories } from '@/lib/memory/engine'
 
 import { summarizeAndStoreTask } from '@/lib/memory/summarize'
+import { runOrchestrator } from '@/lib/ai/orchestrator/loop'
 
 import { getUserGitHubToken } from '@/lib/github/user-token'
 import { getGitHubUser } from '@/lib/github/client'
@@ -242,6 +243,7 @@ export async function POST(request: NextRequest) {
           validatedData.installDependencies || false,
           validatedData.keepAlive || false,
           validatedData.enableBrowser || false,
+          validatedData.executionMode || 'orchestrator_external',
           userApiKeys,
           userGithubToken,
           githubUser,
@@ -270,6 +272,7 @@ async function processTaskWithTimeout(
   installDependencies: boolean = false,
   keepAlive: boolean = false,
   enableBrowser: boolean = false,
+  executionMode: string = 'orchestrator_external',
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -316,6 +319,7 @@ async function processTaskWithTimeout(
         installDependencies,
         keepAlive,
         enableBrowser,
+        executionMode,
         apiKeys,
         githubToken,
         githubUser,
@@ -386,6 +390,7 @@ async function processTask(
   installDependencies: boolean = false,
   keepAlive: boolean = false,
   enableBrowser: boolean = false,
+  executionMode: string = 'orchestrator_external',
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -620,60 +625,34 @@ async function processTask(
 
     // === ORCHESTRATOR SUB-AGENT LOGIC ===
     let finalPrompt = sanitizedPrompt
-    try {
-      await logger.info('Orchestrator evaluating task for sub-agents...')
-      const orchestratorModel = getModelClient(selectedModel || 'gpt-4o-mini')
-
-      const { text } = await generateText({
-        model: orchestratorModel,
-        system:
-          "You are the Orchestrator Agent. Your job is to evaluate the user's prompt. If the task is complex and requires specialized knowledge (like CSS fixes, API reading, syntax checking, etc.), you can spawn sub-agents to do preliminary work or analysis using the `spawnSubAgent` tool. You can call it multiple times. Once you have all the necessary sub-agent results, summarize how the main Sandbox Agent should proceed and combine that with the original prompt. If no sub-agents are needed, just output the original prompt or a slightly clarified version of it.",
-        prompt: finalPrompt,
-        stopWhen: stepCountIs(5),
-        tools: {
-          spawnSubAgent: tool({
-            description: 'Spawn a specialized sub-agent to handle a specific part of the task.',
-            inputSchema: z.object({
-              subTaskType: z
-                .string()
-                .describe(
-                  'A descriptive identifier for the sub-task (e.g., "css_specialist", "api_doc_reader", "patch_writer").',
-                ),
-              prompt: z.string().describe('The specific prompt or assignment for this sub-agent.'),
-            }),
-            execute: async ({ subTaskType, prompt: subPrompt }) => {
-              await logger.info(`Spawning sub-agent of type: ${subTaskType}`)
-              const userId = (await getServerSession())?.user?.id || 'anonymous'
-              const subModelName = await getSubAgentModel(subTaskType, userId)
-              const subModel = getModelClient(subModelName)
-
-              await logger.info(`Using model: ${subModelName}`)
-
-              const { text: subResult } = await generateText({
-                model: subModel,
-                system: `You are a specialized sub-agent of type: ${subTaskType}. Help the orchestrator solve this sub-task.`,
-                prompt: subPrompt,
-              })
-
-              await logger.info(`Sub-agent ${subTaskType} completed`)
-              return subResult
-            },
-          }),
-        },
-      })
-
-      if (text) {
-        finalPrompt = text
-        await logger.info('Orchestrator refined the prompt.')
+    if (executionMode !== 'external_only') {
+      try {
+        await logger.info('Running orchestrator')
+        const result = await runOrchestrator(sanitizedPrompt, {
+          taskId,
+          selectedModel: selectedModel || 'gpt-4o-mini',
+        })
+        if (result.finalAnswer) {
+          finalPrompt = result.finalAnswer
+          await logger.info('Orchestrator refined the prompt')
+        }
+      } catch (orchError) {
+        console.error('Orchestrator evaluation failed:', orchError)
+        await logger.info('Orchestrator skipped due to error, proceeding with standard execution')
       }
-    } catch (orchError) {
-      console.error('Orchestrator evaluation failed, falling back to original prompt:', orchError)
-      await logger.info('Orchestrator skipped due to error, proceeding with standard execution.')
     }
     // === END ORCHESTRATOR ===
 
     // Generate agent message ID for streaming updates
     const agentMessageId = generateId()
+
+    if (executionMode === 'orchestrator_only') {
+      await logger.info('Orchestrator-only mode: skipping external agent execution')
+      await logger.success('Orchestrator completed')
+      await logger.updateStatus('completed')
+      await logger.updateProgress(100, 'Task completed successfully')
+      return
+    }
 
     const agentResult = await executeAgentInSandbox(
       sandbox,

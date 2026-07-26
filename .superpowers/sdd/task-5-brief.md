@@ -1,3 +1,20 @@
+﻿# Task 5: Admin Users API
+
+**Files:**
+- Create: pp/api/auth/admin/users/route.ts
+
+**Interfaces:**
+- Produces: GET /api/auth/admin/users (list users), POST /api/auth/admin/users (create/update)
+- Consumes: getServerSession (from lib/session/get-server-session.ts)
+- Consumes: getUserByUsername (from lib/db/users.ts)
+
+## Steps
+
+- **Step 1: Create admin users route**
+
+Create pp/api/auth/admin/users/route.ts:
+
+`	ypescript
 import 'server-only'
 
 import { NextResponse } from 'next/server'
@@ -7,7 +24,7 @@ import { getServerSession } from '@/lib/session/get-server-session'
 import { getUserByUsername } from '@/lib/db/users'
 import { nanoid } from 'nanoid'
 import bcrypt from 'bcryptjs'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 export async function GET() {
   try {
@@ -24,15 +41,23 @@ export async function GET() {
         name: users.name,
         provider: users.provider,
         createdAt: users.createdAt,
-        hasPassword: sql<boolean>`${users.passwordHash} IS NOT NULL`,
+        hasPassword: users.passwordHash,
       })
       .from(users)
       .orderBy(users.createdAt)
 
-    return NextResponse.json({ users: allUsers })
+    const safeUsers = allUsers.map((u) => ({
+      ...u,
+      hasPassword: u.hasPassword ? true : false,
+    }))
+
+    return NextResponse.json({ users: safeUsers })
   } catch (error) {
     console.error('Failed to fetch users:', error)
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to fetch users' },
+      { status: 500 },
+    )
   }
 }
 
@@ -47,17 +72,27 @@ export async function POST(req: Request) {
     const { username, password, email, name, userId } = body
 
     if (!password || password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters' },
+        { status: 400 },
+      )
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
 
     if (userId) {
       // Update existing user's password
-      const existing = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
+      const existing = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
 
       if (existing.length === 0) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 },
+        )
       }
 
       await db
@@ -73,12 +108,18 @@ export async function POST(req: Request) {
 
     // Create new user
     if (!username) {
-      return NextResponse.json({ error: 'Username is required for new users' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Username is required for new users' },
+        { status: 400 },
+      )
     }
 
     const existing = await getUserByUsername(username)
     if (existing) {
-      return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
+      return NextResponse.json(
+        { error: 'Username already taken' },
+        { status: 409 },
+      )
     }
 
     const newUserId = nanoid()
@@ -106,6 +147,13 @@ export async function POST(req: Request) {
     })
   } catch (error) {
     console.error('Failed to create user:', error)
-    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to create user' },
+      { status: 500 },
+    )
   }
 }
+`
+
+- **Step 2: Run format + type-check**
+- **Step 3: Commit**

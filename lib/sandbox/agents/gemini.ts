@@ -172,7 +172,9 @@ EOF`
 
     // Check authentication options in order of preference
     let authMethod = 'none'
-    const authEnv: Record<string, string> = {}
+    const authEnv: Record<string, string> = {
+      GEMINI_CLI_TRUST_WORKSPACE: 'true',
+    }
 
     // Option 1: Check for GEMINI_API_KEY (Gemini API)
     if (process.env.GEMINI_API_KEY) {

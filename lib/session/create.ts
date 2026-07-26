@@ -4,7 +4,7 @@ import type { Session, Tokens } from './types'
 import { SESSION_COOKIE_NAME } from './constants'
 import { encryptJWE } from '@/lib/jwe/encrypt'
 import { fetchUser } from '@/lib/vercel-client/user'
-import { upsertUser } from '@/lib/db/users'
+import { upsertUser, getUserById } from '@/lib/db/users'
 import { encrypt } from '@/lib/crypto'
 import ms from 'ms'
 
@@ -30,6 +30,8 @@ export async function createSession(tokens: Tokens): Promise<Session | undefined
     avatarUrl: `https://vercel.com/api/www/avatar/?u=${user.username}`,
   })
 
+  const dbUser = await getUserById(userId)
+
   const session = {
     created: Date.now(),
     authProvider: 'vercel' as const,
@@ -39,6 +41,7 @@ export async function createSession(tokens: Tokens): Promise<Session | undefined
       email: user.email,
       name: user.name,
       avatar: `https://vercel.com/api/www/avatar/?u=${user.username}`,
+      locale: (dbUser?.locale as 'en' | 'he') || 'he',
     },
   }
 

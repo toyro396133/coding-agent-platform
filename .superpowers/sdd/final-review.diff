@@ -1,0 +1,3268 @@
+ .superpowers/sdd/progress.md                       |    6 +
+ .superpowers/sdd/task-1-brief.md                   |   44 +
+ app/api/auth/admin/users/route.ts                  |  116 ++
+ app/api/auth/signin/credentials/route.ts           |   46 +
+ app/settings/page.tsx                              |    7 +
+ components/auth/admin-users.tsx                    |  206 ++++
+ components/auth/sign-in-password.tsx               |   78 ++
+ components/auth/sign-in.tsx                        |  211 ++--
+ .../plans/2026-07-24-credentials-auth-plan.md      |  948 +++++++++++++++++
+ .../specs/2026-07-24-credentials-auth-design.md    |   93 ++
+ lib/db/migrations/0029_easy_butterfly.sql          |    2 +
+ lib/db/migrations/meta/0029_snapshot.json          | 1125 ++++++++++++++++++++
+ lib/db/migrations/meta/_journal.json               |    7 +
+ lib/db/schema.ts                                   |   14 +-
+ lib/db/users.ts                                    |    8 +
+ lib/session/types.ts                               |    4 +-
+ package.json                                       |    1 +
+ pnpm-lock.yaml                                     |   13 +-
+ scripts/create-user.ts                             |   59 +
+ 19 files changed, 2885 insertions(+), 103 deletions(-)
+ 
+diff --git a/.superpowers/sdd/progress.md b/.superpowers/sdd/progress.md
+new file mode 100644
+index 0000000..d987d6d
+--- /dev/null
++++ b/.superpowers/sdd/progress.md
+@@ -0,0 +1,6 @@
++# Subagent-Driven Development Progress
++
++
++Task 1: complete (commits 268d628..49152ec, review clean after fix)
++Task 2: complete (commits 3dc2026, review clean)
++Task 3: complete (commits 75f1fff, review clean)
+diff --git a/.superpowers/sdd/task-1-brief.md b/.superpowers/sdd/task-1-brief.md
+new file mode 100644
+index 0000000..1b8cb5f
+--- /dev/null
++++ b/.superpowers/sdd/task-1-brief.md
+@@ -0,0 +1,44 @@
++???# Task 1: Database Schema Updates
++
++**Files:**
++- Modify: lib/db/schema.ts
++
++**Interfaces:**
++- Consumes: existing schema definitions
++- Produces: updated users table with password_hash column and 'credentials' in provider enum
++
++## Steps
++
++- **Step 1: Update provider enum and add password_hash**
++
++Update lib/db/schema.ts:
++- Change provider enum from ['github', 'vercel'] to ['github', 'vercel', 'credentials']
++- Add password_hash: text('password_hash') field to users table (after vatarUrl)
++- Update insertUserSchema to include optional password_hash
++- Update selectUserSchema to include nullable password_hash
++
++In users table definition - change provider enum line:
++`	ypescript
++provider: text('provider', {
++  enum: ['github', 'vercel', 'credentials'],
++}).notNull(),
++`
++
++Add after avatarUrl line:
++`	ypescript
++passwordHash: text('password_hash'),
++`
++
++Update insertUserSchema to include:
++`	ypescript
++passwordHash: z.string().optional(),
++`
++
++Update selectUserSchema to include:
++`	ypescript
++passwordHash: z.string().nullable(),
++`
++
++- **Step 2: Run type check** - pnpm type-check
++- **Step 3: Generate migration** - pnpm db:generate
++- **Step 4: Run format and commit**
+diff --git a/app/api/auth/admin/users/route.ts b/app/api/auth/admin/users/route.ts
+new file mode 100644
+index 0000000..3f4f7ec
+--- /dev/null
++++ b/app/api/auth/admin/users/route.ts
+@@ -0,0 +1,116 @@
++import 'server-only'
++
++import { NextResponse } from 'next/server'
++import { db } from '@/lib/db/client'
++import { users } from '@/lib/db/schema'
++import { getServerSession } from '@/lib/session/get-server-session'
++import { getUserByUsername } from '@/lib/db/users'
++import { nanoid } from 'nanoid'
++import bcrypt from 'bcryptjs'
++import { eq } from 'drizzle-orm'
++
++export async function GET() {
++  try {
++    const session = await getServerSession()
++    if (!session?.user) {
++      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
++    }
++
++    const allUsers = await db
++      .select({
++        id: users.id,
++        username: users.username,
++        email: users.email,
++        name: users.name,
++        provider: users.provider,
++        createdAt: users.createdAt,
++        hasPassword: users.passwordHash,
++      })
++      .from(users)
++      .orderBy(users.createdAt)
++
++    const safeUsers = allUsers.map((u) => ({
++      ...u,
++      hasPassword: u.hasPassword ? true : false,
++    }))
++
++    return NextResponse.json({ users: safeUsers })
++  } catch (error) {
++    console.error('Failed to fetch users:', error)
++    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
++  }
++}
++
++export async function POST(req: Request) {
++  try {
++    const session = await getServerSession()
++    if (!session?.user) {
++      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
++    }
++
++    const body = await req.json()
++    const { username, password, email, name, userId } = body
++
++    if (!password || password.length < 6) {
++      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
++    }
++
++    const passwordHash = await bcrypt.hash(password, 10)
++
++    if (userId) {
++      // Update existing user's password
++      const existing = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
++
++      if (existing.length === 0) {
++        return NextResponse.json({ error: 'User not found' }, { status: 404 })
++      }
++
++      await db
++        .update(users)
++        .set({
++          passwordHash,
++          updatedAt: new Date(),
++        })
++        .where(eq(users.id, userId))
++
++      return NextResponse.json({ success: true, userId })
++    }
++
++    // Create new user
++    if (!username) {
++      return NextResponse.json({ error: 'Username is required for new users' }, { status: 400 })
++    }
++
++    const existing = await getUserByUsername(username)
++    if (existing) {
++      return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
++    }
++
++    const newUserId = nanoid()
++    const now = new Date()
++
++    await db.insert(users).values({
++      id: newUserId,
++      provider: 'credentials',
++      externalId: username,
++      accessToken: '',
++      username,
++      email: email || null,
++      name: name || null,
++      passwordHash,
++      avatarUrl: '',
++      createdAt: now,
++      updatedAt: now,
++      lastLoginAt: now,
++    })
++
++    return NextResponse.json({
++      success: true,
++      userId: newUserId,
++      username,
++    })
++  } catch (error) {
++    console.error('Failed to create user:', error)
++    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
++  }
++}
+diff --git a/app/api/auth/signin/credentials/route.ts b/app/api/auth/signin/credentials/route.ts
+new file mode 100644
+index 0000000..893cca8
+--- /dev/null
++++ b/app/api/auth/signin/credentials/route.ts
+@@ -0,0 +1,46 @@
++import 'server-only'
++
++import { NextResponse } from 'next/server'
++import { getUserByUsername } from '@/lib/db/users'
++import { saveSession } from '@/lib/session/create'
++import bcrypt from 'bcryptjs'
++
++export async function POST(req: Request) {
++  try {
++    const { username, password } = await req.json()
++
++    if (!username || !password) {
++      return NextResponse.json({ error: 'Username and password are required' }, { status: 400 })
++    }
++
++    const user = await getUserByUsername(username)
++    if (!user || !user.passwordHash) {
++      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
++    }
++
++    const valid = await bcrypt.compare(password, user.passwordHash)
++    if (!valid) {
++      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
++    }
++
++    const session = {
++      created: Date.now(),
++      authProvider: 'credentials' as const,
++      user: {
++        id: user.id,
++        username: user.username,
++        email: user.email || undefined,
++        name: user.name || user.username,
++        avatar: user.avatarUrl || '',
++      },
++    }
++
++    const response = NextResponse.json({ success: true })
++    await saveSession(response, session)
++
++    return response
++  } catch (error) {
++    console.error('Login error:', error)
++    return NextResponse.json({ error: 'An error occurred during sign in' }, { status: 500 })
++  }
++}
+diff --git a/app/settings/page.tsx b/app/settings/page.tsx
+index 90d9778..1c79067 100644
+--- a/app/settings/page.tsx
++++ b/app/settings/page.tsx
+@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+ import { getDynamicRoutes } from '@/lib/actions/routing'
+ import { RoutingForm } from './routing-form'
++import { AdminUsers } from '@/components/auth/admin-users'
+ 
+ export const metadata = {
+   title: 'Settings',
+@@ -22,6 +23,7 @@ export default async function SettingsPage() {
+         <TabsList>
+           <TabsTrigger value="general">General</TabsTrigger>
+           <TabsTrigger value="routing">Agent Routing</TabsTrigger>
++          <TabsTrigger value="users">Users</TabsTrigger>
+         </TabsList>
+         <TabsContent value="general" className="space-y-6">
+           <Card>
+@@ -50,6 +52,11 @@ export default async function SettingsPage() {
+             </CardContent>
+           </Card>
+         </TabsContent>
++        <TabsContent value="users" className="space-y-6">
++          <Suspense fallback={<div>Loading...</div>}>
++            <AdminUsers />
++          </Suspense>
++        </TabsContent>
+       </Tabs>
+     </div>
+   )
+diff --git a/components/auth/admin-users.tsx b/components/auth/admin-users.tsx
+new file mode 100644
+index 0000000..e0706cc
+--- /dev/null
++++ b/components/auth/admin-users.tsx
+@@ -0,0 +1,206 @@
++'use client'
++
++import { useState, useEffect } from 'react'
++import { Button } from '@/components/ui/button'
++import { Input } from '@/components/ui/input'
++import { Label } from '@/components/ui/label'
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
++import { toast } from 'sonner'
++import { useAtomValue } from 'jotai'
++import { sessionAtom } from '@/lib/atoms/session'
++
++interface UserInfo {
++  id: string
++  username: string
++  email: string | null
++  name: string | null
++  provider: string
++  createdAt: string
++  hasPassword: boolean
++}
++
++export function AdminUsers() {
++  const session = useAtomValue(sessionAtom)
++  const [users, setUsers] = useState<UserInfo[]>([])
++  const [username, setUsername] = useState('')
++  const [password, setPassword] = useState('')
++  const [email, setEmail] = useState('')
++  const [name, setName] = useState('')
++  const [selectedUserId, setSelectedUserId] = useState('')
++  const [loading, setLoading] = useState(false)
++
++  useEffect(() => {
++    fetchUsers()
++  }, [])
++
++  const fetchUsers = async () => {
++    try {
++      const res = await fetch('/api/auth/admin/users')
++      const data = await res.json()
++      setUsers(data.users || [])
++    } catch {
++      console.error('Failed to fetch users')
++    }
++  }
++
++  const handleSubmit = async (e: React.FormEvent) => {
++    e.preventDefault()
++    if (!password || password.length < 6) {
++      toast.error('Password must be at least 6 characters')
++      return
++    }
++
++    setLoading(true)
++    try {
++      const res = await fetch('/api/auth/admin/users', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({
++          username: selectedUserId ? undefined : username,
++          password,
++          email: email || undefined,
++          name: name || undefined,
++          userId: selectedUserId || undefined,
++        }),
++      })
++
++      if (res.ok) {
++        toast.success(selectedUserId ? 'Password set successfully' : 'User created successfully')
++        setPassword('')
++        setEmail('')
++        setName('')
++        if (!selectedUserId) setUsername('')
++        setSelectedUserId('')
++        fetchUsers()
++      } else {
++        const data = await res.json()
++        toast.error(data.error || 'Failed to create user')
++      }
++    } catch {
++      toast.error('An error occurred')
++    } finally {
++      setLoading(false)
++    }
++  }
++
++  if (!session.user) return null
++
++  return (
++    <div className="space-y-6">
++      <Card>
++        <CardHeader>
++          <CardTitle>{selectedUserId ? 'Set Password for Existing User' : 'Create New User'}</CardTitle>
++          <CardDescription>
++            {selectedUserId
++              ? 'Set or reset password for an existing user.'
++              : 'Create a new user with username and password authentication.'}
++          </CardDescription>
++        </CardHeader>
++        <CardContent>
++          <form onSubmit={handleSubmit} className="space-y-4">
++            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
++              <div className="space-y-2">
++                <Label htmlFor="existing-user">User (leave empty for new user)</Label>
++                <select
++                  id="existing-user"
++                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
++                  value={selectedUserId}
++                  onChange={(e) => setSelectedUserId(e.target.value)}
++                >
++                  <option value="">-- Create new user --</option>
++                  {users.map((u) => (
++                    <option key={u.id} value={u.id}>
++                      {u.username} ({u.provider}){u.hasPassword ? ' (has password)' : ''}
++                    </option>
++                  ))}
++                </select>
++              </div>
++              {!selectedUserId && (
++                <div className="space-y-2">
++                  <Label htmlFor="username">Username *</Label>
++                  <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
++                </div>
++              )}
++              <div className="space-y-2">
++                <Label htmlFor="password">Password *</Label>
++                <Input
++                  id="password"
++                  type="password"
++                  value={password}
++                  onChange={(e) => setPassword(e.target.value)}
++                  required
++                  minLength={6}
++                />
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="email">Email</Label>
++                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="name">Name</Label>
++                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
++              </div>
++            </div>
++            <Button type="submit" disabled={loading}>
++              {loading ? 'Saving...' : selectedUserId ? 'Set Password' : 'Create User'}
++            </Button>
++            {selectedUserId && (
++              <Button type="button" variant="ghost" className="ml-2" onClick={() => setSelectedUserId('')}>
++                Cancel
++              </Button>
++            )}
++          </form>
++        </CardContent>
++      </Card>
++
++      <Card>
++        <CardHeader>
++          <CardTitle>Users</CardTitle>
++          <CardDescription>All registered users on the platform.</CardDescription>
++        </CardHeader>
++        <CardContent>
++          <div className="overflow-x-auto">
++            <table className="w-full text-sm">
++              <thead>
++                <tr className="border-b">
++                  <th className="text-left py-2 px-2">Username</th>
++                  <th className="text-left py-2 px-2">Email</th>
++                  <th className="text-left py-2 px-2">Provider</th>
++                  <th className="text-left py-2 px-2">Password</th>
++                  <th className="text-left py-2 px-2">Created</th>
++                </tr>
++              </thead>
++              <tbody>
++                {users.map((u) => (
++                  <tr key={u.id} className="border-b">
++                    <td className="py-2 px-2">{u.username}</td>
++                    <td className="py-2 px-2 text-muted-foreground">{u.email || '-'}</td>
++                    <td className="py-2 px-2">{u.provider}</td>
++                    <td className="py-2 px-2">
++                      {u.hasPassword ? (
++                        <span className="text-green-600">Set</span>
++                      ) : (
++                        <Button
++                          variant="link"
++                          size="sm"
++                          className="h-auto p-0"
++                          onClick={() => {
++                            setSelectedUserId(u.id)
++                            setUsername(u.username)
++                          }}
++                        >
++                          Set Password
++                        </Button>
++                      )}
++                    </td>
++                    <td className="py-2 px-2 text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</td>
++                  </tr>
++                ))}
++              </tbody>
++            </table>
++          </div>
++        </CardContent>
++      </Card>
++    </div>
++  )
++}
+diff --git a/components/auth/sign-in-password.tsx b/components/auth/sign-in-password.tsx
+new file mode 100644
+index 0000000..8b64078
+--- /dev/null
++++ b/components/auth/sign-in-password.tsx
+@@ -0,0 +1,78 @@
++'use client'
++
++import { useState } from 'react'
++import { Button } from '@/components/ui/button'
++import { Input } from '@/components/ui/input'
++import { Label } from '@/components/ui/label'
++import { toast } from 'sonner'
++import { useRouter } from 'next/navigation'
++import { useSetAtom } from 'jotai'
++import { sessionAtom } from '@/lib/atoms/session'
++
++export function SignInPassword({ onBack }: { onBack: () => void }) {
++  const [username, setUsername] = useState('')
++  const [password, setPassword] = useState('')
++  const [loading, setLoading] = useState(false)
++  const router = useRouter()
++  const setSession = useSetAtom(sessionAtom)
++
++  const handleSubmit = async (e: React.FormEvent) => {
++    e.preventDefault()
++    setLoading(true)
++
++    try {
++      const res = await fetch('/api/auth/signin/credentials', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ username, password }),
++      })
++
++      if (res.ok) {
++        toast.success('Signed in successfully')
++        setSession({ user: undefined })
++        router.refresh()
++      } else {
++        const data = await res.json()
++        toast.error(data.error || 'Invalid credentials')
++      }
++    } catch {
++      toast.error('An error occurred')
++    } finally {
++      setLoading(false)
++    }
++  }
++
++  return (
++    <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-4">
++      <div className="space-y-2">
++        <Label htmlFor="username">Username</Label>
++        <Input
++          id="username"
++          type="text"
++          placeholder="Enter your username"
++          value={username}
++          onChange={(e) => setUsername(e.target.value)}
++          required
++          autoFocus
++        />
++      </div>
++      <div className="space-y-2">
++        <Label htmlFor="password">Password</Label>
++        <Input
++          id="password"
++          type="password"
++          placeholder="Enter your password"
++          value={password}
++          onChange={(e) => setPassword(e.target.value)}
++          required
++        />
++      </div>
++      <Button type="submit" disabled={loading} size="lg" className="w-full">
++        {loading ? 'Signing in...' : 'Sign in'}
++      </Button>
++      <Button type="button" variant="ghost" size="sm" onClick={onBack}>
++        Back to sign in options
++      </Button>
++    </form>
++  )
++}
+diff --git a/components/auth/sign-in.tsx b/components/auth/sign-in.tsx
+index 9b11a12..05557d5 100644
+--- a/components/auth/sign-in.tsx
++++ b/components/auth/sign-in.tsx
+@@ -6,11 +6,13 @@ import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
+ import { GitHubIcon } from '@/components/icons/github-icon'
+ import { useState } from 'react'
+ import { getEnabledAuthProviders } from '@/lib/auth/providers'
++import { SignInPassword } from './sign-in-password'
+ 
+ export function SignIn() {
+   const [showDialog, setShowDialog] = useState(false)
+   const [loadingVercel, setLoadingVercel] = useState(false)
+   const [loadingGitHub, setLoadingGitHub] = useState(false)
++  const [showPasswordForm, setShowPasswordForm] = useState(false)
+ 
+   // Check which auth providers are enabled
+   const { github: hasGitHub, vercel: hasVercel } = getEnabledAuthProviders()
+@@ -33,102 +35,127 @@ export function SignIn() {
+ 
+       <Dialog open={showDialog} onOpenChange={setShowDialog}>
+         <DialogContent className="sm:max-w-md">
+-          <DialogHeader>
+-            <DialogTitle>Sign in</DialogTitle>
+-            <DialogDescription>
+-              {hasGitHub && hasVercel
+-                ? 'Choose how you want to sign in to continue.'
+-                : hasVercel
+-                  ? 'Sign in with Vercel to continue.'
+-                  : 'Sign in with GitHub to continue.'}
+-            </DialogDescription>
+-          </DialogHeader>
++          {showPasswordForm ? (
++            <>
++              <DialogHeader>
++                <DialogTitle>Sign in with Password</DialogTitle>
++                <DialogDescription>Enter your username and password to sign in.</DialogDescription>
++              </DialogHeader>
++              <SignInPassword onBack={() => setShowPasswordForm(false)} />
++            </>
++          ) : (
++            <>
++              <DialogHeader>
++                <DialogTitle>Sign in</DialogTitle>
++                <DialogDescription>
++                  {hasGitHub && hasVercel
++                    ? 'Choose how you want to sign in to continue.'
++                    : hasVercel
++                      ? 'Sign in with Vercel to continue.'
++                      : 'Sign in with GitHub to continue.'}
++                </DialogDescription>
++              </DialogHeader>
+ 
+-          <div className="flex flex-col gap-3 py-4">
+-            {hasVercel && (
+-              <Button
+-                onClick={handleVercelSignIn}
+-                disabled={loadingVercel || loadingGitHub}
+-                variant="outline"
+-                size="lg"
+-                className="w-full"
+-              >
+-                {loadingVercel ? (
+-                  <>
+-                    <svg
+-                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+-                      xmlns="http://www.w3.org/2000/svg"
+-                      fill="none"
+-                      viewBox="0 0 24 24"
+-                    >
+-                      <circle
+-                        className="opacity-25"
+-                        cx="12"
+-                        cy="12"
+-                        r="10"
+-                        stroke="currentColor"
+-                        strokeWidth="4"
+-                      ></circle>
+-                      <path
+-                        className="opacity-75"
+-                        fill="currentColor"
+-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+-                      ></path>
+-                    </svg>
+-                    Loading...
+-                  </>
+-                ) : (
+-                  <>
+-                    <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
+-                      <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
+-                    </svg>
+-                    Sign in with Vercel
+-                  </>
++              <div className="flex flex-col gap-3 py-4">
++                {hasVercel && (
++                  <Button
++                    onClick={handleVercelSignIn}
++                    disabled={loadingVercel || loadingGitHub}
++                    variant="outline"
++                    size="lg"
++                    className="w-full"
++                  >
++                    {loadingVercel ? (
++                      <>
++                        <svg
++                          className="animate-spin -ml-1 mr-2 h-4 w-4"
++                          xmlns="http://www.w3.org/2000/svg"
++                          fill="none"
++                          viewBox="0 0 24 24"
++                        >
++                          <circle
++                            className="opacity-25"
++                            cx="12"
++                            cy="12"
++                            r="10"
++                            stroke="currentColor"
++                            strokeWidth="4"
++                          ></circle>
++                          <path
++                            className="opacity-75"
++                            fill="currentColor"
++                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
++                          ></path>
++                        </svg>
++                        Loading...
++                      </>
++                    ) : (
++                      <>
++                        <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
++                          <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
++                        </svg>
++                        Sign in with Vercel
++                      </>
++                    )}
++                  </Button>
+                 )}
+-              </Button>
+-            )}
+ 
+-            {hasGitHub && (
+-              <Button
+-                onClick={handleGitHubSignIn}
+-                disabled={loadingVercel || loadingGitHub}
+-                variant="outline"
+-                size="lg"
+-                className="w-full"
+-              >
+-                {loadingGitHub ? (
+-                  <>
+-                    <svg
+-                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+-                      xmlns="http://www.w3.org/2000/svg"
+-                      fill="none"
+-                      viewBox="0 0 24 24"
+-                    >
+-                      <circle
+-                        className="opacity-25"
+-                        cx="12"
+-                        cy="12"
+-                        r="10"
+-                        stroke="currentColor"
+-                        strokeWidth="4"
+-                      ></circle>
+-                      <path
+-                        className="opacity-75"
+-                        fill="currentColor"
+-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+-                      ></path>
+-                    </svg>
+-                    Loading...
+-                  </>
+-                ) : (
+-                  <>
+-                    <GitHubIcon className="h-4 w-4 mr-2" />
+-                    Sign in with GitHub
+-                  </>
++                {hasGitHub && (
++                  <Button
++                    onClick={handleGitHubSignIn}
++                    disabled={loadingVercel || loadingGitHub}
++                    variant="outline"
++                    size="lg"
++                    className="w-full"
++                  >
++                    {loadingGitHub ? (
++                      <>
++                        <svg
++                          className="animate-spin -ml-1 mr-2 h-4 w-4"
++                          xmlns="http://www.w3.org/2000/svg"
++                          fill="none"
++                          viewBox="0 0 24 24"
++                        >
++                          <circle
++                            className="opacity-25"
++                            cx="12"
++                            cy="12"
++                            r="10"
++                            stroke="currentColor"
++                            strokeWidth="4"
++                          ></circle>
++                          <path
++                            className="opacity-75"
++                            fill="currentColor"
++                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
++                          ></path>
++                        </svg>
++                        Loading...
++                      </>
++                    ) : (
++                      <>
++                        <GitHubIcon className="h-4 w-4 mr-2" />
++                        Sign in with GitHub
++                      </>
++                    )}
++                  </Button>
+                 )}
+-              </Button>
+-            )}
+-          </div>
++
++                <div className="relative">
++                  <div className="absolute inset-0 flex items-center">
++                    <span className="w-full border-t" />
++                  </div>
++                  <div className="relative flex justify-center text-xs uppercase">
++                    <span className="bg-background px-2 text-muted-foreground">Or</span>
++                  </div>
++                </div>
++
++                <Button onClick={() => setShowPasswordForm(true)} variant="outline" size="lg" className="w-full">
++                  Sign in with Password
++                </Button>
++              </div>
++            </>
++          )}
+         </DialogContent>
+       </Dialog>
+     </>
+diff --git a/docs/superpowers/plans/2026-07-24-credentials-auth-plan.md b/docs/superpowers/plans/2026-07-24-credentials-auth-plan.md
+new file mode 100644
+index 0000000..0d51d28
+--- /dev/null
++++ b/docs/superpowers/plans/2026-07-24-credentials-auth-plan.md
+@@ -0,0 +1,948 @@
++# Credentials Authentication Implementation Plan
++
++> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
++
++**Goal:** Add username/password login as an additional auth method alongside GitHub and Vercel OAuth.
++
++**Architecture:** Extend existing `users` table with `password_hash` column and `'credentials'` provider. Reuse existing JWE cookie session mechanism. Admin UI and CLI script for user management.
++
++**Tech Stack:** Next.js, Drizzle ORM, PostgreSQL, bcryptjs, JWE (jose)
++
++## Global Constraints
++
++- No dynamic values in log statements (see AGENTS.md)
++- Run `pnpm format && pnpm type-check && pnpm lint` after each task
++- Follow existing code patterns (shadcn/ui components, Tailwind, same formatting)
++- `password_hash` must never be returned in API responses
++- bcryptjs for password hashing (cost factor 10)
++
++---
++
++### Task 1: Database Schema Updates
++
++**Files:**
++- Modify: `lib/db/schema.ts`
++
++**Interfaces:**
++- Consumes: existing schema definitions
++- Produces: updated `users` table with `password_hash` column and `'credentials'` in provider enum
++
++- [ ] **Step 1: Update provider enum and add password_hash**
++
++Update `lib/db/schema.ts`:
++- Change `provider` enum from `['github', 'vercel']` to `['github', 'vercel', 'credentials']`
++- Add `password_hash: text('password_hash')` field to `users` table (after `avatarUrl`)
++- Update `insertUserSchema` to include optional `password_hash`
++- Update `selectUserSchema` to include nullable `password_hash`
++
++```typescript
++// In users table definition - change provider enum line:
++provider: text('provider', {
++  enum: ['github', 'vercel', 'credentials'],
++}).notNull(),
++
++// Add after avatarUrl line:
++passwordHash: text('password_hash'),
++```
++
++Update `insertUserSchema`:
++```typescript
++export const insertUserSchema = z.object({
++  id: z.string().optional(),
++  provider: z.enum(['github', 'vercel', 'credentials']),
++  externalId: z.string().min(1, 'External ID is required'),
++  accessToken: z.string(),
++  refreshToken: z.string().optional(),
++  scope: z.string().optional(),
++  passwordHash: z.string().optional(),
++  username: z.string().min(1, 'Username is required'),
++  ...
++})
++```
++
++Update `selectUserSchema`:
++```typescript
++export const selectUserSchema = z.object({
++  ...
++  passwordHash: z.string().nullable(),
++  ...
++})
++```
++
++- [ ] **Step 2: Run type check**
++
++```bash
++pnpm type-check
++```
++
++- [ ] **Step 3: Generate migration**
++
++```bash
++pnpm db:generate
++```
++
++- [ ] **Step 4: Run format and commit**
++
++```bash
++pnpm format
++git add -A
++git commit -m "feat: extend users table for credentials auth"
++```
++
++---
++
++### Task 2: Session Type Updates
++
++**Files:**
++- Modify: `lib/session/types.ts`
++
++**Interfaces:**
++- Produces: `Session.authProvider` accepts `'credentials'`
++
++- [ ] **Step 1: Add 'credentials' to authProvider types**
++
++In `lib/session/types.ts`, update both `SessionUserInfo.authProvider` and `Session.authProvider`:
++
++```typescript
++export interface SessionUserInfo {
++  user: User | undefined
++  authProvider?: 'github' | 'vercel' | 'credentials'
++}
++
++export interface Session {
++  created: number
++  authProvider: 'github' | 'vercel' | 'credentials'
++  user: User
++}
++```
++
++- [ ] **Step 2: Run format + type-check + commit**
++
++```bash
++pnpm format
++pnpm type-check
++git add -A
++git commit -m "feat: add credentials to session auth provider types"
++```
++
++---
++
++### Task 3: User Database Functions
++
++**Files:**
++- Modify: `lib/db/users.ts`
++
++**Interfaces:**
++- Produces: `getUserByUsername(username: string) => Promise<User | null>`
++
++- [ ] **Step 1: Add getUserByUsername function**
++
++Add to `lib/db/users.ts`:
++
++```typescript
++export async function getUserByUsername(username: string) {
++  const result = await db
++    .select()
++    .from(users)
++    .where(eq(users.username, username))
++    .limit(1)
++  return result[0] || null
++}
++```
++
++- [ ] **Step 2: Run format + type-check + commit**
++
++```bash
++pnpm format
++pnpm type-check
++git add -A
++git commit -m "feat: add getUserByUsername db function"
++```
++
++---
++
++### Task 4: Credentials Login API
++
++**Files:**
++- Create: `app/api/auth/signin/credentials/route.ts`
++- Install: `bcryptjs` + `@types/bcryptjs`
++
++**Interfaces:**
++- Consumes: `getUserByUsername` (Task 3), `saveSession` from existing `lib/session/create.ts`
++- Produces: `POST /api/auth/signin/credentials` endpoint
++
++- [ ] **Step 1: Install bcryptjs**
++
++```bash
++pnpm add bcryptjs
++pnpm add -D @types/bcryptjs
++```
++
++- [ ] **Step 2: Create login route**
++
++Create `app/api/auth/signin/credentials/route.ts`:
++
++```typescript
++import 'server-only'
++
++import { NextResponse } from 'next/server'
++import { getUserByUsername } from '@/lib/db/users'
++import { saveSession } from '@/lib/session/create'
++import bcrypt from 'bcryptjs'
++
++export async function POST(req: Request) {
++  try {
++    const { username, password } = await req.json()
++
++    if (!username || !password) {
++      return NextResponse.json(
++        { error: 'Username and password are required' },
++        { status: 400 },
++      )
++    }
++
++    const user = await getUserByUsername(username)
++    if (!user || !user.passwordHash) {
++      return NextResponse.json(
++        { error: 'Invalid username or password' },
++        { status: 401 },
++      )
++    }
++
++    const valid = await bcrypt.compare(password, user.passwordHash)
++    if (!valid) {
++      return NextResponse.json(
++        { error: 'Invalid username or password' },
++        { status: 401 },
++      )
++    }
++
++    const session = {
++      created: Date.now(),
++      authProvider: 'credentials' as const,
++      user: {
++        id: user.id,
++        username: user.username,
++        email: user.email || undefined,
++        name: user.name || user.username,
++        avatar: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`,
++      },
++    }
++
++    const response = NextResponse.json({ success: true })
++    await saveSession(response, session)
++
++    return response
++  } catch (error) {
++    console.error('Login error:', error)
++    return NextResponse.json(
++      { error: 'An error occurred during sign in' },
++      { status: 500 },
++    )
++  }
++}
++```
++
++- [ ] **Step 3: Run format + type-check + commit**
++
++```bash
++pnpm format
++pnpm type-check
++git add -A
++git commit -m "feat: add credentials login API endpoint"
++```
++
++---
++
++### Task 5: Admin Users API
++
++**Files:**
++- Create: `app/api/auth/admin/users/route.ts`
++
++**Interfaces:**
++- Produces: `GET /api/auth/admin/users` (list users), `POST /api/auth/admin/users` (create/update)
++
++- [ ] **Step 1: Create admin users route**
++
++Create `app/api/auth/admin/users/route.ts`:
++
++```typescript
++import 'server-only'
++
++import { NextResponse } from 'next/server'
++import { db } from '@/lib/db/client'
++import { users } from '@/lib/db/schema'
++import { getServerSession } from '@/lib/session/get-server-session'
++import { getUserByUsername } from '@/lib/db/users'
++import { nanoid } from 'nanoid'
++import bcrypt from 'bcryptjs'
++import { eq } from 'drizzle-orm'
++
++export async function GET() {
++  try {
++    const session = await getServerSession()
++    if (!session?.user) {
++      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
++    }
++
++    const allUsers = await db
++      .select({
++        id: users.id,
++        username: users.username,
++        email: users.email,
++        name: users.name,
++        provider: users.provider,
++        createdAt: users.createdAt,
++        hasPassword: users.passwordHash,
++      })
++      .from(users)
++      .orderBy(users.createdAt)
++
++    const safeUsers = allUsers.map((u) => ({
++      ...u,
++      hasPassword: u.hasPassword ? true : false,
++    }))
++
++    return NextResponse.json({ users: safeUsers })
++  } catch (error) {
++    console.error('Failed to fetch users:', error)
++    return NextResponse.json(
++      { error: 'Failed to fetch users' },
++      { status: 500 },
++    )
++  }
++}
++
++export async function POST(req: Request) {
++  try {
++    const session = await getServerSession()
++    if (!session?.user) {
++      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
++    }
++
++    const body = await req.json()
++    const { username, password, email, name, userId } = body
++
++    if (!password || password.length < 6) {
++      return NextResponse.json(
++        { error: 'Password must be at least 6 characters' },
++        { status: 400 },
++      )
++    }
++
++    const passwordHash = await bcrypt.hash(password, 10)
++
++    if (userId) {
++      // Update existing user's password
++      const existing = await db
++        .select({ id: users.id })
++        .from(users)
++        .where(eq(users.id, userId))
++        .limit(1)
++
++      if (existing.length === 0) {
++        return NextResponse.json(
++          { error: 'User not found' },
++          { status: 404 },
++        )
++      }
++
++      await db
++        .update(users)
++        .set({
++          passwordHash,
++          updatedAt: new Date(),
++        })
++        .where(eq(users.id, userId))
++
++      return NextResponse.json({ success: true, userId })
++    }
++
++    // Create new user
++    if (!username) {
++      return NextResponse.json(
++        { error: 'Username is required for new users' },
++        { status: 400 },
++      )
++    }
++
++    const existing = await getUserByUsername(username)
++    if (existing) {
++      return NextResponse.json(
++        { error: 'Username already taken' },
++        { status: 409 },
++      )
++    }
++
++    const newUserId = nanoid()
++    const now = new Date()
++
++    await db.insert(users).values({
++      id: newUserId,
++      provider: 'credentials',
++      externalId: username,
++      accessToken: '',
++      username,
++      email: email || null,
++      name: name || null,
++      passwordHash,
++      avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`,
++      createdAt: now,
++      updatedAt: now,
++      lastLoginAt: now,
++    })
++
++    return NextResponse.json({
++      success: true,
++      userId: newUserId,
++      username,
++    })
++  } catch (error) {
++    console.error('Failed to create user:', error)
++    return NextResponse.json(
++      { error: 'Failed to create user' },
++      { status: 500 },
++    )
++  }
++}
++```
++
++- [ ] **Step 2: Run format + type-check + commit**
++
++```bash
++pnpm format
++pnpm type-check
++git add -A
++git commit -m "feat: add admin users API"
++```
++
++---
++
++### Task 6: Password Login UI
++
++**Files:**
++- Create: `components/auth/sign-in-password.tsx`
++- Modify: `components/auth/sign-in.tsx`
++
++**Interfaces:**
++- Consumes: sign-in dialog from existing `sign-in.tsx`
++- Produces: password login form component, integrated into sign-in flow
++
++- [ ] **Step 1: Create password login form component**
++
++Create `components/auth/sign-in-password.tsx`:
++
++```typescript
++'use client'
++
++import { useState } from 'react'
++import { Button } from '@/components/ui/button'
++import { Input } from '@/components/ui/input'
++import { Label } from '@/components/ui/label'
++import { toast } from 'sonner'
++import { useRouter } from 'next/navigation'
++import { useSetAtom } from 'jotai'
++import { sessionAtom } from '@/lib/atoms/session'
++
++export function SignInPassword({ onBack }: { onBack: () => void }) {
++  const [username, setUsername] = useState('')
++  const [password, setPassword] = useState('')
++  const [loading, setLoading] = useState(false)
++  const router = useRouter()
++  const setSession = useSetAtom(sessionAtom)
++
++  const handleSubmit = async (e: React.FormEvent) => {
++    e.preventDefault()
++    setLoading(true)
++
++    try {
++      const res = await fetch('/api/auth/signin/credentials', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ username, password }),
++      })
++
++      if (res.ok) {
++        toast.success('Signed in successfully')
++        setSession({ user: undefined })
++        router.refresh()
++      } else {
++        const data = await res.json()
++        toast.error(data.error || 'Invalid credentials')
++      }
++    } catch {
++      toast.error('An error occurred')
++    } finally {
++      setLoading(false)
++    }
++  }
++
++  return (
++    <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-4">
++      <div className="space-y-2">
++        <Label htmlFor="username">Username</Label>
++        <Input
++          id="username"
++          type="text"
++          placeholder="Enter your username"
++          value={username}
++          onChange={(e) => setUsername(e.target.value)}
++          required
++          autoFocus
++        />
++      </div>
++      <div className="space-y-2">
++        <Label htmlFor="password">Password</Label>
++        <Input
++          id="password"
++          type="password"
++          placeholder="Enter your password"
++          value={password}
++          onChange={(e) => setPassword(e.target.value)}
++          required
++        />
++      </div>
++      <Button type="submit" disabled={loading} size="lg" className="w-full">
++        {loading ? 'Signing in...' : 'Sign in'}
++      </Button>
++      <Button type="button" variant="ghost" size="sm" onClick={onBack}>
++        Back to sign in options
++      </Button>
++    </form>
++  )
++}
++```
++
++- [ ] **Step 2: Update sign-in dialog to include password option**
++
++Modify `components/auth/sign-in.tsx` ?אפ add state for showing password form, add "Sign in with Password" button, and conditionally render the password form:
++
++```typescript
++// Add import at top
++import { SignInPassword } from './sign-in-password'
++
++// Inside the component, add state after other useState lines:
++const [showPasswordForm, setShowPasswordForm] = useState(false)
++```
++
++Replace the dialog content section. After the closing `</DialogDescription>` and before the `div.flex.flex-col.gap-3`, add a conditional. Here's the full replacement block:
++
++```typescript
++      <DialogContent className="sm:max-w-md">
++        <DialogHeader>
++          <DialogTitle>
++            {showPasswordForm ? 'Sign in with Password' : 'Sign in'}
++          </DialogTitle>
++          <DialogDescription>
++            {showPasswordForm
++              ? 'Enter your username and password to sign in.'
++              : hasGitHub && hasVercel
++                ? 'Choose how you want to sign in to continue.'
++                : hasVercel
++                  ? 'Sign in with Vercel to continue.'
++                  : 'Sign in to continue.'}
++          </DialogDescription>
++        </DialogHeader>
++
++        {showPasswordForm ? (
++          <SignInPassword onBack={() => setShowPasswordForm(false)} />
++        ) : (
++          <div className="flex flex-col gap-3 py-4">
++            ...existing buttons...
++
++            <div className="relative">
++              <div className="absolute inset-0 flex items-center">
++                <span className="w-full border-t" />
++              </div>
++              <div className="relative flex justify-center text-xs uppercase">
++                <span className="bg-background px-2 text-muted-foreground">Or</span>
++              </div>
++            </div>
++
++            <Button
++              onClick={() => setShowPasswordForm(true)}
++              variant="outline"
++              size="lg"
++              className="w-full"
++            >
++              <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
++                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
++                <path d="M7 11V7a5 5 0 0110 0v4" />
++              </svg>
++              Sign in with Password
++            </Button>
++          </div>
++        )}
++      </DialogContent>
++```
++
++- [ ] **Step 3: Run format + type-check + commit**
++
++```bash
++pnpm format
++pnpm type-check
++git add -A
++git commit -m "feat: add password sign-in UI"
++```
++
++---
++
++### Task 7: Admin Users UI
++
++**Files:**
++- Create: `components/auth/admin-users.tsx`
++- Modify: `app/settings/page.tsx`
++
++**Interfaces:**
++- Consumes: existing settings page tab structure
++- Produces: "Users" tab in settings with create form and user list
++
++- [ ] **Step 1: Create admin users component**
++
++Create `components/auth/admin-users.tsx`:
++
++```typescript
++'use client'
++
++import { useState, useEffect } from 'react'
++import { Button } from '@/components/ui/button'
++import { Input } from '@/components/ui/input'
++import { Label } from '@/components/ui/label'
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
++import { toast } from 'sonner'
++import { useAtomValue } from 'jotai'
++import { sessionAtom } from '@/lib/atoms/session'
++
++interface UserInfo {
++  id: string
++  username: string
++  email: string | null
++  name: string | null
++  provider: string
++  createdAt: string
++  hasPassword: boolean
++}
++
++export function AdminUsers() {
++  const session = useAtomValue(sessionAtom)
++  const [users, setUsers] = useState<UserInfo[]>([])
++  const [username, setUsername] = useState('')
++  const [password, setPassword] = useState('')
++  const [email, setEmail] = useState('')
++  const [name, setName] = useState('')
++  const [selectedUserId, setSelectedUserId] = useState('')
++  const [loading, setLoading] = useState(false)
++
++  useEffect(() => {
++    fetchUsers()
++  }, [])
++
++  const fetchUsers = async () => {
++    try {
++      const res = await fetch('/api/auth/admin/users')
++      const data = await res.json()
++      setUsers(data.users || [])
++    } catch {
++      console.error('Failed to fetch users')
++    }
++  }
++
++  const handleSubmit = async (e: React.FormEvent) => {
++    e.preventDefault()
++    if (!password || password.length < 6) {
++      toast.error('Password must be at least 6 characters')
++      return
++    }
++
++    setLoading(true)
++    try {
++      const res = await fetch('/api/auth/admin/users', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({
++          username: selectedUserId ? undefined : username,
++          password,
++          email: email || undefined,
++          name: name || undefined,
++          userId: selectedUserId || undefined,
++        }),
++      })
++
++      if (res.ok) {
++        toast.success(selectedUserId ? 'Password set successfully' : 'User created successfully')
++        setPassword('')
++        setEmail('')
++        setName('')
++        if (!selectedUserId) setUsername('')
++        setSelectedUserId('')
++        fetchUsers()
++      } else {
++        const data = await res.json()
++        toast.error(data.error || 'Failed to create user')
++      }
++    } catch {
++      toast.error('An error occurred')
++    } finally {
++      setLoading(false)
++    }
++  }
++
++  if (!session.user) return null
++
++  return (
++    <div className="space-y-6">
++      <Card>
++        <CardHeader>
++          <CardTitle>{selectedUserId ? 'Set Password for Existing User' : 'Create New User'}</CardTitle>
++          <CardDescription>
++            {selectedUserId
++              ? 'Set or reset password for an existing user.'
++              : 'Create a new user with username and password authentication.'}
++          </CardDescription>
++        </CardHeader>
++        <CardContent>
++          <form onSubmit={handleSubmit} className="space-y-4">
++            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
++              <div className="space-y-2">
++                <Label htmlFor="existing-user">User (leave empty for new user)</Label>
++                <select
++                  id="existing-user"
++                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
++                  value={selectedUserId}
++                  onChange={(e) => setSelectedUserId(e.target.value)}
++                >
++                  <option value="">-- Create new user --</option>
++                  {users.map((u) => (
++                    <option key={u.id} value={u.id}>
++                      {u.username} ({u.provider}){u.hasPassword ? ' ?ƒפס' : ''}
++                    </option>
++                  ))}
++                </select>
++              </div>
++              {!selectedUserId && (
++                <div className="space-y-2">
++                  <Label htmlFor="username">Username *</Label>
++                  <Input
++                    id="username"
++                    value={username}
++                    onChange={(e) => setUsername(e.target.value)}
++                    required
++                  />
++                </div>
++              )}
++              <div className="space-y-2">
++                <Label htmlFor="password">Password *</Label>
++                <Input
++                  id="password"
++                  type="password"
++                  value={password}
++                  onChange={(e) => setPassword(e.target.value)}
++                  required
++                  minLength={6}
++                />
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="email">Email</Label>
++                <Input
++                  id="email"
++                  type="email"
++                  value={email}
++                  onChange={(e) => setEmail(e.target.value)}
++                />
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="name">Name</Label>
++                <Input
++                  id="name"
++                  value={name}
++                  onChange={(e) => setName(e.target.value)}
++                />
++              </div>
++            </div>
++            <Button type="submit" disabled={loading}>
++              {loading ? 'Saving...' : selectedUserId ? 'Set Password' : 'Create User'}
++            </Button>
++            {selectedUserId && (
++              <Button
++                type="button"
++                variant="ghost"
++                className="ml-2"
++                onClick={() => setSelectedUserId('')}
++              >
++                Cancel
++              </Button>
++            )}
++          </form>
++        </CardContent>
++      </Card>
++
++      <Card>
++        <CardHeader>
++          <CardTitle>Users</CardTitle>
++          <CardDescription>All registered users on the platform.</CardDescription>
++        </CardHeader>
++        <CardContent>
++          <div className="overflow-x-auto">
++            <table className="w-full text-sm">
++              <thead>
++                <tr className="border-b">
++                  <th className="text-left py-2 px-2">Username</th>
++                  <th className="text-left py-2 px-2">Email</th>
++                  <th className="text-left py-2 px-2">Provider</th>
++                  <th className="text-left py-2 px-2">Password</th>
++                  <th className="text-left py-2 px-2">Created</th>
++                </tr>
++              </thead>
++              <tbody>
++                {users.map((u) => (
++                  <tr key={u.id} className="border-b">
++                    <td className="py-2 px-2">{u.username}</td>
++                    <td className="py-2 px-2 text-muted-foreground">{u.email || '-'}</td>
++                    <td className="py-2 px-2">{u.provider}</td>
++                    <td className="py-2 px-2">
++                      {u.hasPassword ? (
++                        <span className="text-green-600">Set</span>
++                      ) : (
++                        <Button
++                          variant="link"
++                          size="sm"
++                          className="h-auto p-0"
++                          onClick={() => {
++                            setSelectedUserId(u.id)
++                            setUsername(u.username)
++                          }}
++                        >
++                          Set Password
++                        </Button>
++                      )}
++                    </td>
++                    <td className="py-2 px-2 text-muted-foreground">
++                      {new Date(u.createdAt).toLocaleDateString()}
++                    </td>
++                  </tr>
++                ))}
++              </tbody>
++            </table>
++          </div>
++        </CardContent>
++      </Card>
++    </div>
++  )
++}
++```
++
++- [ ] **Step 2: Add Users tab to settings page**
++
++Update `app/settings/page.tsx` ?אפ add "Users" tab:
++
++```typescript
++// Add import at top
++import { AdminUsers } from '@/components/auth/admin-users'
++
++// Add TabsTrigger for users after existing triggers:
++<TabsTrigger value="users">Users</TabsTrigger>
++
++// Add TabsContent for users after existing content:
++<TabsContent value="users">
++  <AdminUsers />
++</TabsContent>
++```
++
++- [ ] **Step 3: Run format + type-check + commit**
++
++```bash
++pnpm format
++pnpm type-check
++git add -A
++git commit -m "feat: add admin users UI"
++```
++
++---
++
++### Task 8: CLI Script for User Creation
++
++**Files:**
++- Create: `scripts/create-user.ts`
++
++- [ ] **Step 1: Create CLI script**
++
++Create `scripts/create-user.ts`:
++
++```typescript
++import 'dotenv/config'
++import { drizzle } from 'drizzle-orm/postgres-js'
++import postgres from 'postgres'
++import { users } from '../lib/db/schema'
++import { nanoid } from 'nanoid'
++import bcrypt from 'bcryptjs'
++
++const url = process.env.POSTGRES_URL
++if (!url) {
++  console.error('POSTGRES_URL environment variable is required')
++  process.exit(1)
++}
++
++const [, , username, password, email, name] = process.argv
++
++if (!username || !password) {
++  console.error('Usage: npx tsx scripts/create-user.ts <username> <password> [email] [name]')
++  process.exit(1)
++}
++
++async function main() {
++  const client = postgres(url)
++  const db = drizzle(client, { schema }) as any
++
++  const existing = await db
++    .select()
++    .from(users)
++    .where({ username })
++    .limit(1)
++
++  if (existing.length > 0) {
++    console.error('Error: Username already exists')
++    process.exit(1)
++  }
++
++  const passwordHash = await bcrypt.hash(password, 10)
++  const id = nanoid()
++  const now = new Date()
++
++  await db.insert(users).values({
++    id,
++    provider: 'credentials',
++    externalId: username,
++    accessToken: '',
++    username,
++    email: email || null,
++    name: name || null,
++    passwordHash,
++    avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`,
++    createdAt: now,
++    updatedAt: now,
++    lastLoginAt: now,
++  })
++
++  console.log(`User created successfully: ${username} (${id})`)
++  process.exit(0)
++}
++
++main().catch((err) => {
++  console.error('Failed to create user:', err)
++  process.exit(1)
++})
++```
++
++- [ ] **Step 2: Run format + type-check**
++
++```bash
++pnpm format
++pnpm type-check
++```
++
++- [ ] **Step 3: Commit**
++
++```bash
++git add -A
++git commit -m "feat: add CLI script for user creation"
++```
+diff --git a/docs/superpowers/specs/2026-07-24-credentials-auth-design.md b/docs/superpowers/specs/2026-07-24-credentials-auth-design.md
+new file mode 100644
+index 0000000..9822f65
+--- /dev/null
++++ b/docs/superpowers/specs/2026-07-24-credentials-auth-design.md
+@@ -0,0 +1,93 @@
++# Credentials (Username/Password) Authentication
++
++## Overview
++
++Add username + password login as an additional authentication method alongside existing OAuth providers (GitHub, Vercel). Accounts can use both OAuth and password interchangeably.
++
++## Database Changes
++
++### users table
++- Add `'credentials'` to `provider` enum (currently `['github', 'vercel']`)
++- Add `password_hash` column (`text`, nullable)
++
++For credential users: `provider='credentials'`, `externalId` = username (as unique identifier).
++For OAuth users who also get a password set: just `password_hash` is added to their existing row.
++
++## Session Management
++
++Reuse the existing JWE cookie mechanism (`_user_session_` cookie):
++- `encryptJWE`/`decryptJWE` for session serialization
++- `saveSession` for setting the cookie
++- `getSessionFromCookie` for reading it server-side
++
++Add `'credentials'` to the `authProvider` union type.
++
++## API Routes
++
++### `POST /api/auth/signin/credentials`
++- Accept `{ username, password }`
++- Validate with zod
++- Look up user by username (check `username` column, regardless of provider)
++- Verify password against `password_hash` using bcrypt
++- Create session via `saveSession` (same as OAuth)
++- Return `{ success: true }` with Set-Cookie header
++
++### `POST /api/auth/admin/users`
++- Requires existing authenticated session (any provider)
++- Accept `{ username, password, email?, name?, userId? }`
++- If `userId` is provided: update existing user's password_hash (add/reset password for OAuth user)
++- If no `userId`: create new user with `provider='credentials'`, `externalId=<username>`, `password_hash`
++- Hash password with bcrypt (cost factor 10)
++- Return created/updated user info (without password_hash)
++
++### `GET /api/auth/admin/users`
++- Requires existing authenticated session
++- Return list of all users (id, username, email, provider, createdAt ?אפ no tokens/hashes)
++
++## Admin UI
++
++Add "Users" tab to the existing `/settings` page (`Tabs` component):
++- Form: username, password, email (optional), name (optional), select existing user or create new
++- Submit creates new credential user or adds/resets password for existing OAuth user via `POST /api/auth/admin/users`
++- List of existing users below the form with "Set Password" action
++- Only visible to authenticated users
++
++## CLI Script
++
++`scripts/create-user.ts`:
++```ts
++// Usage: npx tsx scripts/create-user.ts <username> <password> [email] [name]
++// Connects to DB via POSTGRES_URL env var
++// Hashes password with bcrypt
++// Inserts user with provider='credentials'
++```
++
++## Login UI
++
++Add "Sign in with Password" option to the existing sign-in dialog:
++- Username field
++- Password field
++- Submit button
++- On success: `window.location.href = '/'` (same as OAuth flow)
++
++## Files to Create/Modify
++
++### Create
++- `app/api/auth/signin/credentials/route.ts` ?אפ Login API
++- `app/api/auth/admin/users/route.ts` ?אפ Admin users API (GET + POST)
++- `components/auth/sign-in-password.tsx` ?אפ Password login form UI
++- `scripts/create-user.ts` ?אפ CLI script
++
++### Modify
++- `lib/db/schema.ts` ?אפ Add 'credentials' to provider enum, add password_hash column, update Zod schemas
++- `lib/session/types.ts` ?אפ Add 'credentials' to authProvider type
++- `lib/db/users.ts` ?אפ Add `getUserByUsername` function
++- `components/auth/sign-in.tsx` ?אפ Add "Sign in with Password" button
++- `app/settings/page.tsx` ?אפ Add "Users" tab
++
++## Security
++
++- Passwords hashed with bcrypt (cost factor 10)
++- No plaintext passwords stored or logged
++- `password_hash` never returned in API responses
++- Rate limiting should be considered for the login endpoint
+diff --git a/lib/db/migrations/0029_easy_butterfly.sql b/lib/db/migrations/0029_easy_butterfly.sql
+new file mode 100644
+index 0000000..eaa85c3
+--- /dev/null
++++ b/lib/db/migrations/0029_easy_butterfly.sql
+@@ -0,0 +1,2 @@
++ALTER TABLE "users" ADD COLUMN "password_hash" text;--> statement-breakpoint
++CREATE INDEX "background_test_executions_task_id_created_at_idx" ON "background_test_executions" USING btree ("task_id","created_at");
+\ No newline at end of file
+diff --git a/lib/db/migrations/meta/0029_snapshot.json b/lib/db/migrations/meta/0029_snapshot.json
+new file mode 100644
+index 0000000..f4bef15
+--- /dev/null
++++ b/lib/db/migrations/meta/0029_snapshot.json
+@@ -0,0 +1,1125 @@
++{
++  "id": "74047fdc-92b6-4cfe-baf7-4f5331929dea",
++  "prevId": "89bea883-9b7b-4608-b056-76f9ff185219",
++  "version": "7",
++  "dialect": "postgresql",
++  "tables": {
++    "public.accounts": {
++      "name": "accounts",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "user_id": {
++          "name": "user_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "provider": {
++          "name": "provider",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "'github'"
++        },
++        "external_user_id": {
++          "name": "external_user_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "access_token": {
++          "name": "access_token",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "refresh_token": {
++          "name": "refresh_token",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "expires_at": {
++          "name": "expires_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "scope": {
++          "name": "scope",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "username": {
++          "name": "username",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "updated_at": {
++          "name": "updated_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {
++        "accounts_user_id_provider_idx": {
++          "name": "accounts_user_id_provider_idx",
++          "columns": [
++            {
++              "expression": "user_id",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            },
++            {
++              "expression": "provider",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            }
++          ],
++          "isUnique": true,
++          "concurrently": false,
++          "method": "btree",
++          "with": {}
++        }
++      },
++      "foreignKeys": {
++        "accounts_user_id_users_id_fk": {
++          "name": "accounts_user_id_users_id_fk",
++          "tableFrom": "accounts",
++          "tableTo": "users",
++          "columnsFrom": [
++            "user_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.background_test_executions": {
++      "name": "background_test_executions",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "test_id": {
++          "name": "test_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "task_id": {
++          "name": "task_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "status": {
++          "name": "status",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "logs": {
++          "name": "logs",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "remediation_patch": {
++          "name": "remediation_patch",
++          "type": "jsonb",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {
++        "background_test_executions_task_id_created_at_idx": {
++          "name": "background_test_executions_task_id_created_at_idx",
++          "columns": [
++            {
++              "expression": "task_id",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            },
++            {
++              "expression": "created_at",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            }
++          ],
++          "isUnique": false,
++          "concurrently": false,
++          "method": "btree",
++          "with": {}
++        }
++      },
++      "foreignKeys": {
++        "background_test_executions_test_id_background_tests_bank_id_fk": {
++          "name": "background_test_executions_test_id_background_tests_bank_id_fk",
++          "tableFrom": "background_test_executions",
++          "tableTo": "background_tests_bank",
++          "columnsFrom": [
++            "test_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        },
++        "background_test_executions_task_id_tasks_id_fk": {
++          "name": "background_test_executions_task_id_tasks_id_fk",
++          "tableFrom": "background_test_executions",
++          "tableTo": "tasks",
++          "columnsFrom": [
++            "task_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.background_tests_bank": {
++      "name": "background_tests_bank",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "name": {
++          "name": "name",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "description": {
++          "name": "description",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "tags": {
++          "name": "tags",
++          "type": "text[]",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "is_enabled": {
++          "name": "is_enabled",
++          "type": "boolean",
++          "primaryKey": false,
++          "notNull": false,
++          "default": true
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {},
++      "foreignKeys": {},
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.connectors": {
++      "name": "connectors",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "user_id": {
++          "name": "user_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "name": {
++          "name": "name",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "description": {
++          "name": "description",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "type": {
++          "name": "type",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "'remote'"
++        },
++        "base_url": {
++          "name": "base_url",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "oauth_client_id": {
++          "name": "oauth_client_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "oauth_client_secret": {
++          "name": "oauth_client_secret",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "command": {
++          "name": "command",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "env": {
++          "name": "env",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "status": {
++          "name": "status",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "'disconnected'"
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "updated_at": {
++          "name": "updated_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {},
++      "foreignKeys": {
++        "connectors_user_id_users_id_fk": {
++          "name": "connectors_user_id_users_id_fk",
++          "tableFrom": "connectors",
++          "tableTo": "users",
++          "columnsFrom": [
++            "user_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.keys": {
++      "name": "keys",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "user_id": {
++          "name": "user_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "provider": {
++          "name": "provider",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "value": {
++          "name": "value",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "updated_at": {
++          "name": "updated_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {
++        "keys_user_id_provider_idx": {
++          "name": "keys_user_id_provider_idx",
++          "columns": [
++            {
++              "expression": "user_id",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            },
++            {
++              "expression": "provider",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            }
++          ],
++          "isUnique": true,
++          "concurrently": false,
++          "method": "btree",
++          "with": {}
++        }
++      },
++      "foreignKeys": {
++        "keys_user_id_users_id_fk": {
++          "name": "keys_user_id_users_id_fk",
++          "tableFrom": "keys",
++          "tableTo": "users",
++          "columnsFrom": [
++            "user_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.memories": {
++      "name": "memories",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "user_id": {
++          "name": "user_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "task_id": {
++          "name": "task_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "content": {
++          "name": "content",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "embedding": {
++          "name": "embedding",
++          "type": "vector(1536)",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {
++        "memories_user_id_idx": {
++          "name": "memories_user_id_idx",
++          "columns": [
++            {
++              "expression": "user_id",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            }
++          ],
++          "isUnique": false,
++          "concurrently": false,
++          "method": "btree",
++          "with": {}
++        },
++        "memories_embedding_idx": {
++          "name": "memories_embedding_idx",
++          "columns": [
++            {
++              "expression": "embedding",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last",
++              "opclass": "vector_cosine_ops"
++            }
++          ],
++          "isUnique": false,
++          "concurrently": false,
++          "method": "hnsw",
++          "with": {}
++        }
++      },
++      "foreignKeys": {
++        "memories_user_id_users_id_fk": {
++          "name": "memories_user_id_users_id_fk",
++          "tableFrom": "memories",
++          "tableTo": "users",
++          "columnsFrom": [
++            "user_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        },
++        "memories_task_id_tasks_id_fk": {
++          "name": "memories_task_id_tasks_id_fk",
++          "tableFrom": "memories",
++          "tableTo": "tasks",
++          "columnsFrom": [
++            "task_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "set null",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.proposals_bank": {
++      "name": "proposals_bank",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "title": {
++          "name": "title",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "description": {
++          "name": "description",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "tags": {
++          "name": "tags",
++          "type": "text[]",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "status": {
++          "name": "status",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {},
++      "foreignKeys": {},
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.settings": {
++      "name": "settings",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "user_id": {
++          "name": "user_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "key": {
++          "name": "key",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "value": {
++          "name": "value",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "updated_at": {
++          "name": "updated_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {
++        "settings_user_id_key_idx": {
++          "name": "settings_user_id_key_idx",
++          "columns": [
++            {
++              "expression": "user_id",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            },
++            {
++              "expression": "key",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            }
++          ],
++          "isUnique": true,
++          "concurrently": false,
++          "method": "btree",
++          "with": {}
++        }
++      },
++      "foreignKeys": {
++        "settings_user_id_users_id_fk": {
++          "name": "settings_user_id_users_id_fk",
++          "tableFrom": "settings",
++          "tableTo": "users",
++          "columnsFrom": [
++            "user_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.task_messages": {
++      "name": "task_messages",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "task_id": {
++          "name": "task_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "role": {
++          "name": "role",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "content": {
++          "name": "content",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {},
++      "foreignKeys": {
++        "task_messages_task_id_tasks_id_fk": {
++          "name": "task_messages_task_id_tasks_id_fk",
++          "tableFrom": "task_messages",
++          "tableTo": "tasks",
++          "columnsFrom": [
++            "task_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.tasks": {
++      "name": "tasks",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "user_id": {
++          "name": "user_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "prompt": {
++          "name": "prompt",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "title": {
++          "name": "title",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "repo_url": {
++          "name": "repo_url",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "selected_agent": {
++          "name": "selected_agent",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false,
++          "default": "'claude'"
++        },
++        "selected_model": {
++          "name": "selected_model",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "install_dependencies": {
++          "name": "install_dependencies",
++          "type": "boolean",
++          "primaryKey": false,
++          "notNull": false,
++          "default": false
++        },
++        "max_duration": {
++          "name": "max_duration",
++          "type": "integer",
++          "primaryKey": false,
++          "notNull": false,
++          "default": 300
++        },
++        "keep_alive": {
++          "name": "keep_alive",
++          "type": "boolean",
++          "primaryKey": false,
++          "notNull": false,
++          "default": false
++        },
++        "enable_browser": {
++          "name": "enable_browser",
++          "type": "boolean",
++          "primaryKey": false,
++          "notNull": false,
++          "default": false
++        },
++        "status": {
++          "name": "status",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "'pending'"
++        },
++        "progress": {
++          "name": "progress",
++          "type": "integer",
++          "primaryKey": false,
++          "notNull": false,
++          "default": 0
++        },
++        "logs": {
++          "name": "logs",
++          "type": "jsonb",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "error": {
++          "name": "error",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "branch_name": {
++          "name": "branch_name",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "sandbox_id": {
++          "name": "sandbox_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "agent_session_id": {
++          "name": "agent_session_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "sandbox_url": {
++          "name": "sandbox_url",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "preview_url": {
++          "name": "preview_url",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "pr_url": {
++          "name": "pr_url",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "pr_number": {
++          "name": "pr_number",
++          "type": "integer",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "pr_status": {
++          "name": "pr_status",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "pr_merge_commit_sha": {
++          "name": "pr_merge_commit_sha",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "mcp_server_ids": {
++          "name": "mcp_server_ids",
++          "type": "jsonb",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "updated_at": {
++          "name": "updated_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "completed_at": {
++          "name": "completed_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "deleted_at": {
++          "name": "deleted_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": false
++        }
++      },
++      "indexes": {},
++      "foreignKeys": {
++        "tasks_user_id_users_id_fk": {
++          "name": "tasks_user_id_users_id_fk",
++          "tableFrom": "tasks",
++          "tableTo": "users",
++          "columnsFrom": [
++            "user_id"
++          ],
++          "columnsTo": [
++            "id"
++          ],
++          "onDelete": "cascade",
++          "onUpdate": "no action"
++        }
++      },
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    },
++    "public.users": {
++      "name": "users",
++      "schema": "",
++      "columns": {
++        "id": {
++          "name": "id",
++          "type": "text",
++          "primaryKey": true,
++          "notNull": true
++        },
++        "provider": {
++          "name": "provider",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "external_id": {
++          "name": "external_id",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "access_token": {
++          "name": "access_token",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "refresh_token": {
++          "name": "refresh_token",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "scope": {
++          "name": "scope",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "username": {
++          "name": "username",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": true
++        },
++        "email": {
++          "name": "email",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "name": {
++          "name": "name",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "avatar_url": {
++          "name": "avatar_url",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "password_hash": {
++          "name": "password_hash",
++          "type": "text",
++          "primaryKey": false,
++          "notNull": false
++        },
++        "created_at": {
++          "name": "created_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "updated_at": {
++          "name": "updated_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        },
++        "last_login_at": {
++          "name": "last_login_at",
++          "type": "timestamp",
++          "primaryKey": false,
++          "notNull": true,
++          "default": "now()"
++        }
++      },
++      "indexes": {
++        "users_provider_external_id_idx": {
++          "name": "users_provider_external_id_idx",
++          "columns": [
++            {
++              "expression": "provider",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            },
++            {
++              "expression": "external_id",
++              "isExpression": false,
++              "asc": true,
++              "nulls": "last"
++            }
++          ],
++          "isUnique": true,
++          "concurrently": false,
++          "method": "btree",
++          "with": {}
++        }
++      },
++      "foreignKeys": {},
++      "compositePrimaryKeys": {},
++      "uniqueConstraints": {},
++      "policies": {},
++      "checkConstraints": {},
++      "isRLSEnabled": false
++    }
++  },
++  "enums": {},
++  "schemas": {},
++  "sequences": {},
++  "roles": {},
++  "policies": {},
++  "views": {},
++  "_meta": {
++    "columns": {},
++    "schemas": {},
++    "tables": {}
++  }
++}
+\ No newline at end of file
+diff --git a/lib/db/migrations/meta/_journal.json b/lib/db/migrations/meta/_journal.json
+index b196d16..deb28e6 100644
+--- a/lib/db/migrations/meta/_journal.json
++++ b/lib/db/migrations/meta/_journal.json
+@@ -204,6 +204,13 @@
+       "when": 1784659916597,
+       "tag": "0028_add_bg_test_exec_composite_idx",
+       "breakpoints": true
++    },
++    {
++      "idx": 29,
++      "version": "7",
++      "when": 1784892919777,
++      "tag": "0029_easy_butterfly",
++      "breakpoints": true
+     }
+   ]
+ }
+\ No newline at end of file
+diff --git a/lib/db/schema.ts b/lib/db/schema.ts
+index 7a75f60..f56c59d 100644
+--- a/lib/db/schema.ts
++++ b/lib/db/schema.ts
+@@ -18,7 +18,7 @@ export const users = pgTable(
+     id: text('id').primaryKey(), // Internal user ID (we generate this)
+     // Primary OAuth account info (how they signed in)
+     provider: text('provider', {
+-      enum: ['github', 'vercel'],
++      enum: ['github', 'vercel', 'credentials'],
+     }).notNull(), // Primary auth provider
+     externalId: text('external_id').notNull(), // External ID from OAuth provider
+     accessToken: text('access_token').notNull(), // Encrypted OAuth access token
+@@ -29,6 +29,7 @@ export const users = pgTable(
+     email: text('email'),
+     name: text('name'),
+     avatarUrl: text('avatar_url'),
++    passwordHash: text('password_hash'),
+     createdAt: timestamp('created_at').defaultNow().notNull(),
+     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+     lastLoginAt: timestamp('last_login_at').defaultNow().notNull(),
+@@ -41,7 +42,7 @@ export const users = pgTable(
+ 
+ export const insertUserSchema = z.object({
+   id: z.string().optional(), // Auto-generated if not provided
+-  provider: z.enum(['github', 'vercel']),
++  provider: z.enum(['github', 'vercel', 'credentials']),
+   externalId: z.string().min(1, 'External ID is required'),
+   accessToken: z.string(),
+   refreshToken: z.string().optional(),
+@@ -50,6 +51,7 @@ export const insertUserSchema = z.object({
+   email: z.string().email().optional(),
+   name: z.string().optional(),
+   avatarUrl: z.string().url().optional(),
++  passwordHash: z.string().optional(),
+   createdAt: z.date().optional(),
+   updatedAt: z.date().optional(),
+   lastLoginAt: z.date().optional(),
+@@ -57,7 +59,7 @@ export const insertUserSchema = z.object({
+ 
+ export const selectUserSchema = z.object({
+   id: z.string(),
+-  provider: z.enum(['github', 'vercel']),
++  provider: z.enum(['github', 'vercel', 'credentials']),
+   externalId: z.string(),
+   accessToken: z.string(),
+   refreshToken: z.string().nullable(),
+@@ -66,6 +68,7 @@ export const selectUserSchema = z.object({
+   email: z.string().nullable(),
+   name: z.string().nullable(),
+   avatarUrl: z.string().nullable(),
++  passwordHash: z.string().nullable(),
+   createdAt: z.date(),
+   updatedAt: z.date(),
+   lastLoginAt: z.date(),
+@@ -560,10 +563,7 @@ export const backgroundTestExecutions = pgTable(
+     createdAt: timestamp('created_at').defaultNow().notNull(),
+   },
+   (table) => ({
+-    taskIdCreatedAtIdx: index('background_test_executions_task_id_created_at_idx').on(
+-      table.taskId,
+-      table.createdAt,
+-    ),
++    taskIdCreatedAtIdx: index('background_test_executions_task_id_created_at_idx').on(table.taskId, table.createdAt),
+   }),
+ )
+ 
+diff --git a/lib/db/users.ts b/lib/db/users.ts
+index ddf2be2..4e55d3a 100644
+--- a/lib/db/users.ts
++++ b/lib/db/users.ts
+@@ -109,6 +109,14 @@ export async function getUserByExternalId(provider: 'github' | 'vercel', externa
+   return result[0] || null
+ }
+ 
++/**
++ * Get user by username
++ */
++export async function getUserByUsername(username: string) {
++  const result = await db.select().from(users).where(eq(users.username, username)).limit(1)
++  return result[0] || null
++}
++
+ /**
+  * Find user by GitHub account connection
+  * Used to check if a GitHub account is already connected to a user
+diff --git a/lib/session/types.ts b/lib/session/types.ts
+index 87462e3..95668d4 100644
+--- a/lib/session/types.ts
++++ b/lib/session/types.ts
+@@ -1,6 +1,6 @@
+ export interface SessionUserInfo {
+   user: User | undefined
+-  authProvider?: 'github' | 'vercel' // Which provider the user signed in with
++  authProvider?: 'github' | 'vercel' | 'credentials' // Which provider the user signed in with
+ }
+ 
+ export interface Tokens {
+@@ -11,7 +11,7 @@ export interface Tokens {
+ 
+ export interface Session {
+   created: number
+-  authProvider: 'github' | 'vercel' // Which provider the user signed in with
++  authProvider: 'github' | 'vercel' | 'credentials' // Which provider the user signed in with
+   user: User
+ }
+ 
+diff --git a/package.json b/package.json
+index 2dcd73e..69f06bd 100644
+--- a/package.json
++++ b/package.json
+@@ -47,6 +47,7 @@
+     "@vercel/speed-insights": "^1.3.1",
+     "ai": "5.0.51",
+     "arctic": "^3.7.0",
++    "bcryptjs": "^3.0.3",
+     "class-variance-authority": "^0.7.1",
+     "clsx": "^2.1.1",
+     "drizzle-kit": "^0.30.6",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index d2536ef..918e936 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -98,6 +98,9 @@ importers:
+       arctic:
+         specifier: ^3.7.0
+         version: 3.7.0
++      bcryptjs:
++        specifier: ^3.0.3
++        version: 3.0.3
+       class-variance-authority:
+         specifier: ^0.7.1
+         version: 0.7.1
+@@ -360,11 +363,11 @@ packages:
+ 
+   '@esbuild-kit/core-utils@3.3.2':
+     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
+-    deprecated: 'Merged into tsx: https://tsx.is'
++    deprecated: 'Merged into tsx: https://tsx.hirok.io'
+ 
+   '@esbuild-kit/esm-loader@2.6.5':
+     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
+-    deprecated: 'Merged into tsx: https://tsx.is'
++    deprecated: 'Merged into tsx: https://tsx.hirok.io'
+ 
+   '@esbuild/aix-ppc64@0.19.12':
+     resolution: {integrity: sha512-bmoCYyWdEL3wDQIVbcyzRyeKLgk2WtWLTWz1ZIAZF/EGbNOwSA6ew3PftJ1PqMiOOGu0OyFMzG53L0zqIpPeNA==}
+@@ -2340,6 +2343,10 @@ packages:
+     engines: {node: '>=6.0.0'}
+     hasBin: true
+ 
++  bcryptjs@3.0.3:
++    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
++    hasBin: true
++
+   before-after-hook@4.0.0:
+     resolution: {integrity: sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ==}
+ 
+@@ -6555,6 +6562,8 @@ snapshots:
+ 
+   baseline-browser-mapping@2.10.40: {}
+ 
++  bcryptjs@3.0.3: {}
++
+   before-after-hook@4.0.0: {}
+ 
+   brace-expansion@1.1.15:
+diff --git a/scripts/create-user.ts b/scripts/create-user.ts
+new file mode 100644
+index 0000000..b9a4934
+--- /dev/null
++++ b/scripts/create-user.ts
+@@ -0,0 +1,59 @@
++import 'dotenv/config'
++import { drizzle } from 'drizzle-orm/postgres-js'
++import postgres from 'postgres'
++import * as schema from '../lib/db/schema'
++import { users } from '../lib/db/schema'
++import { nanoid } from 'nanoid'
++import bcrypt from 'bcryptjs'
++
++const [, , username, password, email, name] = process.argv
++
++if (!username || !password) {
++  console.error('Usage: npx tsx scripts/create-user.ts <username> <password> [email] [name]')
++  process.exit(1)
++}
++
++async function main() {
++  const url = process.env.POSTGRES_URL
++  if (!url) {
++    console.error('POSTGRES_URL environment variable is required')
++    process.exit(1)
++  }
++
++  const client = postgres(url)
++  const db = drizzle(client, { schema }) as any
++
++  const existing = await db.select().from(users).where({ username }).limit(1)
++
++  if (existing.length > 0) {
++    console.error('Error: Username already exists')
++    process.exit(1)
++  }
++
++  const passwordHash = await bcrypt.hash(password, 10)
++  const id = nanoid()
++  const now = new Date()
++
++  await db.insert(users).values({
++    id,
++    provider: 'credentials',
++    externalId: username,
++    accessToken: '',
++    username,
++    email: email || null,
++    name: name || null,
++    passwordHash,
++    avatarUrl: '',
++    createdAt: now,
++    updatedAt: now,
++    lastLoginAt: now,
++  })
++
++  console.log('User created successfully')
++  process.exit(0)
++}
++
++main().catch((err) => {
++  console.error('Failed to create user:', err)
++  process.exit(1)
++})

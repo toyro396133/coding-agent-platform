@@ -15,7 +15,7 @@ export function SignIn() {
   const [showPasswordForm, setShowPasswordForm] = useState(false)
 
   // Check which auth providers are enabled
-  const { github: hasGitHub, vercel: hasVercel } = getEnabledAuthProviders()
+  const { github: hasGitHub, vercel: hasVercel, credentials: hasCredentials } = getEnabledAuthProviders()
 
   const handleVercelSignIn = async () => {
     setLoadingVercel(true)
@@ -150,9 +150,11 @@ export function SignIn() {
                   </div>
                 </div>
 
-                <Button onClick={() => setShowPasswordForm(true)} variant="outline" size="lg" className="w-full">
-                  Sign in with Password
-                </Button>
+                {hasCredentials && (
+                  <Button onClick={() => setShowPasswordForm(true)} variant="outline" size="lg" className="w-full">
+                    Sign in with Password
+                  </Button>
+                )}
               </div>
             </>
           )}

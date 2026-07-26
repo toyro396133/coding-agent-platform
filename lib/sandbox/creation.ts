@@ -60,7 +60,12 @@ export async function createSandbox(config: SandboxConfig, logger: TaskLogger): 
     }
 
     // Validate required environment variables
-    const envValidation = validateEnvironmentVariables(config.selectedAgent, config.githubToken, config.apiKeys)
+    const envValidation = validateEnvironmentVariables(
+      config.selectedAgent,
+      config.githubToken,
+      config.apiKeys,
+      config.repoUrl,
+    )
     if (!envValidation.valid) {
       throw new Error(envValidation.error!)
     }
@@ -79,10 +84,8 @@ export async function createSandbox(config: SandboxConfig, logger: TaskLogger): 
     const defaultPorts = config.ports || [3000, 5173]
 
     // Create sandbox without source - we'll clone manually to /vercel/sandbox/project
+    // Don't pass token/teamId/projectId directly - let SDK extract from VERCEL_OIDC_TOKEN
     const sandboxConfig = {
-      teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-      projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-      token: process.env.SANDBOX_VERCEL_TOKEN!,
       timeout: timeoutMs,
       ports: defaultPorts,
       runtime: config.runtime || 'node22',
@@ -108,30 +111,34 @@ export async function createSandbox(config: SandboxConfig, logger: TaskLogger): 
         return { success: false, cancelled: true }
       }
 
-      // Clone repository to /vercel/sandbox/project
-      await logger.info('Cloning repository to project directory...')
-
       // Create project directory
       const mkdirResult = await runCommandInSandbox(sandbox, 'mkdir', ['-p', PROJECT_DIR])
       if (!mkdirResult.success) {
         throw new Error('Failed to create project directory')
       }
 
-      // Clone the repository with shallow clone
-      const cloneResult = await runCommandInSandbox(sandbox, 'git', [
-        'clone',
-        '--depth',
-        '1',
-        authenticatedRepoUrl,
-        PROJECT_DIR,
-      ])
+      if (authenticatedRepoUrl) {
+        // Clone repository to /vercel/sandbox/project
+        await logger.info('Cloning repository to project directory...')
 
-      if (!cloneResult.success) {
-        await logger.error('Failed to clone repository')
-        throw new Error('Failed to clone repository to project directory')
+        // Clone the repository with shallow clone
+        const cloneResult = await runCommandInSandbox(sandbox, 'git', [
+          'clone',
+          '--depth',
+          '1',
+          authenticatedRepoUrl,
+          PROJECT_DIR,
+        ])
+
+        if (!cloneResult.success) {
+          await logger.error('Failed to clone repository')
+          throw new Error('Failed to clone repository to project directory')
+        }
+
+        await logger.info('Repository cloned successfully')
+      } else {
+        await logger.info('No repository URL provided, starting with empty project directory')
       }
-
-      await logger.info('Repository cloned successfully')
 
       // Call progress callback after sandbox creation
       if (config.onProgress) {
@@ -771,12 +778,6 @@ SKILL_EOF`
       }
     }
 
-    // Configure Git user
-    const gitName = config.gitAuthorName || 'Coding Agent'
-    const gitEmail = config.gitAuthorEmail || 'agent@example.com'
-    await runInProject(sandbox, 'git', ['config', 'user.name', gitName])
-    await runInProject(sandbox, 'git', ['config', 'user.email', gitEmail])
-
     // Verify we're in a Git repository
     const gitRepoCheck = await runInProject(sandbox, 'git', ['rev-parse', '--git-dir'])
     if (!gitRepoCheck.success) {
@@ -789,6 +790,12 @@ SKILL_EOF`
     } else {
       await logger.info('Git repository detected')
     }
+
+    // Configure Git user (must be done after git init)
+    const gitName = config.gitAuthorName || 'Coding Agent'
+    const gitEmail = config.gitAuthorEmail || 'agent@example.com'
+    await runInProject(sandbox, 'git', ['config', 'user.name', gitName])
+    await runInProject(sandbox, 'git', ['config', 'user.email', gitEmail])
 
     // Check if repository is empty (no commits)
     const hasCommits = await runInProject(sandbox, 'git', ['rev-parse', 'HEAD'])
@@ -827,13 +834,14 @@ SKILL_EOF`
 
       await logger.info('Created initial commit on main branch')
 
-      // Push to origin
-      const gitPush = await runInProject(sandbox, 'git', ['push', '-u', 'origin', 'main'])
-      if (!gitPush.success) {
-        await logger.info('Failed to push main branch to origin')
-        // Don't throw error here as local repo is still valid
-      } else {
-        await logger.info('Pushed main branch to origin')
+      // Push to origin if repo URL is configured
+      if (authenticatedRepoUrl) {
+        const gitPush = await runInProject(sandbox, 'git', ['push', '-u', 'origin', 'main'])
+        if (!gitPush.success) {
+          await logger.info('Failed to push main branch to origin')
+        } else {
+          await logger.info('Pushed main branch to origin')
+        }
       }
     }
 

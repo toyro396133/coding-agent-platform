@@ -1,44 +1,40 @@
-﻿# Task 1: Database Schema Updates
+﻿### Task 1: Dictionary Files (en.ts + he.ts + index.ts)
 
 **Files:**
-- Modify: lib/db/schema.ts
+- Create: `dictionaries/en.ts`
+- Create: `dictionaries/he.ts`
+- Modify: `dictionaries/index.ts`
 
 **Interfaces:**
-- Consumes: existing schema definitions
-- Produces: updated users table with password_hash column and 'credentials' in provider enum
+- Produces: `Locale` type (`'en' | 'he'`), `getDictionary(locale)` function, typed dictionary objects with hierarchical keys
 
-## Steps
+- [ ] **Step 1: Create `dictionaries/en.ts`** with ALL English strings organized by domain
 
-- **Step 1: Update provider enum and add password_hash**
+Write this file with exact content from the plan `docs/superpowers/plans/2026-07-26-hebrew-localization.md` Task 1 Step 1.
 
-Update lib/db/schema.ts:
-- Change provider enum from ['github', 'vercel'] to ['github', 'vercel', 'credentials']
-- Add password_hash: text('password_hash') field to users table (after vatarUrl)
-- Update insertUserSchema to include optional password_hash
-- Update selectUserSchema to include nullable password_hash
+- [ ] **Step 2: Create `dictionaries/he.ts`** with ALL Hebrew translations
 
-In users table definition - change provider enum line:
-`	ypescript
-provider: text('provider', {
-  enum: ['github', 'vercel', 'credentials'],
-}).notNull(),
-`
+Write this file with exact content from the plan Task 1 Step 2. All Hebrew strings from the plan.
 
-Add after avatarUrl line:
-`	ypescript
-passwordHash: text('password_hash'),
-`
+- [ ] **Step 3: Update `dictionaries/index.ts`** to re-export types and `getDictionary`
 
-Update insertUserSchema to include:
-`	ypescript
-passwordHash: z.string().optional(),
-`
+```typescript
+export type { Dictionary } from './en'
+export { en } from './en'
+export { he } from './he'
 
-Update selectUserSchema to include:
-`	ypescript
-passwordHash: z.string().nullable(),
-`
+export type Locale = 'en' | 'he'
 
-- **Step 2: Run type check** - pnpm type-check
-- **Step 3: Generate migration** - pnpm db:generate
-- **Step 4: Run format and commit**
+export const getDictionary = (locale: Locale): typeof en => {
+  return locale === 'he' ? he : en
+}
+```
+
+- [ ] **Step 4: Verify build**
+
+Run: `pnpm type-check`
+Expected: No type errors
+
+- [ ] **Step 5: Report back with status (DONE/NEEDS_CONTEXT/BLOCKED)**
+
+Return: status, list of commits made, test results, any concerns.

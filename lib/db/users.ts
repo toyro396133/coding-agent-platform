@@ -118,6 +118,13 @@ export async function getUserByUsername(username: string) {
 }
 
 /**
+ * Update a user's locale preference
+ */
+export async function updateUserLocale(userId: string, locale: 'en' | 'he') {
+  return await db.update(users).set({ locale, updatedAt: new Date() }).where(eq(users.id, userId))
+}
+
+/**
  * Find user by GitHub account connection
  * Used to check if a GitHub account is already connected to a user
  */

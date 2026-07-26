@@ -4,14 +4,17 @@ import { NextResponse } from 'next/server'
 import { getUserByUsername } from '@/lib/db/users'
 import { saveSession } from '@/lib/session/create'
 import bcrypt from 'bcryptjs'
+import { z } from 'zod'
+
+const loginSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+})
 
 export async function POST(req: Request) {
   try {
-    const { username, password } = await req.json()
-
-    if (!username || !password) {
-      return NextResponse.json({ error: 'Username and password are required' }, { status: 400 })
-    }
+    const body = loginSchema.parse(await req.json())
+    const { username, password } = body
 
     const user = await getUserByUsername(username)
     if (!user || !user.passwordHash) {
@@ -40,6 +43,9 @@ export async function POST(req: Request) {
 
     return response
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Validation error' }, { status: 400 })
+    }
     console.error('Login error:', error)
     return NextResponse.json({ error: 'An error occurred during sign in' }, { status: 500 })
   }

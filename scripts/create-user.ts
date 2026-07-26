@@ -1,59 +1,38 @@
-import 'dotenv/config'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from '../lib/db/schema'
+import dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
+import { db } from '../lib/db/client'
 import { users } from '../lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import bcrypt from 'bcryptjs'
 
-const [, , username, password, email, name] = process.argv
-
-if (!username || !password) {
-  console.error('Usage: npx tsx scripts/create-user.ts <username> <password> [email] [name]')
-  process.exit(1)
-}
-
 async function main() {
-  const url = process.env.POSTGRES_URL
-  if (!url) {
-    console.error('POSTGRES_URL environment variable is required')
-    process.exit(1)
-  }
+  const username = 'admin'
+  const password = 'admin123'
 
-  const client = postgres(url)
-  const db = drizzle(client, { schema }) as any
-
-  const existing = await db.select().from(users).where({ username }).limit(1)
+  const existing = await db.select().from(users).where(eq(users.username, username)).limit(1)
 
   if (existing.length > 0) {
-    console.error('Error: Username already exists')
-    process.exit(1)
+    console.log(`User "${username}" already exists, skipping creation.`)
+    return
   }
 
-  const passwordHash = await bcrypt.hash(password, 10)
-  const id = nanoid()
-  const now = new Date()
+  const userId = nanoid()
+  const hash = await bcrypt.hash(password, 10)
 
   await db.insert(users).values({
-    id,
+    id: userId,
     provider: 'credentials',
-    externalId: username,
+    externalId: userId,
     accessToken: '',
     username,
-    email: email || null,
-    name: name || null,
-    passwordHash,
-    avatarUrl: '',
-    createdAt: now,
-    updatedAt: now,
-    lastLoginAt: now,
+    passwordHash: hash,
   })
 
-  console.log('User created successfully')
-  process.exit(0)
+  console.log(`User created: username=${username}, password=${password}, id=${userId}`)
 }
 
 main().catch((err) => {
-  console.error('Failed to create user:', err)
+  console.error('Failed:', err)
   process.exit(1)
 })

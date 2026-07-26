@@ -21,4 +21,5 @@ interface User {
   email: string | undefined
   avatar: string
   name?: string
+  locale?: 'en' | 'he'
 }

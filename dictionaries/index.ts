@@ -1,26 +1,13 @@
+import type { Dictionary } from './en'
+import { en } from './en'
+import { he } from './he'
+
+export type { Dictionary } from './en'
+export { en } from './en'
+export { he } from './he'
+
 export type Locale = 'en' | 'he'
 
-const dictionaries = {
-  en: {
-    testExecutions: 'Test Executions',
-    passed: 'Passed',
-    failed: 'Failed',
-    remediated: 'Remediated',
-    noLogsAvailable: 'No logs available.',
-    remediationApplied: 'Remediation Applied',
-    enhancePrompt: 'Enhance Prompt',
-  },
-  he: {
-    testExecutions: 'תוצאות בדיקות',
-    passed: 'עבר',
-    failed: 'נכשל',
-    remediated: 'תוקן אוטומטית',
-    noLogsAvailable: 'אין לוגים זמינים.',
-    remediationApplied: 'תיקון הופעל',
-    enhancePrompt: 'שדרג הנחיה',
-  },
-}
-
-export const getDictionary = (locale: Locale) => {
-  return dictionaries[locale] || dictionaries.en
+export const getDictionary = (locale: Locale): Dictionary => {
+  return locale === 'he' ? he : en
 }

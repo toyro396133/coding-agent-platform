@@ -1324,7 +1324,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                   onClick={handleOptimizePrompt}
                   disabled={!newMessage.trim() || isOptimizing || isSending}
                   className="absolute bottom-2 end-9 rounded-full h-5 w-5 bg-secondary text-secondary-foreground hover:bg-secondary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={t.enhancePrompt}
+                  title={t.taskChat.enhancePrompt}
                   aria-label="Optimize prompt with AI enhancement"
                 >
                   {isOptimizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}

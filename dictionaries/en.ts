@@ -147,6 +147,14 @@ const _en = {
     optimizing: 'Optimizing...',
     autoRemediate: 'Auto-Remediate',
   },
+  tasks: {
+    testExecutions: 'Test Executions',
+    passed: 'Passed',
+    failed: 'Failed',
+    remediated: 'Remediated',
+    remediationApplied: 'Remediation Applied',
+    noLogsAvailable: 'No logs available.',
+  },
   settings: {
     title: 'Settings',
     description: 'Manage your account settings and agent routing preferences.',

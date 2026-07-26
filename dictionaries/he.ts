@@ -149,6 +149,14 @@ export const he: Dictionary = {
     optimizing: 'משפר...',
     autoRemediate: 'תיקון אוטומטי',
   },
+  tasks: {
+    testExecutions: 'תוצאות בדיקות',
+    passed: 'עבר',
+    failed: 'נכשל',
+    remediated: 'תוקן אוטומטית',
+    remediationApplied: 'תיקון הופעל',
+    noLogsAvailable: 'אין לוגים זמינים.',
+  },
   settings: {
     title: 'הגדרות',
     description: 'נהל את הגדרות החשבון שלך והעדפות ניתוב הסוכנים.',

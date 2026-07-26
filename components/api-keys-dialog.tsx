@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 
 interface ApiKeysDialogProps {
   open: boolean
@@ -23,6 +24,8 @@ const PROVIDERS = [
   { id: 'cursor' as Provider, name: 'Cursor', placeholder: 'cur_...' },
 ]
 
+// Backwards-compat single-key dialog. The richer pool manager lives at
+// /settings -> "API Pool" tab and supports multiple keys per provider.
 export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
   const [apiKeys, setApiKeys] = useState<Record<Provider, string>>({
     openai: '',
@@ -180,8 +183,17 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
         <DialogHeader>
           <DialogTitle>API Keys</DialogTitle>
           <DialogDescription>
-            Configure your own API keys. System defaults will be used if not provided.
+            Configure your own API keys. System defaults will be used if not provided. For multiple keys per provider
+            round-robin and quota tracking, head to <strong>Settings → API Pool</strong>.
           </DialogDescription>
+          <div className="pt-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/settings" onClick={() => onOpenChange(false)}>
+                Open API Pool
+                <ExternalLink className="h-3.5 w-3.5 ms-2" />
+              </Link>
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-2">

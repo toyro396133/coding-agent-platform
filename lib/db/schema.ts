@@ -114,6 +114,11 @@ export const tasks = pgTable('tasks', {
   }),
   prMergeCommitSha: text('pr_merge_commit_sha'),
   mcpServerIds: jsonb('mcp_server_ids').$type<string[]>(),
+  executionMode: text('execution_mode', {
+    enum: ['orchestrator_external', 'orchestrator_only', 'external_only'],
+  })
+    .notNull()
+    .default('orchestrator_external'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
@@ -147,10 +152,9 @@ export const insertTaskSchema = z.object({
   prStatus: z.enum(['open', 'closed', 'merged']).optional(),
   prMergeCommitSha: z.string().optional(),
   mcpServerIds: z.array(z.string()).optional(),
-  createdAt: z.date().optional(),
-  updatedAt: z.date().optional(),
-  completedAt: z.date().optional(),
-  deletedAt: z.date().optional(),
+  executionMode: z
+    .enum(['orchestrator_external', 'orchestrator_only', 'external_only'])
+    .default('orchestrator_external'),
 })
 
 export const selectTaskSchema = z.object({
@@ -179,6 +183,7 @@ export const selectTaskSchema = z.object({
   prStatus: z.enum(['open', 'closed', 'merged']).nullable(),
   prMergeCommitSha: z.string().nullable(),
   mcpServerIds: z.array(z.string()).nullable(),
+  executionMode: z.enum(['orchestrator_external', 'orchestrator_only', 'external_only']),
   createdAt: z.date(),
   updatedAt: z.date(),
   completedAt: z.date().nullable(),

@@ -50,7 +50,7 @@ export class OrchestratorState {
   saveCheckpoint(): void {
     this.logs.push({
       type: 'info',
-      message: `Checkpoint saved at step ${this.steps}`,
+      message: 'Checkpoint saved',
       timestamp: new Date(),
     })
   }

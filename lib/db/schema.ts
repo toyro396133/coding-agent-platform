@@ -324,9 +324,9 @@ export const keys = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }), // Foreign key to users table
     provider: text('provider', {
-      enum: ['anthropic', 'openai', 'cursor', 'gemini', 'aigateway'],
+      enum: ['anthropic', 'openai', 'cursor', 'gemini', 'aigateway', 'deepseek'],
     }).notNull(),
-    value: text('value').notNull(), // Encrypted API key value
+    value: text('value').notNull(), // Encrypted API key value (legacy keys table)
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -339,7 +339,7 @@ export const keys = pgTable(
 export const insertKeySchema = z.object({
   id: z.string().optional(),
   userId: z.string(),
-  provider: z.enum(['anthropic', 'openai', 'cursor', 'gemini', 'aigateway']),
+  provider: z.enum(['anthropic', 'openai', 'cursor', 'gemini', 'aigateway', 'deepseek']),
   value: z.string().min(1, 'API key value is required'),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
@@ -348,7 +348,7 @@ export const insertKeySchema = z.object({
 export const selectKeySchema = z.object({
   id: z.string(),
   userId: z.string(),
-  provider: z.enum(['anthropic', 'openai', 'cursor', 'gemini', 'aigateway']),
+  provider: z.enum(['anthropic', 'openai', 'cursor', 'gemini', 'aigateway', 'deepseek']),
   value: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -433,6 +433,178 @@ export type InsertSetting = z.infer<typeof insertSettingSchema>
 export const userConnections = accounts
 export type UserConnection = Account
 export type InsertUserConnection = InsertAccount
+
+// =============================================================================
+// Multi-Provider Key Pool + Function Routing
+// =============================================================================
+
+// Provider identifiers shared by the key pool, the AI SDK wrappers, and the UI.
+export const PROVIDER_VALUES = ['openai', 'anthropic', 'gemini', 'cursor', 'aigateway', 'deepseek'] as const
+export type ProviderValue = (typeof PROVIDER_VALUES)[number]
+export const providerEnum = z.enum(PROVIDER_VALUES)
+
+// Logical functions that need their own pool of API keys + provider ordering.
+export const FUNCTION_VALUES = ['global', 'prompt-optimizer', 'proposals'] as const
+export type FunctionValue = (typeof FUNCTION_VALUES)[number]
+export const functionEnum = z.enum(FUNCTION_VALUES)
+
+// Cap how many keys the same user can register per (function, provider) pair.
+// Prevents a malicious or accidental flood without ruining legitimate use cases.
+const MAX_KEYS_PER_POOL = 20
+
+// Pool of API keys the user wants us to rotate through when calling a function.
+// Many rows are allowed per (userId, function, provider) – deliberately breaks
+// the old `keys` table unique constraint so that rotation is possible.
+export const apiKeysPool = pgTable(
+  'api_keys_pool',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // 'global' | 'prompt-optimizer' | 'proposals' – the function this key is reserved for.
+    functionName: text('function_name', { enum: FUNCTION_VALUES }).notNull(),
+    // Identical provider identifiers to the legacy `keys` table.
+    provider: text('provider', { enum: PROVIDER_VALUES }).notNull(),
+    // Free-form label chosen by the user (e.g. "primary", "fallback").
+    label: text('label').notNull(),
+    // The encrypted secret; never exposed to the client.
+    value: text('value').notNull(),
+    // Marked true after a 429/quota error and cleared on a successful probe.
+    isExhausted: boolean('is_exhausted').default(false).notNull(),
+    // Internal counter – reflects how many requests we have routed through
+    // this key while it was healthy. Combined with 429 events for capacity UI.
+    usageCount: integer('usage_count').default(0).notNull(),
+    // Round-robin cursor – null is treated as "never used" and goes first.
+    lastUsedAt: timestamp('last_used_at'),
+    // UTC day in which the current quota window started. Lets us reset
+    // usage_count on the first request of a new calendar day.
+    quotaWindowDay: text('quota_window_day'),
+    // How many minutes until an exhausted key is auto-unexhausted.
+    // NULL means "reset at the next UTC calendar day".
+    quotaResetMinutes: integer('quota_reset_minutes'),
+    // Timestamp when the key was last marked exhausted (for precise reset math).
+    exhaustedAt: timestamp('exhausted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => ({
+    // Composite index used by the round-robin query: function + provider + healthy + lastUsedAt
+    poolFunctionProviderIdx: index('api_keys_pool_fn_prov_idx').on(t.userId, t.functionName, t.provider, t.isExhausted),
+    poolFunctionIdx: index('api_keys_pool_fn_idx').on(t.userId, t.functionName),
+  }),
+)
+
+export const insertApiKeyPoolSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  functionName: functionEnum,
+  provider: providerEnum,
+  label: z.string().min(1).max(60),
+  value: z.string().min(1),
+  isExhausted: z.boolean().optional(),
+  usageCount: z.number().int().nonnegative().optional(),
+  lastUsedAt: z.date().optional().nullable(),
+  quotaWindowDay: z.string().optional().nullable(),
+  quotaResetMinutes: z.number().int().nonnegative().optional().nullable(),
+  exhaustedAt: z.date().optional().nullable(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+export const selectApiKeyPoolSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  functionName: functionEnum,
+  provider: providerEnum,
+  label: z.string(),
+  // Never expose the encrypted value to the client; the route omits it.
+  value: z.string(),
+  isExhausted: z.boolean(),
+  usageCount: z.number(),
+  lastUsedAt: z.date().nullable(),
+  quotaWindowDay: z.string().nullable(),
+  quotaResetMinutes: z.number().nullable(),
+  exhaustedAt: z.date().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export type ApiKeyPoolEntry = z.infer<typeof selectApiKeyPoolSchema>
+export type InsertApiKeyPoolEntry = z.infer<typeof insertApiKeyPoolSchema>
+
+// Per-function routing preferences: which providers the user wants tried first
+// (and the default model each function should fall back to).
+export const functionRouting = pgTable(
+  'function_routing',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    functionName: text('function_name', { enum: FUNCTION_VALUES }).notNull(),
+    // postgres text[] – ordering matters (first is the most preferred provider).
+    preferredProviders: text('preferred_providers').array().notNull(),
+    // Default model key as understood by lib/ai/models.ts getModelClient().
+    defaultModel: text('default_model').notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => ({
+    routingUserFunctionUnique: uniqueIndex('function_routing_user_fn_idx').on(t.userId, t.functionName),
+  }),
+)
+
+export const insertFunctionRoutingSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  functionName: functionEnum,
+  preferredProviders: z.array(providerEnum).min(1),
+  defaultModel: z.string().min(1),
+  updatedAt: z.date().optional(),
+})
+
+export const selectFunctionRoutingSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  functionName: functionEnum,
+  preferredProviders: z.array(providerEnum),
+  defaultModel: z.string(),
+  updatedAt: z.date(),
+})
+
+export type FunctionRouting = z.infer<typeof selectFunctionRoutingSchema>
+export type InsertFunctionRouting = z.infer<typeof insertFunctionRoutingSchema>
+
+// Sensible defaults applied when the user has not customised the routing for a
+// given function. The AI Gateway is always listed first because one key can
+// reach every model; the explicit providers remain as fallbacks.
+export const DEFAULT_FUNCTION_ROUTING: Record<
+  FunctionValue,
+  { preferredProviders: ProviderValue[]; defaultModel: string }
+> = {
+  global: { preferredProviders: ['aigateway', 'openai', 'anthropic', 'gemini', 'cursor'], defaultModel: 'gpt-4o' },
+  'prompt-optimizer': { preferredProviders: ['aigateway', 'openai', 'anthropic', 'gemini'], defaultModel: 'gpt-4o' },
+  proposals: { preferredProviders: ['aigateway', 'gemini', 'anthropic', 'openai'], defaultModel: 'gemini-2.5-flash' },
+}
+
+export type FunctionRoutingSummary = {
+  functionName: FunctionValue
+  preferredProviders: ProviderValue[]
+  defaultModel: string
+  keys: Array<{
+    id: string
+    provider: ProviderValue
+    label: string
+    isExhausted: boolean
+    usageCount: number
+    lastUsedAt: string | null
+    quotaWindowDay: string | null
+  }>
+}
 
 // Memories table - stores summaries of completed tasks with vector embeddings for semantic search
 export const memories = pgTable(
@@ -560,10 +732,7 @@ export const backgroundTestExecutions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
-    taskIdCreatedAtIdx: index('background_test_executions_task_id_created_at_idx').on(
-      table.taskId,
-      table.createdAt,
-    ),
+    taskIdCreatedAtIdx: index('background_test_executions_task_id_created_at_idx').on(table.taskId, table.createdAt),
   }),
 )
 

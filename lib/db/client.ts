@@ -4,15 +4,24 @@ import * as schema from './schema'
 
 let _db: ReturnType<typeof drizzle> | null = null
 
+function createDb() {
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL
+  if (!url) {
+    // Surface a clear, actionable error so users can fix it via the Freebuff
+    // API Keys UI / env panel. We deliberately do NOT print the value back.
+    throw new Error(
+      'Database is not configured: DATABASE_URL or POSTGRES_URL is missing. Add it via the Freebuff API Keys panel and restart the preview.',
+    )
+  }
+  const client = postgres(url)
+  return drizzle(client, { schema })
+}
+
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
-  get(target, prop) {
+  get(_target, prop) {
     if (!_db) {
-      if (!process.env.POSTGRES_URL) {
-        throw new Error('POSTGRES_URL environment variable is required')
-      }
-      const client = postgres(process.env.POSTGRES_URL)
-      _db = drizzle(client, { schema })
+      _db = createDb()
     }
-    return Reflect.get(_db, prop)
+    return Reflect.get(_db!, prop)
   },
 })

@@ -1,33 +1,47 @@
-import { generateText } from 'ai'
-import { OrchestratorState } from './state'
-import { createOrchestratorTools } from './tools'
+import { generateText, stepCountIs } from 'ai'
 import { getModelClient } from '@/lib/ai/models'
+import { OrchestratorState, type OrchestratorResult } from './state'
+import { createOrchestratorTools } from './tools'
 
-export interface RunOrchestratorOptions {
+interface RunOrchestratorOptions {
   taskId: string
-  initialPrompt: string
-  modelName?: string
+  selectedModel?: string
+  systemPrompt?: string
   maxSteps?: number
-  checkpointFrequency?: number
 }
 
-export async function runOrchestrator(options: RunOrchestratorOptions): Promise<OrchestratorResult> {
-  const { taskId, initialPrompt, modelName = 'gpt-4o-mini', maxSteps = 20, checkpointFrequency = 5 } = options
+export async function runOrchestrator(prompt: string, options: RunOrchestratorOptions): Promise<OrchestratorResult> {
+  const state = new OrchestratorState(options.taskId, prompt, options.maxSteps || 20)
 
-  const state = new OrchestratorState(taskId, initialPrompt, maxSteps, checkpointFrequency)
-  const model = getModelClient(modelName)
-  const tools = createOrchestratorTools(state)
+  const model = getModelClient(options.selectedModel || 'gpt-4o-mini')
+  const systemPrompt =
+    options.systemPrompt ||
+    'You are the Orchestrator Agent. Analyze the task below. If it is complex, spawn sub-agents using the available tools. Once you have all necessary results, call `finalize` with your synthesized answer or refined prompt. Keep your answer concise and actionable.'
 
-  while (!state.completed && state.steps < state.maxSteps) {
+  while (state.steps < state.maxSteps && !state.completed) {
+    const tools = createOrchestratorTools(state)
+
+    try {
+      const { text } = await generateText({
+        model,
+        system: systemPrompt,
+        prompt: state.currentPrompt,
+        tools,
+        stopWhen: stepCountIs(1),
+      })
+
+      if (text) {
+        state.appendContext(text)
+      }
+    } catch (error) {
+      state.appendContext(`Error during generation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+
     state.steps++
 
-    const prompt = state.currentPrompt + '\n\nContext:\n' + state.accumulatedContext
-
-    const result = await generateText({
-      model,
-      prompt,
-      tools,
-    })
+    if (state.completed) {
+      break
+    }
 
     if (state.shouldCheckpoint()) {
       state.saveCheckpoint()
@@ -36,5 +50,3 @@ export async function runOrchestrator(options: RunOrchestratorOptions): Promise<
 
   return state.getResult()
 }
-
-import type { OrchestratorResult } from './state'

@@ -1,4 +1,4 @@
-import { generateId } from '@/lib/utils/id'
+import type { Task, LogEntry } from '@/lib/db/schema'
 
 export interface SubAgentResult {
   type: string
@@ -21,6 +21,8 @@ export class OrchestratorState {
   public subAgentResults: SubAgentResult[] = []
   public taskId: string
   private checkpointFrequency: number
+  private task: Task | null = null
+  private logs: LogEntry[] = []
 
   constructor(taskId: string, initialPrompt: string, maxSteps = 20, checkpointFrequency = 5) {
     this.taskId = taskId
@@ -45,11 +47,35 @@ export class OrchestratorState {
     return this.steps > 0 && this.steps % this.checkpointFrequency === 0
   }
 
+  saveCheckpoint(): void {
+    this.logs.push({
+      type: 'info',
+      message: `Checkpoint saved at step ${this.steps}`,
+      timestamp: new Date(),
+    })
+  }
+
   getResult(): OrchestratorResult {
     return {
       finalAnswer: this.accumulatedContext || this.currentPrompt,
       steps: this.steps,
       subAgentResults: this.subAgentResults,
     }
+  }
+
+  setTask(task: Task): void {
+    this.task = task
+  }
+
+  getTask(): Task | null {
+    return this.task
+  }
+
+  addLog(entry: LogEntry): void {
+    this.logs.push(entry)
+  }
+
+  getLogs(): LogEntry[] {
+    return this.logs
   }
 }

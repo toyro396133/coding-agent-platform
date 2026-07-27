@@ -1,4 +1,5 @@
 import type { Task, LogEntry } from '@/lib/db/schema'
+import type { CapabilityLevel, ToolContext } from './capabilities/types'
 
 export interface SubAgentResult {
   type: string
@@ -20,6 +21,8 @@ export class OrchestratorState {
   public completed = false
   public subAgentResults: SubAgentResult[] = []
   public taskId: string
+  public capabilityLevel: CapabilityLevel = 'basic'
+  public toolContext: ToolContext | null = null
   private checkpointFrequency: number
   private task: Task | null = null
   private logs: LogEntry[] = []
@@ -29,6 +32,19 @@ export class OrchestratorState {
     this.currentPrompt = initialPrompt
     this.maxSteps = maxSteps
     this.checkpointFrequency = checkpointFrequency
+  }
+
+  setCapabilityLevel(level: CapabilityLevel, userId: string): void {
+    this.capabilityLevel = level
+    this.toolContext = {
+      taskId: this.taskId,
+      userId,
+      capabilityLevel: level,
+      accumulatedContext: this.accumulatedContext,
+      subAgentResults: this.subAgentResults,
+      checkpoint: async (label: string) => '',
+      restore: async (id: string) => {},
+    }
   }
 
   addSubAgentResult(type: string, prompt: string, result: string): void {

@@ -2,31 +2,55 @@ import { generateText, stepCountIs } from 'ai'
 import { getModelClient } from '@/lib/ai/models'
 import { OrchestratorState, type OrchestratorResult } from './state'
 import { createOrchestratorTools } from './tools'
+import { loadCapabilityTools } from './capabilities/index'
+import { getModeConfig } from './modes'
+import type { CapabilityLevel } from './capabilities/types'
 
 interface RunOrchestratorOptions {
   taskId: string
+  userId?: string
   selectedModel?: string
   systemPrompt?: string
   maxSteps?: number
+  capabilityLevel?: CapabilityLevel
 }
 
 export async function runOrchestrator(prompt: string, options: RunOrchestratorOptions): Promise<OrchestratorResult> {
   const state = new OrchestratorState(options.taskId, prompt, options.maxSteps || 20)
 
+  const level = options.capabilityLevel || 'basic'
+  state.capabilityLevel = level
+  if (options.userId && level !== 'basic') {
+    state.setCapabilityLevel(level, options.userId)
+  }
+
   const model = getModelClient(options.selectedModel || 'gpt-4o-mini')
+
+  const modeInstructions =
+    level === 'basic'
+      ? ''
+      : '\nYou are in enhanced mode with additional capabilities including web search, planning, session management, background tasks, and code research. Use these tools when appropriate.'
+
   const systemPrompt =
-    options.systemPrompt ||
-    'You are the Orchestrator Agent. Analyze the task below. If it is complex, spawn sub-agents using the available tools. Once you have all necessary results, call `finalize` with your synthesized answer or refined prompt. Keep your answer concise and actionable.'
+    (options.systemPrompt ||
+      'You are the Orchestrator Agent. Analyze the task below. If it is complex, spawn sub-agents using the available tools. Once you have all necessary results, call `finalize` with your synthesized answer or refined prompt. Keep your answer concise and actionable.') +
+    modeInstructions
 
   while (state.steps < state.maxSteps && !state.completed) {
-    const tools = createOrchestratorTools(state)
+    const legacyTools = createOrchestratorTools(state)
+    let allTools = { ...legacyTools }
+
+    if (level !== 'basic' && state.toolContext) {
+      const capTools = loadCapabilityTools(level, state.toolContext)
+      allTools = { ...allTools, ...capTools }
+    }
 
     try {
       const { text } = await generateText({
         model,
         system: systemPrompt,
         prompt: state.currentPrompt,
-        tools,
+        tools: allTools,
         stopWhen: stepCountIs(1),
       })
 

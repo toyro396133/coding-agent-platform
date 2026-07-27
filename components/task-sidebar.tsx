@@ -481,12 +481,12 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
               className="h-8 w-8 p-0"
               onClick={() => setShowDeleteDialog(true)}
               disabled={isDeleting || tasks.length === 0}
-               title={t.sidebar.deleteTasks}
-             >
-               <Trash2 className="h-4 w-4" />
-             </Button>
-             <Link href="/" onClick={handleLinkClick}>
-               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
+              title={t.sidebar.deleteTasks}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Link href="/" onClick={handleLinkClick}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                 <Plus className="h-4 w-4" />
               </Button>
             </Link>
@@ -719,9 +719,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t.sidebar.deleteDialogTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.sidebar.deleteDialogDesc}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t.sidebar.deleteDialogDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
             <div className="space-y-4">

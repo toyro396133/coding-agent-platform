@@ -19,12 +19,19 @@ export async function executeCapAgent(taskId: string, options: CapAgentOptions):
     return { success: false, output: 'No active sandbox', changesDetected: false }
   }
 
-  const modelFlag = options.model ? ` --model "${options.model}"` : ''
-  const sessionFlag = options.sessionId ? ` --session "${options.sessionId}"` : ''
-  const providerFlag = options.provider ? ` --provider "${options.provider}"` : ''
+  const args = ['opencode-ai', 'run']
+  if (options.model) {
+    args.push('--model', options.model)
+  }
+  if (options.provider) {
+    args.push('--provider', options.provider)
+  }
+  if (options.sessionId) {
+    args.push('--session', options.sessionId)
+  }
+  args.push(options.instruction)
 
-  const cmd = `npx opencode-ai run${modelFlag}${providerFlag}${sessionFlag} "${options.instruction}"`
-  const result = await bridge.runInProject('sh', ['-c', cmd])
+  const result = await bridge.runInProject('npx', args)
 
   return {
     success: result.success,

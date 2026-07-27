@@ -13,7 +13,7 @@ const registeredPacks = new Map<string, RegisteredPack>()
 
 export function registerPack(name: string, loader: PackLoader, source: string = 'built-in'): void {
   if (registeredPacks.has(name)) {
-    throw new Error(`Pack "${name}" is already registered from ${registeredPacks.get(name)!.source}`)
+    return
   }
   registeredPacks.set(name, { name, loader, source })
 }

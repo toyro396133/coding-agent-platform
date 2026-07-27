@@ -68,8 +68,29 @@ export function createPlanTools(ctx: ToolContext) {
         if (!step) {
           return `Error: Step "${stepId}" not found. Available steps: ${steps.map((s) => s.id).join(', ')}`
         }
-        const deps = step.dependsOn
-        const unapprovedDeps = deps.filter((depId) => {
+        if (step.dependsOn.includes(stepId)) {
+          return `Error: Step "${stepId}" cannot depend on itself`
+        }
+        const missingDeps = step.dependsOn.filter((depId) => !steps.find((s) => s.id === depId))
+        if (missingDeps.length > 0) {
+          return `Error: Step "${stepId}" has missing dependencies: ${missingDeps.join(', ')}`
+        }
+        const visited = new Set<string>()
+        const checkCycle = (id: string): boolean => {
+          if (visited.has(id)) return true
+          visited.add(id)
+          const currentStep = steps.find((s) => s.id === id)
+          if (!currentStep) return false
+          for (const depId of currentStep.dependsOn) {
+            if (checkCycle(depId)) return true
+          }
+          visited.delete(id)
+          return false
+        }
+        if (checkCycle(stepId)) {
+          return `Error: Circular dependency detected in step "${stepId}"`
+        }
+        const unapprovedDeps = step.dependsOn.filter((depId) => {
           const dep = steps.find((s) => s.id === depId)
           return dep && dep.status !== 'approved' && dep.status !== 'completed'
         })

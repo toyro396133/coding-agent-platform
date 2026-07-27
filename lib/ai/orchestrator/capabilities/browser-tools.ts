@@ -6,18 +6,17 @@ import { SandboxBridge } from '../runtime/sandbox-bridge'
 export function createBrowserTools(ctx: ToolContext) {
   const bridge = new SandboxBridge(ctx.taskId)
 
-  const pwScript = `
-const { chromium } = require('playwright');
-module.exports = { chromium };
-`
+  let browser: any = null
+  let page: any = null
 
   const ensurePlaywright = async () => {
     if (!bridge.isAvailable()) return false
     const check = await bridge.runInProject('node', ['-e', 'require("playwright"); console.log("ok")'])
     if (check.success) return true
-    await bridge.runInProject('npm', ['install', 'playwright'])
-    await bridge.runInProject('npx', ['playwright', 'install', 'chromium'])
-    return true
+    const installResult = await bridge.runInProject('npm', ['install', 'playwright'])
+    if (!installResult.success) return false
+    const chromiumResult = await bridge.runInProject('npx', ['playwright', 'install', 'chromium'])
+    return chromiumResult.success
   }
 
   return {
@@ -29,7 +28,8 @@ module.exports = { chromium };
       execute: async ({ url }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot control browser'
         try {
-          await ensurePlaywright()
+          const ready = await ensurePlaywright()
+          if (!ready) return 'Failed to install Playwright'
           const escaped = url.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
           const script = `(async () => {
   const { chromium } = require('playwright');
@@ -135,13 +135,26 @@ module.exports = { chromium };
         if (!bridge.isAvailable()) return 'No active sandbox — cannot control browser'
         try {
           await ensurePlaywright()
-          const sel = selector ? `'${selector.replace(/'/g, "\\'")}'` : 'null'
-          const script = `(async () => {
+          const hasSelector = selector !== undefined && selector !== ''
+          const escapedSel = hasSelector ? selector.replace(/\\/g, '\\\\').replace(/'/g, "\\'") : ''
+          const script = hasSelector
+            ? `(async () => {
   const { chromium } = require('playwright');
   const fs = require('fs');
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
-  ${sel ? `const el = await page.waitForSelector(${sel}); await el.screenshot({ path: '/tmp/screenshot.png' });` : `await page.screenshot({ path: '/tmp/screenshot.png', fullPage: true });`}
+  const el = await page.waitForSelector('${escapedSel}');
+  await el.screenshot({ path: '/tmp/screenshot.png' });
+  await browser.close();
+  const buf = fs.readFileSync('/tmp/screenshot.png');
+  console.log('Screenshot saved (' + buf.length + ' bytes)');
+})()`
+            : `(async () => {
+  const { chromium } = require('playwright');
+  const fs = require('fs');
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  await page.screenshot({ path: '/tmp/screenshot.png', fullPage: true });
   await browser.close();
   const buf = fs.readFileSync('/tmp/screenshot.png');
   console.log('Screenshot saved (' + buf.length + ' bytes)');

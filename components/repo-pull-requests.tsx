@@ -35,17 +35,16 @@ import Copilot from '@/components/logos/copilot'
 import Cursor from '@/components/logos/cursor'
 import Gemini from '@/components/logos/gemini'
 import OpenCode from '@/components/logos/opencode'
+import { CODING_AGENTS, AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
-const CODING_AGENTS = [
-  { value: 'claude', label: 'Claude', icon: Claude },
-  { value: 'codex', label: 'Codex', icon: Codex },
-  { value: 'copilot', label: 'Copilot', icon: Copilot },
-  { value: 'cursor', label: 'Cursor', icon: Cursor },
-  { value: 'gemini', label: 'Gemini', icon: Gemini },
-  { value: 'opencode', label: 'opencode', icon: OpenCode },
-] as const
-
-import { AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
+const AGENT_ICONS = {
+  claude: Claude,
+  codex: Codex,
+  copilot: Copilot,
+  cursor: Cursor,
+  gemini: Gemini,
+  opencode: OpenCode,
+}
 
 function formatDistanceToNow(date: Date): string {
   const now = new Date()
@@ -394,14 +393,17 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CODING_AGENTS.map((agent) => (
-                      <SelectItem key={agent.value} value={agent.value}>
-                        <div className="flex items-center gap-2">
-                          <agent.icon className="w-4 h-4" />
-                          <span>{agent.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {CODING_AGENTS.map((agent) => {
+                      const Icon = AGENT_ICONS[agent.value]
+                      return (
+                        <SelectItem key={agent.value} value={agent.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            <span>{agent.label}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>

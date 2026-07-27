@@ -16,6 +16,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { CODING_AGENTS, AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
+
+const AGENT_ICONS = {
+  claude: Claude,
+  codex: Codex,
+  copilot: Copilot,
+  cursor: Cursor,
+  gemini: Gemini,
+  opencode: OpenCode,
+}
 
 interface Commit {
   sha: string
@@ -50,17 +60,6 @@ interface RevertCommitDialogProps {
   }) => void
   maxSandboxDuration?: number
 }
-
-const CODING_AGENTS = [
-  { value: 'claude', label: 'Claude', icon: Claude },
-  { value: 'codex', label: 'Codex', icon: Codex },
-  { value: 'copilot', label: 'Copilot', icon: Copilot },
-  { value: 'cursor', label: 'Cursor', icon: Cursor },
-  { value: 'gemini', label: 'Gemini', icon: Gemini },
-  { value: 'opencode', label: 'opencode', icon: OpenCode },
-] as const
-
-import { AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
 export function RevertCommitDialog({
   open,
@@ -134,14 +133,17 @@ export function RevertCommitDialog({
                   <SelectValue placeholder={t.dialogs.revertCommit.selectAgent} />
                 </SelectTrigger>
                 <SelectContent>
-                  {CODING_AGENTS.map((agent) => (
-                    <SelectItem key={agent.value} value={agent.value}>
-                      <div className="flex items-center gap-2">
-                        <agent.icon className="w-4 h-4" />
-                        <span>{agent.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {CODING_AGENTS.map((agent) => {
+                    const Icon = AGENT_ICONS[agent.value]
+                    return (
+                      <SelectItem key={agent.value} value={agent.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4" />
+                          <span>{agent.label}</span>
+                        </div>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>

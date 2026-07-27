@@ -83,6 +83,13 @@ export const he: Dictionary = {
     apiKeyRequired: 'נדרש מפתח API',
     apiKeyRequiredDesc: 'אנא הוסף מפתח API של {provider} בתפריט המשתמש כדי להשתמש בסוכן {agent} עם מודל זה.',
     multiAgentInfo: 'פעולה זו תיצור {count} משימות נפרדות (אחת עבור כל מודל נבחר)',
+    capabilityLevel: 'רמת יכולת',
+    capabilityBasic: 'בסיסי — התנהגות נוכחית בלבד',
+    capabilityEnhanced: 'משופר — כל חבילות היכולות',
+    capabilityAuto: 'אוטומטי — מסתגל למורכבות המשימה',
+    capabilityBasicDesc: 'תזמורת סטנדרטית ללא כלים נוספים',
+    capabilityEnhancedDesc: 'חיפוש באינטרנט, תכנון, כלי קבצים/פקודות, מחקר, ניהול הפעלות',
+    capabilityAutoDesc: 'מתחיל בסיסי, מסלים בהתבסס על ניתוח המשימה',
   },
   sidebar: {
     tasks: 'משימות',

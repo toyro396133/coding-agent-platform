@@ -22,9 +22,9 @@ type TaskCategory =
 
 function categorizeTask(prompt: string): TaskCategory {
   const lower = prompt.toLowerCase()
+  if (lower.includes('bug') || lower.includes('fix') || lower.includes('error') || lower.includes('crash') || lower.includes('issue')) return 'debug'
   if (lower.includes('search') || lower.includes('find') || lower.includes('look up')) return 'web_search'
   if (lower.includes('explain') || lower.includes('document') || lower.includes('readme') || lower.includes('doc')) return 'documentation'
-  if (lower.includes('bug') || lower.includes('fix') || lower.includes('error') || lower.includes('crash') || lower.includes('issue')) return 'debug'
   if (lower.includes('refactor') || lower.includes('rename') || lower.includes('extract') || lower.includes('restructure')) return 'refactor'
   if (lower.includes('plan') || lower.includes('design') || lower.includes('architecture')) return 'planning'
   if (lower.includes('review') || lower.includes('audit')) return 'code_review'

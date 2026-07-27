@@ -26,10 +26,13 @@ export async function runOrchestrator(prompt: string, options: RunOrchestratorOp
 
   const model = getModelClient(options.selectedModel || 'gpt-4o-mini')
 
-  const modeInstructions =
-    level === 'basic'
-      ? ''
-      : '\nYou are in enhanced mode with additional capabilities including web search, planning, session management, background tasks, and code research. Use these tools when appropriate.'
+  const config = getModeConfig(level)
+  let modeInstructions = ''
+  if (level === 'enhanced') {
+    modeInstructions = '\nYou are in enhanced mode with additional capabilities: web search, planning, file tools, shell tools, LSP, browser, research, session management, and background tasks. Use these tools when appropriate.'
+  } else if (level === 'auto') {
+    modeInstructions = '\nYou are in auto mode. You start with session and background tools, and can escalate to additional capabilities as needed based on task complexity.'
+  }
 
   const systemPrompt =
     (options.systemPrompt ||
@@ -58,7 +61,7 @@ export async function runOrchestrator(prompt: string, options: RunOrchestratorOp
         state.appendContext(text)
       }
     } catch (error) {
-      state.appendContext(`Error during generation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      state.appendContext('Error during generation')
     }
 
     state.steps++

@@ -6,34 +6,11 @@ import { SandboxBridge } from '../runtime/sandbox-bridge'
 export function createLspTools(ctx: ToolContext) {
   const bridge = new SandboxBridge(ctx.taskId)
 
-  const getScriptPath = '.lsp-helper.mjs'
-
-  async function runLspScript(script: string): Promise<string> {
-    await bridge.writeFile(getScriptPath, script)
-    const result = await bridge.runInProject('node', [getScriptPath])
-    await bridge.runInProject('rm', [getScriptPath])
-    if (!result.success) return `LSP error: ${result.error || 'Script failed'}`
-    return result.output || '{}'
+  function generateScriptPath(): string {
+    return `.lsp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.mjs`
   }
 
-  return {
-    goToDefinition: tool({
-      description: 'Find the definition of a symbol at a given position in a file. Uses TypeScript language server.',
-      inputSchema: z.object({
-        filePath: z.string().describe('Path to the file (relative to project root)'),
-        line: z.number().min(0).describe('Line number (0-indexed)'),
-        character: z.number().min(0).describe('Character position in the line (0-indexed)'),
-      }),
-      execute: async ({ filePath, line, character }) => {
-        if (!bridge.isAvailable()) return 'No active sandbox — cannot query LSP'
-        try {
-          const script = `
-import ts from 'typescript';
-import fs from 'fs';
-import path from 'path';
-const filename = '${filePath.replace(/'/g, "\\'")}';
-const line = ${line};
-const character = ${character};
+  const tsconfigBootstrap = `
 let configPath = process.cwd();
 while (configPath !== '/') {
   if (fs.existsSync(path.join(configPath, 'tsconfig.json'))) break;
@@ -55,7 +32,37 @@ const host = {
   directoryExists: ts.sys.directoryExists,
   getDirectories: ts.sys.getDirectories,
 };
-const service = ts.createLanguageService(host, ts.createDocumentRegistry());
+const service = ts.createLanguageService(host, ts.createDocumentRegistry());`
+
+  async function runLspScript(script: string): Promise<string> {
+    const scriptPath = generateScriptPath()
+    await bridge.writeFile(scriptPath, script)
+    const result = await bridge.runInProject('node', [scriptPath])
+    await bridge.runInProject('rm', [scriptPath])
+    if (!result.success) return `LSP error: ${result.error || 'Script failed'}`
+    return result.output || '{}'
+  }
+
+  return {
+    goToDefinition: tool({
+      description: 'Find the definition of a symbol at a given position in a file. Uses TypeScript language server.',
+      inputSchema: z.object({
+        filePath: z.string().describe('Path to the file (relative to project root)'),
+        line: z.number().min(0).describe('Line number (0-indexed)'),
+        character: z.number().min(0).describe('Character position in the line (0-indexed)'),
+      }),
+      execute: async ({ filePath, line, character }) => {
+        if (!bridge.isAvailable()) return 'No active sandbox — cannot query LSP'
+        try {
+          const escapedPath = filePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+          const script = `
+import ts from 'typescript';
+import fs from 'fs';
+import path from 'path';
+const filename = '${escapedPath}';
+const line = ${line};
+const character = ${character};
+${tsconfigBootstrap}
 const fullPath = path.resolve(configPath, filename.replace(/^\\/+/, ''));
 const program = service.getProgram();
 if (!program) { console.log(JSON.stringify({ error: 'No program' })); process.exit(1); }
@@ -93,35 +100,15 @@ if (definitions && definitions.length > 0) {
       execute: async ({ filePath, line, character }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot query LSP'
         try {
+          const escapedPath = filePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
           const script = `
 import ts from 'typescript';
 import fs from 'fs';
 import path from 'path';
-const filename = '${filePath.replace(/'/g, "\\'")}';
+const filename = '${escapedPath}';
 const line = ${line};
 const character = ${character};
-let configPath = process.cwd();
-while (configPath !== '/') {
-  if (fs.existsSync(path.join(configPath, 'tsconfig.json'))) break;
-  configPath = path.dirname(configPath);
-}
-const tsconfigPath = path.join(configPath, 'tsconfig.json');
-const configFile = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
-const parsedConfig = ts.parseJsonConfigFileContent(configFile.config, ts.sys, configPath);
-const host = {
-  getScriptFileNames: () => parsedConfig.fileNames,
-  getScriptVersion: () => '0',
-  getScriptSnapshot: (fn) => { if (!fs.existsSync(fn)) return undefined; return ts.ScriptSnapshot.fromString(fs.readFileSync(fn, 'utf8')); },
-  getCurrentDirectory: () => configPath,
-  getCompilationSettings: () => parsedConfig.options,
-  getDefaultLibFileName: (o) => ts.getDefaultLibFilePath(o),
-  fileExists: ts.sys.fileExists,
-  readFile: ts.sys.readFile,
-  readDirectory: ts.sys.readDirectory,
-  directoryExists: ts.sys.directoryExists,
-  getDirectories: ts.sys.getDirectories,
-};
-const service = ts.createLanguageService(host, ts.createDocumentRegistry());
+${tsconfigBootstrap}
 const fullPath = path.resolve(configPath, filename.replace(/^\\/+/, ''));
 const program = service.getProgram();
 if (!program) { console.log(JSON.stringify({ error: 'No program' })); process.exit(1); }
@@ -154,35 +141,15 @@ if (info) {
       execute: async ({ filePath, line, character }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot query LSP'
         try {
+          const escapedPath = filePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
           const script = `
 import ts from 'typescript';
 import fs from 'fs';
 import path from 'path';
-const filename = '${filePath.replace(/'/g, "\\'")}';
+const filename = '${escapedPath}';
 const line = ${line};
 const character = ${character};
-let configPath = process.cwd();
-while (configPath !== '/') {
-  if (fs.existsSync(path.join(configPath, 'tsconfig.json'))) break;
-  configPath = path.dirname(configPath);
-}
-const tsconfigPath = path.join(configPath, 'tsconfig.json');
-const configFile = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
-const parsedConfig = ts.parseJsonConfigFileContent(configFile.config, ts.sys, configPath);
-const host = {
-  getScriptFileNames: () => parsedConfig.fileNames,
-  getScriptVersion: () => '0',
-  getScriptSnapshot: (fn) => { if (!fs.existsSync(fn)) return undefined; return ts.ScriptSnapshot.fromString(fs.readFileSync(fn, 'utf8')); },
-  getCurrentDirectory: () => configPath,
-  getCompilationSettings: () => parsedConfig.options,
-  getDefaultLibFileName: (o) => ts.getDefaultLibFilePath(o),
-  fileExists: ts.sys.fileExists,
-  readFile: ts.sys.readFile,
-  readDirectory: ts.sys.readDirectory,
-  directoryExists: ts.sys.directoryExists,
-  getDirectories: ts.sys.getDirectories,
-};
-const service = ts.createLanguageService(host, ts.createDocumentRegistry());
+${tsconfigBootstrap}
 const fullPath = path.resolve(configPath, filename.replace(/^\\/+/, ''));
 const program = service.getProgram();
 if (!program) { console.log(JSON.stringify({ error: 'No program' })); process.exit(1); }

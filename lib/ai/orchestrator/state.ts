@@ -36,14 +36,25 @@ export class OrchestratorState {
 
   setCapabilityLevel(level: CapabilityLevel, userId: string): void {
     this.capabilityLevel = level
+    const self = this
     this.toolContext = {
       taskId: this.taskId,
       userId,
       capabilityLevel: level,
-      accumulatedContext: this.accumulatedContext,
-      subAgentResults: this.subAgentResults,
-      checkpoint: async (label: string) => '',
-      restore: async (id: string) => {},
+      get accumulatedContext() {
+        return self.accumulatedContext
+      },
+      get subAgentResults() {
+        return self.subAgentResults
+      },
+      checkpoint: async (label: string) => {
+        const id = `ck-${Date.now().toString(36)}`
+        self.saveCheckpoint()
+        return id
+      },
+      restore: async (id: string) => {
+        self.saveCheckpoint()
+      },
     }
   }
 

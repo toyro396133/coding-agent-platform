@@ -3,6 +3,15 @@ import { z } from 'zod'
 import type { ToolContext } from './types'
 
 export function createWebTools(ctx: ToolContext) {
+  const isValidUrl = (urlString: string): boolean => {
+    try {
+      const url = new URL(urlString)
+      return url.protocol === 'http:' || url.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
   return {
     webfetch: tool({
       description:
@@ -12,13 +21,40 @@ export function createWebTools(ctx: ToolContext) {
         format: z.enum(['markdown', 'text', 'html']).optional().default('markdown').describe('Output format'),
       }),
       execute: async ({ url, format }) => {
+        if (!isValidUrl(url)) {
+          return 'Error: Invalid URL'
+        }
         try {
           const controller = new AbortController()
           const timeout = setTimeout(() => controller.abort(), 15000)
           const response = await fetch(url, { signal: controller.signal })
           clearTimeout(timeout)
-          if (!response.ok) return `Error: HTTP ${response.status} ${response.statusText}`
-          const text = await response.text()
+          if (!response.ok) return 'Error: Request failed'
+          const contentLength = response.headers.get('content-length')
+          if (contentLength && parseInt(contentLength, 10) > 10000) {
+            return 'Error: Response too large'
+          }
+          const reader = response.body?.getReader()
+          if (!reader) return 'Error: No response body'
+          const chunks: Uint8Array[] = []
+          let totalBytes = 0
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            totalBytes += value.length
+            if (totalBytes > 10000) {
+              reader.cancel()
+              break
+            }
+            chunks.push(value)
+          }
+          const bytes = new Uint8Array(totalBytes)
+          let offset = 0
+          for (const chunk of chunks) {
+            bytes.set(chunk, offset)
+            offset += chunk.length
+          }
+          const text = new TextDecoder().decode(bytes)
           if (format === 'text') return text.replace(/<[^>]+>/g, '').slice(0, 10000)
           if (format === 'html') return text.slice(0, 10000)
           const cleaned = text
@@ -29,9 +65,9 @@ export function createWebTools(ctx: ToolContext) {
           return cleaned || 'No content returned'
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
-            return 'Error: Request timed out after 15 seconds'
+            return 'Error: Request timed out'
           }
-          return `Error fetching URL: ${error instanceof Error ? error.message : 'Unknown error'}`
+          return 'Error: Request failed'
         }
       },
     }),
@@ -52,7 +88,7 @@ export function createWebTools(ctx: ToolContext) {
             headers: { 'User-Agent': 'Mozilla/5.0' },
           })
           clearTimeout(timeout)
-          if (!response.ok) return `Search failed with HTTP ${response.status}`
+          if (!response.ok) return 'Search failed'
           const html = await response.text()
           const titles: string[] = []
           const links: string[] = []
@@ -86,7 +122,7 @@ export function createWebTools(ctx: ToolContext) {
           return formatted || 'No results found'
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') return 'Search timed out'
-          return `Search error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          return 'Search error occurred'
         }
       },
     }),

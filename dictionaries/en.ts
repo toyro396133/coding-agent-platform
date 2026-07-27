@@ -81,6 +81,13 @@ const _en = {
     apiKeyRequired: 'API key required',
     apiKeyRequiredDesc: 'Please add your {provider} API key in the user menu to use the {agent} agent with this model.',
     multiAgentInfo: 'This will create {count} separate task{plural} (one for each selected model)',
+    capabilityLevel: 'Capability Level',
+    capabilityBasic: 'Basic — current behavior only',
+    capabilityEnhanced: 'Enhanced — all capability packs',
+    capabilityAuto: 'Auto — adapts to task complexity',
+    capabilityBasicDesc: 'Standard orchestrator without extra tools',
+    capabilityEnhancedDesc: 'Web search, planning, file/shell tools, research, session management',
+    capabilityAutoDesc: 'Starts basic, escalates based on task analysis',
   },
   sidebar: {
     tasks: 'Tasks',

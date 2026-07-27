@@ -36,7 +36,7 @@ export class SandboxBridge {
     if (offset !== undefined) {
       if (limit !== undefined) {
         cmd = 'dd'
-        cmdArgs = [`if=${path}`, 'bs=1', `skip=${offset}`, `count=${limit}`, '2>/dev/null']
+        cmdArgs = [`if=${path}`, `bs=4096`, `skip=${Math.floor(offset / 4096)}`, `count=${Math.ceil(limit / 4096) + 1}`]
       } else {
         cmd = 'tail'
         cmdArgs = ['-c', `+${offset + 1}`, path]
@@ -49,6 +49,10 @@ export class SandboxBridge {
       cmdArgs = [path]
     }
     const result = await runInProject(sandbox, cmd, cmdArgs)
+    if (offset !== undefined && limit !== undefined && result.output) {
+      const actualOffset = offset % 4096
+      return result.output.substring(actualOffset, actualOffset + limit)
+    }
     return result.output || ''
   }
 
@@ -67,7 +71,7 @@ export class SandboxBridge {
     const nb64 = Buffer.from(newString, 'utf8').toString('base64')
     const script = replaceAll
       ? `const fs=require('fs');const p=Buffer.from('${pb64}','base64').toString();const o=Buffer.from('${ob64}','base64').toString();const n=Buffer.from('${nb64}','base64').toString();let c=fs.readFileSync(p,'utf8');c=c.split(o).join(n);fs.writeFileSync(p,c);console.log('edited')`
-      : `const fs=require('fs');const p=Buffer.from('${pb64}','base64').toString();const o=Buffer.from('${ob64}','base64').toString();const n=Buffer.from('${nb64}','base64').toString();let c=fs.readFileSync(p,'utf8');c=c.replace(o,n);fs.writeFileSync(p,c);console.log('edited')`
+      : `const fs=require('fs');const p=Buffer.from('${pb64}','base64').toString();const o=Buffer.from('${ob64}','base64').toString();const n=Buffer.from('${nb64}','base64').toString();let c=fs.readFileSync(p,'utf8');if(!c.includes(o)){throw new Error('oldString not found');}c=c.replace(o,(m)=>n);fs.writeFileSync(p,c);console.log('edited')`
     await runInProject(sandbox, 'node', ['-e', script])
   }
 

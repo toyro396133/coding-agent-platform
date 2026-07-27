@@ -9,7 +9,7 @@ export const CODING_AGENTS = [
 
 export type AgentId = (typeof CODING_AGENTS)[number]['value']
 
-export const AGENT_MODELS: Record<string, Array<{ value: string; label: string }>> = {
+export const AGENT_MODELS: Record<AgentId, Array<{ value: string; label: string }>> = {
   claude: [
     { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5' },
     { value: 'anthropic/claude-opus-4.6', label: 'Opus 4.6' },
@@ -82,7 +82,7 @@ export const AGENT_MODELS: Record<string, Array<{ value: string; label: string }
   ],
 }
 
-export const DEFAULT_MODELS: Record<string, string> = {
+export const DEFAULT_MODELS: Record<AgentId, string> = {
   claude: 'claude-sonnet-4-5',
   codex: 'openai/gpt-5.1',
   copilot: 'claude-sonnet-4.5',
@@ -93,8 +93,8 @@ export const DEFAULT_MODELS: Record<string, string> = {
 
 export function getModelName(modelId: string | null, agent: string | null): string {
   if (!modelId || !agent) return modelId || 'Unknown'
-  const models = AGENT_MODELS[agent.toLowerCase()]
+  const models = AGENT_MODELS[agent.toLowerCase() as AgentId]
   if (!models) return modelId
-  const model = models.find((m) => m.value === modelId)
+  const model = models.find((m: { value: string; label: string }) => m.value === modelId)
   return model?.label || modelId
 }

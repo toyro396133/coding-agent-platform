@@ -5,18 +5,20 @@ export interface LocalExecutionResult {
 
 export async function checkLocalEnvironment(): Promise<LocalExecutionResult> {
   try {
-    const { execSync } = await import('child_process')
+    const { exec } = await import('child_process')
+    const { promisify } = await import('util')
+    const execAsync = promisify(exec)
 
     let hasOllama = false
     let hasOpenCode = false
 
     try {
-      execSync('ollama --version', { stdio: 'ignore', timeout: 5000 })
+      await execAsync('ollama --version', { timeout: 5000 })
       hasOllama = true
     } catch {}
 
     try {
-      execSync('opencode --version', { stdio: 'ignore', timeout: 5000 })
+      await execAsync('opencode --version', { timeout: 5000 })
       hasOpenCode = true
     } catch {}
 

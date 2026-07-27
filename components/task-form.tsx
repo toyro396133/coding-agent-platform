@@ -702,22 +702,21 @@ export function TaskForm({
                             <p className="text-xs text-muted-foreground pl-6">{t.taskForm.keepAliveHint}</p>
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm font-medium">Capability Level</Label>
+                            <Label className="text-sm font-medium">{t.taskForm.capabilityLevel}</Label>
                             <Select value={executionLevel} onValueChange={setExecutionLevel}>
                               <SelectTrigger className="w-full h-8">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="basic">Basic — current behavior only</SelectItem>
-                                <SelectItem value="enhanced">Enhanced — all capability packs</SelectItem>
-                                <SelectItem value="auto">Auto — adapts to task complexity</SelectItem>
+                                <SelectItem value="basic">{t.taskForm.capabilityBasic}</SelectItem>
+                                <SelectItem value="enhanced">{t.taskForm.capabilityEnhanced}</SelectItem>
+                                <SelectItem value="auto">{t.taskForm.capabilityAuto}</SelectItem>
                               </SelectContent>
                             </Select>
                             <p className="text-xs text-muted-foreground">
-                              {executionLevel === 'basic' && 'Standard orchestrator without extra tools'}
-                              {executionLevel === 'enhanced' &&
-                                'Web search, planning, file/shell tools, research, session management'}
-                              {executionLevel === 'auto' && 'Starts basic, escalates based on task analysis'}
+                              {executionLevel === 'basic' && t.taskForm.capabilityBasicDesc}
+                              {executionLevel === 'enhanced' && t.taskForm.capabilityEnhancedDesc}
+                              {executionLevel === 'auto' && t.taskForm.capabilityAutoDesc}
                             </p>
                           </div>
                         </div>

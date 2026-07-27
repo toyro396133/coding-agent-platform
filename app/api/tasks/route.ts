@@ -750,11 +750,10 @@ async function processTask(
       // Code review after push
       if (pushResult.pushFailed !== true) {
         try {
-          await logger.info('Running code review on changes...')
+          await logger.info('Running code review on changes')
           const review = await reviewChanges(sandbox!, prompt)
           if (review.issues.length > 0) {
             await logger.info('Code review completed')
-            await logger.info(review.summary)
             for (const issue of review.issues) {
               await logger.info('Issue found in code review')
             }

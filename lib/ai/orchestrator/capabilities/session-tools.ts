@@ -67,7 +67,8 @@ export function createSessionTools(ctx: ToolContext) {
     }),
 
     fork: tool({
-      description: 'Create a fork (branch) from the current session state. Returns a fork identifier that can be used to track separate exploration paths.',
+      description:
+        'Create a fork (branch) from the current session state. Returns a fork identifier that can be used to track separate exploration paths.',
       inputSchema: z.object({
         label: z.string().optional().describe('A label describing this fork'),
       }),

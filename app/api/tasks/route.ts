@@ -26,6 +26,9 @@ import { retrieveRelevantMemories } from '@/lib/memory/engine'
 
 import { summarizeAndStoreTask } from '@/lib/memory/summarize'
 import { runOrchestrator } from '@/lib/ai/orchestrator/loop'
+import { checkLocalEnvironment } from '@/lib/sandbox/local-execution'
+import { reviewChanges } from '@/lib/sandbox/code-review'
+import { suggestModelForPrompt } from '@/lib/ai/router'
 
 import { getUserGitHubToken } from '@/lib/github/user-token'
 import { getGitHubUser } from '@/lib/github/client'
@@ -462,6 +465,12 @@ async function processTask(
     await logger.updateProgress(15, 'Creating sandbox environment')
     console.log('Creating sandbox')
 
+    checkLocalEnvironment().then((localEnv) => {
+      if (localEnv.available) {
+        console.log('Local environment available:', localEnv.reason || 'ollama/opencode')
+      }
+    }).catch(() => {})
+
     // Detect the appropriate port for the project
     const port = await detectPortFromRepo(repoUrl, githubToken)
     console.log('Action logged, port:', port)
@@ -737,6 +746,23 @@ async function processTask(
 
       // Push changes to branch
       const pushResult = await pushChangesToBranch(sandbox!, branchName!, commitMessage, logger)
+
+      // Code review after push
+      if (pushResult.pushFailed !== true) {
+        try {
+          await logger.info('Running code review on changes...')
+          const review = await reviewChanges(sandbox!, prompt)
+          if (review.issues.length > 0) {
+            await logger.info('Code review completed')
+            await logger.info(review.summary)
+            for (const issue of review.issues) {
+              await logger.info('Issue found in code review')
+            }
+          }
+        } catch (error) {
+          console.error('Code review failed:', error)
+        }
+      }
 
       // Conditionally shutdown sandbox based on keepAlive setting
       if (keepAlive) {

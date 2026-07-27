@@ -3,10 +3,63 @@ import { settings } from '../db/schema'
 import { eq, and } from 'drizzle-orm'
 import { generateId } from '@/lib/utils/id'
 
+const MODEL_TIERS = {
+  fast: ['gpt-4o-mini', 'gemini-2.5-flash', 'claude-haiku-4-5', 'gpt-5-nano'],
+  balanced: ['gpt-4o', 'gemini-2.5-pro', 'claude-sonnet-4-5', 'gpt-5-mini'],
+  powerful: ['gpt-5', 'claude-opus-4-5', 'gemini-3-pro-preview', 'gpt-5-codex'],
+}
+
+type TaskCategory =
+  | 'web_search'
+  | 'documentation'
+  | 'simple_code'
+  | 'complex_code'
+  | 'refactor'
+  | 'debug'
+  | 'code_review'
+  | 'planning'
+  | 'research'
+
+function categorizeTask(prompt: string): TaskCategory {
+  const lower = prompt.toLowerCase()
+  if (lower.includes('search') || lower.includes('find') || lower.includes('look up')) return 'web_search'
+  if (lower.includes('explain') || lower.includes('document') || lower.includes('readme') || lower.includes('doc')) return 'documentation'
+  if (lower.includes('bug') || lower.includes('fix') || lower.includes('error') || lower.includes('crash') || lower.includes('issue')) return 'debug'
+  if (lower.includes('refactor') || lower.includes('rename') || lower.includes('extract') || lower.includes('restructure')) return 'refactor'
+  if (lower.includes('plan') || lower.includes('design') || lower.includes('architecture')) return 'planning'
+  if (lower.includes('review') || lower.includes('audit')) return 'code_review'
+  if (lower.includes('research') || lower.includes('investigate') || lower.includes('analyze')) return 'research'
+  const codeKeywords = ['implement', 'add', 'create', 'write', 'build', 'develop', 'function', 'class', 'component', 'api', 'route', 'endpoint']
+  const matchCount = codeKeywords.filter((k) => lower.includes(k)).length
+  if (matchCount >= 3) return 'complex_code'
+  if (matchCount >= 1) return 'simple_code'
+  return 'planning'
+}
+
+function modelForCategory(category: TaskCategory): string {
+  switch (category) {
+    case 'web_search':
+    case 'documentation':
+      return 'gemini-2.5-flash'
+    case 'simple_code':
+      return 'claude-sonnet-4-5'
+    case 'complex_code':
+    case 'refactor':
+      return 'claude-opus-4-5'
+    case 'debug':
+      return 'gpt-5'
+    case 'code_review':
+      return 'gpt-5-codex'
+    case 'planning':
+      return 'gpt-5'
+    case 'research':
+      return 'gemini-3-pro-preview'
+  }
+}
+
 export async function getSubAgentModel(subTaskType: string, userId: string): Promise<string> {
   const keyName = `routing:dynamic_${subTaskType}`
 
-  // Try to find an existing configuration for this user
   const userSetting = await db
     .select()
     .from(settings)
@@ -17,29 +70,10 @@ export async function getSubAgentModel(subTaskType: string, userId: string): Pro
     return userSetting[0].value
   }
 
-  // If not found, intelligently assign a fallback model based on the sub-agent type
   const typeLower = subTaskType.toLowerCase()
-  let fallbackModel = 'gpt-4o-mini' // Default logic/terminal tasks
+  const category = categorizeTask(typeLower)
+  const fallbackModel = modelForCategory(category)
 
-  if (
-    typeLower.includes('doc') ||
-    typeLower.includes('reader') ||
-    typeLower.includes('parser') ||
-    typeLower.includes('syntax')
-  ) {
-    fallbackModel = 'gemini-2.5-flash'
-  } else if (
-    typeLower.includes('patch') ||
-    typeLower.includes('writer') ||
-    typeLower.includes('code') ||
-    typeLower.includes('ui')
-  ) {
-    fallbackModel = 'claude-3-5-haiku'
-  }
-
-  // Save the fallback to the database so it appears in the UI.
-  // Use onConflictDoNothing to avoid a race with concurrent requests inserting
-  // the same (userId, key) pair, which would otherwise violate the unique index.
   try {
     await db
       .insert(settings)
@@ -57,4 +91,13 @@ export async function getSubAgentModel(subTaskType: string, userId: string): Pro
   }
 
   return fallbackModel
+}
+
+export function suggestModelForPrompt(prompt: string): string {
+  const category = categorizeTask(prompt)
+  return modelForCategory(category)
+}
+
+export function getTieredModels(tier: keyof typeof MODEL_TIERS): string[] {
+  return MODEL_TIERS[tier]
 }

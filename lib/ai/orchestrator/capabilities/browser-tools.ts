@@ -6,19 +6,40 @@ import { SandboxBridge } from '../runtime/sandbox-bridge'
 export function createBrowserTools(ctx: ToolContext) {
   const bridge = new SandboxBridge(ctx.taskId)
 
-  const browserCommand = 'agent-browser'
+  const pwScript = `
+const { chromium } = require('playwright');
+module.exports = { chromium };
+`
+
+  const ensurePlaywright = async () => {
+    if (!bridge.isAvailable()) return false
+    const check = await bridge.runInProject('node', ['-e', 'require("playwright"); console.log("ok")'])
+    if (check.success) return true
+    await bridge.runInProject('npm', ['install', 'playwright'])
+    await bridge.runInProject('npx', ['playwright', 'install', 'chromium'])
+    return true
+  }
 
   return {
     browserNavigate: tool({
-      description: 'Navigate the browser to a URL. Requires browser mode enabled on the task.',
+      description: 'Navigate the browser to a URL using Playwright.',
       inputSchema: z.object({
         url: z.string().describe('The URL to navigate to'),
       }),
       execute: async ({ url }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot control browser'
         try {
-          const result = await bridge.runInProject(browserCommand, ['open', url])
-          if (!result.success) return `Browser navigation failed: ${result.error || 'Unknown error'}`
+          await ensurePlaywright()
+          const escaped = url.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+          const script = `(async () => {
+  const { chromium } = require('playwright');
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  await page.goto('${escaped}', { waitUntil: 'networkidle' });
+  await browser.close();
+  console.log('ok');
+})()`
+          await bridge.runInProject('node', ['-e', script])
           return `Navigated to ${url}`
         } catch (error) {
           return `Browser error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -27,15 +48,25 @@ export function createBrowserTools(ctx: ToolContext) {
     }),
 
     browserClick: tool({
-      description: 'Click on an element on the current page. Use a CSS selector to identify the element.',
+      description: 'Click on an element on the current page using a CSS selector.',
       inputSchema: z.object({
         selector: z.string().describe('CSS selector for the element to click'),
       }),
       execute: async ({ selector }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot control browser'
         try {
-          const result = await bridge.runInProject(browserCommand, ['click', selector])
-          if (!result.success) return `Click failed: ${result.error || 'Unknown error'}`
+          await ensurePlaywright()
+          const esc = selector.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+          const script = `(async () => {
+  const { chromium } = require('playwright');
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  const el = await page.waitForSelector('${esc}');
+  await el.click();
+  await browser.close();
+  console.log('ok');
+})()`
+          await bridge.runInProject('node', ['-e', script])
           return `Clicked element "${selector}"`
         } catch (error) {
           return `Browser error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -44,7 +75,7 @@ export function createBrowserTools(ctx: ToolContext) {
     }),
 
     browserFill: tool({
-      description: 'Fill a form input field with a value. Use a CSS selector to identify the input.',
+      description: 'Fill a form input with a value using a CSS selector.',
       inputSchema: z.object({
         selector: z.string().describe('CSS selector for the input element'),
         value: z.string().describe('The value to type into the input'),
@@ -52,9 +83,20 @@ export function createBrowserTools(ctx: ToolContext) {
       execute: async ({ selector, value }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot control browser'
         try {
-          const result = await bridge.runInProject(browserCommand, ['fill', selector, value])
-          if (!result.success) return `Fill failed: ${result.error || 'Unknown error'}`
-          return `Filled "${selector}" with "${value}"`
+          await ensurePlaywright()
+          const sel = selector.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+          const val = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+          const script = `(async () => {
+  const { chromium } = require('playwright');
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  const el = await page.waitForSelector('${sel}');
+  await el.fill('${val}');
+  await browser.close();
+  console.log('ok');
+})()`
+          await bridge.runInProject('node', ['-e', script])
+          return `Filled "${selector}"`
         } catch (error) {
           return `Browser error: ${error instanceof Error ? error.message : 'Unknown error'}`
         }
@@ -62,13 +104,21 @@ export function createBrowserTools(ctx: ToolContext) {
     }),
 
     browserSnapshot: tool({
-      description: 'Get the current page snapshot (a11y tree) showing all interactive elements. Use after navigation to understand the page layout.',
+      description: 'Get the page text content via Playwright.',
       inputSchema: z.object({}),
       execute: async () => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot control browser'
         try {
-          const result = await bridge.runInProject(browserCommand, ['snapshot'])
-          if (!result.success) return `Snapshot failed: ${result.error || 'Unknown error'}`
+          await ensurePlaywright()
+          const script = `(async () => {
+  const { chromium } = require('playwright');
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  const text = await page.innerText('body');
+  await browser.close();
+  console.log(text.slice(0, 10000));
+})()`
+          const result = await bridge.runInProject('node', ['-e', script])
           return result.output || 'Page snapshot is empty'
         } catch (error) {
           return `Browser error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -77,17 +127,27 @@ export function createBrowserTools(ctx: ToolContext) {
     }),
 
     browserScreenshot: tool({
-      description: 'Take a screenshot of the current page. Returns a description of what was captured.',
+      description: 'Take a screenshot of the current page.',
       inputSchema: z.object({
-        selector: z.string().optional().describe('Optional CSS selector to screenshot a specific element'),
+        selector: z.string().optional().describe('Optional CSS selector for a specific element'),
       }),
       execute: async ({ selector }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot control browser'
         try {
-          const args = selector ? [selector] : []
-          const result = await bridge.runInProject(browserCommand, ['screenshot', ...args])
-          if (!result.success) return `Screenshot failed: ${result.error || 'Unknown error'}`
-          return `Screenshot taken${selector ? ` of "${selector}"` : ''}`
+          await ensurePlaywright()
+          const sel = selector ? `'${selector.replace(/'/g, "\\'")}'` : 'null'
+          const script = `(async () => {
+  const { chromium } = require('playwright');
+  const fs = require('fs');
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  ${sel ? `const el = await page.waitForSelector(${sel}); await el.screenshot({ path: '/tmp/screenshot.png' });` : `await page.screenshot({ path: '/tmp/screenshot.png', fullPage: true });`}
+  await browser.close();
+  const buf = fs.readFileSync('/tmp/screenshot.png');
+  console.log('Screenshot saved (' + buf.length + ' bytes)');
+})()`
+          const result = await bridge.runInProject('node', ['-e', script])
+          return result.output || 'Screenshot taken'
         } catch (error) {
           return `Browser error: ${error instanceof Error ? error.message : 'Unknown error'}`
         }

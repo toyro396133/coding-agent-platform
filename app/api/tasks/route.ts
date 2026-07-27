@@ -467,7 +467,7 @@ async function processTask(
 
     checkLocalEnvironment().then((localEnv) => {
       if (localEnv.available) {
-        console.log('Local environment available:', localEnv.reason || 'ollama/opencode')
+        console.log('Local environment available')
       }
     }).catch(() => {})
 

@@ -48,6 +48,7 @@ interface TaskFormProps {
     maxDuration: number
     keepAlive: boolean
     enableBrowser: boolean
+    executionLevel?: string
   }) => void
   isSubmitting: boolean
   selectedOwner: string
@@ -70,66 +71,7 @@ const CODING_AGENTS = [
   { value: 'opencode', label: 'opencode', icon: OpenCode, isLogo: true },
 ] as const
 
-// Model options for each agent
-const AGENT_MODELS = {
-  claude: [
-    { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5' },
-    { value: 'anthropic/claude-opus-4.6', label: 'Opus 4.6' },
-    { value: 'claude-haiku-4-5', label: 'Haiku 4.5' },
-  ],
-  codex: [
-    { value: 'openai/gpt-5.1', label: 'GPT-5.1' },
-    { value: 'openai/gpt-5.1-codex', label: 'GPT-5.1-Codex' },
-    { value: 'openai/gpt-5.1-codex-mini', label: 'GPT-5.1-Codex mini' },
-    { value: 'openai/gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-codex', label: 'GPT-5-Codex' },
-    { value: 'openai/gpt-5-mini', label: 'GPT-5 mini' },
-    { value: 'openai/gpt-5-nano', label: 'GPT-5 nano' },
-    { value: 'gpt-5-pro', label: 'GPT-5 pro' },
-    { value: 'openai/gpt-4.1', label: 'GPT-4.1' },
-  ],
-  copilot: [
-    { value: 'claude-sonnet-4.5', label: 'Sonnet 4.5' },
-    { value: 'claude-sonnet-4', label: 'Sonnet 4' },
-    { value: 'claude-haiku-4.5', label: 'Haiku 4.5' },
-    { value: 'gpt-5', label: 'GPT-5' },
-  ],
-  cursor: [
-    { value: 'auto', label: 'Auto' },
-    { value: 'composer-1', label: 'Composer' },
-    { value: 'sonnet-4.5', label: 'Sonnet 4.5' },
-    { value: 'sonnet-4.5-thinking', label: 'Sonnet 4.5 Thinking' },
-    { value: 'gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-codex', label: 'GPT-5 Codex' },
-    { value: 'opus-4.5', label: 'Opus 4.5' },
-    { value: 'opus-4.1', label: 'Opus 4.1' },
-    { value: 'grok', label: 'Grok' },
-  ],
-  gemini: [
-    { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview' },
-    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  ],
-  opencode: [
-    { value: 'gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-mini', label: 'GPT-5 mini' },
-    { value: 'gpt-5-nano', label: 'GPT-5 nano' },
-    { value: 'gpt-4.1', label: 'GPT-4.1' },
-    { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5' },
-    { value: 'claude-opus-4-5', label: 'Opus 4.5' },
-    { value: 'claude-haiku-4-5', label: 'Haiku 4.5' },
-  ],
-} as const
-
-// Default models for each agent
-const DEFAULT_MODELS = {
-  claude: 'claude-sonnet-4-5',
-  codex: 'openai/gpt-5.1',
-  copilot: 'claude-sonnet-4.5',
-  cursor: 'auto',
-  gemini: 'gemini-3-pro-preview',
-  opencode: 'gpt-5',
-} as const
+import { AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
 // API key requirements for each agent
 const AGENT_API_KEY_REQUIREMENTS: Record<string, Provider[]> = {
@@ -182,6 +124,7 @@ export function TaskForm({
   const [maxDuration, setMaxDurationState] = useState(initialMaxDuration)
   const [keepAlive, setKeepAliveState] = useState(initialKeepAlive)
   const [enableBrowser, setEnableBrowserState] = useState(initialEnableBrowser)
+  const [executionLevel, setExecutionLevel] = useState<string>('basic')
   const [showMcpServersDialog, setShowMcpServersDialog] = useState(false)
 
   // Connectors state
@@ -349,6 +292,7 @@ export function TaskForm({
         maxDuration,
         keepAlive,
         enableBrowser,
+        executionLevel,
       })
       return
     }
@@ -396,6 +340,7 @@ export function TaskForm({
       maxDuration,
       keepAlive,
       enableBrowser,
+      executionLevel,
     })
   }
 
@@ -755,6 +700,24 @@ export function TaskForm({
                               </Label>
                             </div>
                             <p className="text-xs text-muted-foreground pl-6">{t.taskForm.keepAliveHint}</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">{t.taskForm.capabilityLevel}</Label>
+                            <Select value={executionLevel} onValueChange={setExecutionLevel}>
+                              <SelectTrigger className="w-full h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="basic">{t.taskForm.capabilityBasic}</SelectItem>
+                                <SelectItem value="enhanced">{t.taskForm.capabilityEnhanced}</SelectItem>
+                                <SelectItem value="auto">{t.taskForm.capabilityAuto}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              {executionLevel === 'basic' && t.taskForm.capabilityBasicDesc}
+                              {executionLevel === 'enhanced' && t.taskForm.capabilityEnhancedDesc}
+                              {executionLevel === 'auto' && t.taskForm.capabilityAutoDesc}
+                            </p>
                           </div>
                         </div>
                       </DropdownMenuContent>

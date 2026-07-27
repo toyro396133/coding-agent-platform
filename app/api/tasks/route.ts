@@ -26,6 +26,9 @@ import { retrieveRelevantMemories } from '@/lib/memory/engine'
 
 import { summarizeAndStoreTask } from '@/lib/memory/summarize'
 import { runOrchestrator } from '@/lib/ai/orchestrator/loop'
+import { checkLocalEnvironment } from '@/lib/sandbox/local-execution'
+import { reviewChanges } from '@/lib/sandbox/code-review'
+import { suggestModelForPrompt } from '@/lib/ai/router'
 
 import { getUserGitHubToken } from '@/lib/github/user-token'
 import { getGitHubUser } from '@/lib/github/client'
@@ -244,6 +247,7 @@ export async function POST(request: NextRequest) {
           validatedData.keepAlive || false,
           validatedData.enableBrowser || false,
           validatedData.executionMode || 'orchestrator_external',
+          validatedData.executionLevel || 'basic',
           userApiKeys,
           userGithubToken,
           githubUser,
@@ -273,6 +277,7 @@ async function processTaskWithTimeout(
   keepAlive: boolean = false,
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
+  executionLevel: string = 'basic',
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -320,6 +325,7 @@ async function processTaskWithTimeout(
         keepAlive,
         enableBrowser,
         executionMode,
+        executionLevel,
         apiKeys,
         githubToken,
         githubUser,
@@ -391,6 +397,7 @@ async function processTask(
   keepAlive: boolean = false,
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
+  executionLevel: string = 'basic',
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -457,6 +464,12 @@ async function processTask(
 
     await logger.updateProgress(15, 'Creating sandbox environment')
     console.log('Creating sandbox')
+
+    checkLocalEnvironment().then((localEnv) => {
+      if (localEnv.available) {
+        console.log('Local environment available')
+      }
+    }).catch(() => {})
 
     // Detect the appropriate port for the project
     const port = await detectPortFromRepo(repoUrl, githubToken)
@@ -630,7 +643,9 @@ async function processTask(
         await logger.info('Running orchestrator')
         const result = await runOrchestrator(sanitizedPrompt, {
           taskId,
+          userId,
           selectedModel: selectedModel || 'gpt-4o-mini',
+          capabilityLevel: executionLevel as 'basic' | 'enhanced' | 'auto',
         })
         if (result.finalAnswer) {
           finalPrompt = result.finalAnswer
@@ -731,6 +746,22 @@ async function processTask(
 
       // Push changes to branch
       const pushResult = await pushChangesToBranch(sandbox!, branchName!, commitMessage, logger)
+
+      // Code review after push
+      if (pushResult.pushFailed !== true) {
+        try {
+          await logger.info('Running code review on changes')
+          const review = await reviewChanges(sandbox!, prompt)
+          if (review.issues.length > 0) {
+            await logger.info('Code review completed')
+            for (const issue of review.issues) {
+              await logger.info('Issue found in code review')
+            }
+          }
+        } catch (error) {
+          console.error('Code review failed:', error)
+        }
+      }
 
       // Conditionally shutdown sandbox based on keepAlive setting
       if (keepAlive) {

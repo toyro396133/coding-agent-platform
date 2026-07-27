@@ -34,54 +34,7 @@ interface TasksListClientProps {
 }
 
 // Model mappings for human-friendly names
-const AGENT_MODELS = {
-  claude: [
-    { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5' },
-    { value: 'anthropic/claude-opus-4.6', label: 'Opus 4.6' },
-    { value: 'claude-haiku-4-5', label: 'Haiku 4.5' },
-  ],
-  codex: [
-    { value: 'openai/gpt-5.1', label: 'GPT-5.1' },
-    { value: 'openai/gpt-5.1-codex', label: 'GPT-5.1-Codex' },
-    { value: 'openai/gpt-5.1-codex-mini', label: 'GPT-5.1-Codex mini' },
-    { value: 'openai/gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-codex', label: 'GPT-5-Codex' },
-    { value: 'openai/gpt-5-mini', label: 'GPT-5 mini' },
-    { value: 'openai/gpt-5-nano', label: 'GPT-5 nano' },
-    { value: 'gpt-5-pro', label: 'GPT-5 pro' },
-    { value: 'openai/gpt-4.1', label: 'GPT-4.1' },
-  ],
-  copilot: [
-    { value: 'claude-sonnet-4.5', label: 'Sonnet 4.5' },
-    { value: 'claude-sonnet-4', label: 'Sonnet 4' },
-    { value: 'claude-haiku-4.5', label: 'Haiku 4.5' },
-    { value: 'gpt-5', label: 'GPT-5' },
-  ],
-  cursor: [
-    { value: 'auto', label: 'Auto' },
-    { value: 'composer-1', label: 'Composer' },
-    { value: 'sonnet-4.5', label: 'Sonnet 4.5' },
-    { value: 'sonnet-4.5-thinking', label: 'Sonnet 4.5 Thinking' },
-    { value: 'gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-codex', label: 'GPT-5 Codex' },
-    { value: 'opus-4.1', label: 'Opus 4.1' },
-    { value: 'grok', label: 'Grok' },
-  ],
-  gemini: [
-    { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview' },
-    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  ],
-  opencode: [
-    { value: 'gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-mini', label: 'GPT-5 Mini' },
-    { value: 'gpt-5-nano', label: 'GPT-5 Nano' },
-    { value: 'gpt-4.1', label: 'GPT-4.1' },
-    { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5' },
-    { value: 'claude-opus-4-5', label: 'Opus 4.5' },
-    { value: 'claude-haiku-4-5', label: 'Haiku 4.5' },
-  ],
-} as const
+import { AGENT_MODELS, getModelName } from '@/lib/ai/model-definitions'
 
 function getTimeAgo(date: Date): string {
   const now = new Date()
@@ -254,13 +207,7 @@ export function TasksListClient({ user, authProvider, initialStars = 1200 }: Tas
   }
 
   const getHumanFriendlyModelName = (agent: string | null, model: string | null) => {
-    if (!agent || !model) return model
-
-    const agentModels = AGENT_MODELS[agent as keyof typeof AGENT_MODELS]
-    if (!agentModels) return model
-
-    const modelInfo = agentModels.find((m) => m.value === model)
-    return modelInfo ? modelInfo.label : model
+    return getModelName(model, agent)
   }
 
   const selectedProcessingTasks = Array.from(selectedTasks).filter((taskId) => {

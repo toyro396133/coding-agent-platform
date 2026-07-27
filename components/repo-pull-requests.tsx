@@ -35,73 +35,16 @@ import Copilot from '@/components/logos/copilot'
 import Cursor from '@/components/logos/cursor'
 import Gemini from '@/components/logos/gemini'
 import OpenCode from '@/components/logos/opencode'
+import { CODING_AGENTS, AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
-const CODING_AGENTS = [
-  { value: 'claude', label: 'Claude', icon: Claude },
-  { value: 'codex', label: 'Codex', icon: Codex },
-  { value: 'copilot', label: 'Copilot', icon: Copilot },
-  { value: 'cursor', label: 'Cursor', icon: Cursor },
-  { value: 'gemini', label: 'Gemini', icon: Gemini },
-  { value: 'opencode', label: 'opencode', icon: OpenCode },
-] as const
-
-const AGENT_MODELS = {
-  claude: [
-    { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5' },
-    { value: 'anthropic/claude-opus-4.6', label: 'Opus 4.6' },
-    { value: 'claude-haiku-4-5', label: 'Haiku 4.5' },
-  ],
-  codex: [
-    { value: 'openai/gpt-5.1', label: 'GPT-5.1' },
-    { value: 'openai/gpt-5.1-codex', label: 'GPT-5.1-Codex' },
-    { value: 'openai/gpt-5.1-codex-mini', label: 'GPT-5.1-Codex mini' },
-    { value: 'openai/gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-codex', label: 'GPT-5-Codex' },
-    { value: 'openai/gpt-5-mini', label: 'GPT-5 mini' },
-    { value: 'openai/gpt-5-nano', label: 'GPT-5 nano' },
-    { value: 'gpt-5-pro', label: 'GPT-5 pro' },
-    { value: 'openai/gpt-4.1', label: 'GPT-4.1' },
-  ],
-  copilot: [
-    { value: 'claude-sonnet-4.5', label: 'Sonnet 4.5' },
-    { value: 'claude-sonnet-4', label: 'Sonnet 4' },
-    { value: 'claude-haiku-4.5', label: 'Haiku 4.5' },
-    { value: 'gpt-5', label: 'GPT-5' },
-  ],
-  cursor: [
-    { value: 'auto', label: 'Auto' },
-    { value: 'composer-1', label: 'Composer' },
-    { value: 'sonnet-4.5', label: 'Sonnet 4.5' },
-    { value: 'sonnet-4.5-thinking', label: 'Sonnet 4.5 Thinking' },
-    { value: 'gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-codex', label: 'GPT-5 Codex' },
-    { value: 'opus-4.1', label: 'Opus 4.1' },
-    { value: 'grok', label: 'Grok' },
-  ],
-  gemini: [
-    { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview' },
-    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  ],
-  opencode: [
-    { value: 'gpt-5', label: 'GPT-5' },
-    { value: 'gpt-5-mini', label: 'GPT-5 mini' },
-    { value: 'gpt-5-nano', label: 'GPT-5 nano' },
-    { value: 'gpt-4.1', label: 'GPT-4.1' },
-    { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5' },
-    { value: 'claude-opus-4-5', label: 'Opus 4.5' },
-    { value: 'claude-haiku-4-5', label: 'Haiku 4.5' },
-  ],
-} as const
-
-const DEFAULT_MODELS = {
-  claude: 'claude-sonnet-4-5',
-  codex: 'openai/gpt-5.1',
-  copilot: 'claude-sonnet-4.5',
-  cursor: 'auto',
-  gemini: 'gemini-3-pro-preview',
-  opencode: 'gpt-5',
-} as const
+const AGENT_ICONS = {
+  claude: Claude,
+  codex: Codex,
+  copilot: Copilot,
+  cursor: Cursor,
+  gemini: Gemini,
+  opencode: OpenCode,
+}
 
 function formatDistanceToNow(date: Date): string {
   const now = new Date()
@@ -450,14 +393,17 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CODING_AGENTS.map((agent) => (
-                      <SelectItem key={agent.value} value={agent.value}>
-                        <div className="flex items-center gap-2">
-                          <agent.icon className="w-4 h-4" />
-                          <span>{agent.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {CODING_AGENTS.map((agent) => {
+                      const Icon = AGENT_ICONS[agent.value]
+                      return (
+                        <SelectItem key={agent.value} value={agent.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            <span>{agent.label}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>

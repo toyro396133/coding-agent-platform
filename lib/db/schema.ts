@@ -119,6 +119,11 @@ export const tasks = pgTable('tasks', {
   })
     .notNull()
     .default('orchestrator_external'),
+  executionLevel: text('execution_level', {
+    enum: ['basic', 'enhanced', 'auto'],
+  })
+    .notNull()
+    .default('basic'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
@@ -155,6 +160,7 @@ export const insertTaskSchema = z.object({
   executionMode: z
     .enum(['orchestrator_external', 'orchestrator_only', 'external_only'])
     .default('orchestrator_external'),
+  executionLevel: z.enum(['basic', 'enhanced', 'auto']).default('basic'),
 })
 
 export const selectTaskSchema = z.object({
@@ -184,6 +190,7 @@ export const selectTaskSchema = z.object({
   prMergeCommitSha: z.string().nullable(),
   mcpServerIds: z.array(z.string()).nullable(),
   executionMode: z.enum(['orchestrator_external', 'orchestrator_only', 'external_only']),
+  executionLevel: z.enum(['basic', 'enhanced', 'auto']).nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
   completedAt: z.date().nullable(),

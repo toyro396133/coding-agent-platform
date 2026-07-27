@@ -36,7 +36,10 @@ function getToken(): string | undefined {
   return process.env.VERCEL_TOKEN
 }
 
-async function fetchVercel<T>(path: string, options?: RequestInit): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+async function fetchVercel<T>(
+  path: string,
+  options?: RequestInit,
+): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   const token = getToken()
   if (!token) {
     return { ok: false, error: 'VERCEL_TOKEN is not configured' }
@@ -70,7 +73,9 @@ export async function listProjects(limit = 20) {
 }
 
 export async function listDeployments(projectId: string, limit = 20) {
-  return fetchVercel<{ deployments: VercelDeployment[] }>(`/v6/deployments?projectId=${encodeURIComponent(projectId)}&limit=${limit}`)
+  return fetchVercel<{ deployments: VercelDeployment[] }>(
+    `/v6/deployments?projectId=${encodeURIComponent(projectId)}&limit=${limit}`,
+  )
 }
 
 export async function createDeployment(projectId: string, target = 'production') {

@@ -87,7 +87,15 @@ export function VercelIntegration() {
               Connect your application to the Vercel API for deployment and project management.
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { fetchUser(); fetchProjects() }} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              fetchUser()
+              fetchProjects()
+            }}
+            disabled={loading}
+          >
             <RefreshCw className={cn('h-3.5 w-3.5 me-2', loading && 'animate-spin')} />
             {user ? 'Refresh' : 'Connect'}
           </Button>
@@ -142,7 +150,11 @@ function ProjectItem({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm">{project.name}</span>
-          {project.framework && <Badge variant="outline" className="text-[10px]">{project.framework}</Badge>}
+          {project.framework && (
+            <Badge variant="outline" className="text-[10px]">
+              {project.framework}
+            </Badge>
+          )}
         </div>
         <Button variant="ghost" size="sm" onClick={() => onLoad(project.id)} disabled={hasLoaded}>
           {hasLoaded ? 'Loaded' : 'Load deployments'}

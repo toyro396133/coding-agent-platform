@@ -524,7 +524,11 @@ function computeProviderResetAt(provider: Provider, exhaustedAtIso: string | nul
   return reset
 }
 
-function formatProviderReset(provider: Provider, exhaustedAtIso: string | null, quotaResetMinutes: number | null): string {
+function formatProviderReset(
+  provider: Provider,
+  exhaustedAtIso: string | null,
+  quotaResetMinutes: number | null,
+): string {
   if (!exhaustedAtIso) return ''
 
   if (quotaResetMinutes) {

@@ -98,6 +98,7 @@ const _en = {
     connectGitHubToView: 'Connect GitHub to view your repositories',
     private: 'Private',
     task: 'task',
+    tasksLower: 'tasks',
     deleteDialogTitle: 'Delete Tasks',
     deleteDialogDesc: 'Select which types of tasks you want to delete. This action cannot be undone.',
     deleteCompleted: 'Delete Completed Tasks',

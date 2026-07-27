@@ -100,6 +100,7 @@ export const he: Dictionary = {
     connectGitHubToView: 'התחבר ל-GitHub כדי לצפות במאגרים שלך',
     private: 'פרטי',
     task: 'משימה',
+    tasksLower: 'משימות',
     deleteDialogTitle: 'מחק משימות',
     deleteDialogDesc: 'בחר אילו סוגי משימות ברצונך למחוק. פעולה זו אינה ניתנת לביטול.',
     deleteCompleted: 'מחק משימות שהושלמו',

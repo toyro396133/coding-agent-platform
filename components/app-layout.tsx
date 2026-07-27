@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { getSidebarWidth, setSidebarWidth, getSidebarOpen, setSidebarOpen } from '@/lib/utils/cookies'
 import { nanoid } from 'nanoid'
 import { ConnectorsProvider } from '@/components/connectors-provider'
+import { useLocale } from '@/components/providers/locale-provider'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -44,6 +45,7 @@ export const useTasks = () => {
 }
 
 function SidebarLoader({ width }: { width: number }) {
+  const { t } = useLocale()
   return (
     <div
       className="h-full border-r bg-muted px-2 md:px-3 pt-3 md:pt-5.5 pb-3 md:pb-4 overflow-y-auto"
@@ -57,21 +59,21 @@ function SidebarLoader({ width }: { width: number }) {
               className="text-xs font-medium tracking-wide transition-colors px-2 py-1 rounded text-foreground bg-accent"
               disabled
             >
-              Tasks
+              {t.sidebar.tasks}
             </button>
             <button
               className="text-xs font-medium tracking-wide transition-colors px-2 py-1 rounded text-muted-foreground"
               disabled
             >
-              Repos
+              {t.sidebar.repos}
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={true} title="Delete Tasks">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={true} title={t.sidebar.deleteTasks}>
               <Trash2 className="h-4 w-4" />
             </Button>
             <Link href="/">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="New Task">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                 <Plus className="h-4 w-4" />
               </Button>
             </Link>

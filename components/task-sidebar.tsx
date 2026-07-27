@@ -460,7 +460,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
               )}
             >
-              Tasks
+              {t.sidebar.tasks}
             </button>
             <button
               onClick={() => setActiveTab('repos')}
@@ -471,7 +471,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
               )}
             >
-              Repos
+              {t.sidebar.repos}
             </button>
           </div>
           <div className="flex items-center gap-1">
@@ -481,12 +481,12 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
               className="h-8 w-8 p-0"
               onClick={() => setShowDeleteDialog(true)}
               disabled={isDeleting || tasks.length === 0}
-              title="Delete Tasks"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Link href="/" onClick={handleLinkClick}>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="New Task">
+               title={t.sidebar.deleteTasks}
+             >
+               <Trash2 className="h-4 w-4" />
+             </Button>
+             <Link href="/" onClick={handleLinkClick}>
+               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                 <Plus className="h-4 w-4" />
               </Button>
             </Link>
@@ -500,7 +500,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           {tasks.length === 0 ? (
             <Card>
               <CardContent className="p-3 text-center text-xs text-muted-foreground">
-                No tasks yet. Create your first task!
+                {t.sidebar.noTasksYet}
               </CardContent>
             </Card>
           ) : (
@@ -561,10 +561,10 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                                       if (pathParts.length >= 2) {
                                         return `${pathParts[0]}/${pathParts[1].replace(/\.git$/, '')}`
                                       } else {
-                                        return 'Unknown repository'
+                                        return t.sidebar.unknownRepo
                                       }
                                     } catch {
-                                      return 'Invalid repository URL'
+                                      return t.sidebar.invalidRepoUrl
                                     }
                                   })()}
                                 </span>
@@ -594,7 +594,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                 <div className="pt-1">
                   <Link href="/tasks" onClick={handleLinkClick}>
                     <Button variant="ghost" size="sm" className="w-full justify-start h-7 px-2 text-xs">
-                      View All Tasks
+                      {t.sidebar.viewAllTasks}
                     </Button>
                   </Link>
                 </div>
@@ -613,7 +613,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search repos..."
+                placeholder={t.sidebar.searchRepos}
                 value={repoSearchQuery}
                 onChange={(e) => setRepoSearchQuery(e.target.value)}
                 className="h-8 pl-7 pr-7 text-xs"
@@ -633,7 +633,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
             {!githubConnection.connected ? (
               <Card>
                 <CardContent className="p-3 text-center text-xs text-muted-foreground">
-                  Connect GitHub to view your repositories
+                  {t.sidebar.connectGitHubToView}
                 </CardContent>
               </Card>
             ) : (reposLoading && repos.length === 0 && !isSearching) ||
@@ -641,19 +641,19 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
               <Card>
                 <CardContent className="p-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  {isSearching ? 'Searching...' : 'Loading repositories...'}
+                  {isSearching ? t.common.searching : t.sidebar.loadingRepositories}
                 </CardContent>
               </Card>
             ) : displayedRepos.length === 0 && !isSearching ? (
               <Card>
                 <CardContent className="p-3 text-center text-xs text-muted-foreground">
-                  No repositories found
+                  {t.sidebar.noReposFound}
                 </CardContent>
               </Card>
             ) : displayedRepos.length === 0 && isSearching && !searchLoading ? (
               <Card>
                 <CardContent className="p-3 text-center text-xs text-muted-foreground">
-                  No repos match &quot;{repoSearchQuery}&quot;
+                  {t.sidebar.noReposMatch.replace('{query}', repoSearchQuery)}
                 </CardContent>
               </Card>
             ) : (
@@ -686,13 +686,13 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                               </h3>
                               {taskCount > 0 && (
                                 <div className="text-xs text-muted-foreground">
-                                  {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
+                                  {taskCount} {taskCount === 1 ? t.sidebar.task : t.sidebar.tasksLower}
                                 </div>
                               )}
                             </div>
                             {repo.private && (
                               <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                Private
+                                {t.sidebar.private}
                               </span>
                             )}
                           </div>
@@ -718,9 +718,9 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Tasks</AlertDialogTitle>
+            <AlertDialogTitle>{t.sidebar.deleteDialogTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Select which types of tasks you want to delete. This action cannot be undone.
+              {t.sidebar.deleteDialogDesc}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -735,7 +735,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   htmlFor="delete-completed"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Delete Completed Tasks
+                  {t.sidebar.deleteCompleted}
                 </label>
               </div>
               <div className="flex items-center space-x-2">
@@ -748,7 +748,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   htmlFor="delete-failed"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Delete Failed Tasks
+                  {t.sidebar.deleteFailed}
                 </label>
               </div>
               <div className="flex items-center space-x-2">
@@ -761,19 +761,19 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   htmlFor="delete-stopped"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Delete Stopped Tasks
+                  {t.sidebar.deleteStopped}
                 </label>
               </div>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTasks}
               disabled={isDeleting || (!deleteCompleted && !deleteFailed && !deleteStopped)}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? 'Deleting...' : 'Delete Tasks'}
+              {isDeleting ? t.common.deleting : t.sidebar.deleteTasks}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

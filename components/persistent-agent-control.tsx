@@ -28,7 +28,7 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
       setRunning(data.running || false)
       setRuns(data.runs || 0)
     } catch (e) {
-      console.error('Failed to check persistent agent status:', e)
+      console.error('Persistent agent status check failed')
     }
   }
 
@@ -47,11 +47,11 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
         body: JSON.stringify({ action: 'start', intervalMs: 60000, maxRuns: 10 }),
       })
       const data = await res.json()
-      if (data.success) {
+      if (res.ok && data.success) {
         setRunning(true)
       }
     } catch (e) {
-      console.error('Failed to start persistent agent:', e)
+      console.error('Persistent agent start failed')
     } finally {
       setLoading(false)
     }
@@ -60,14 +60,17 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
   const stopAgent = async () => {
     setLoading(true)
     try {
-      await fetch(`/api/tasks/${taskId}/persistent`, {
+      const res = await fetch(`/api/tasks/${taskId}/persistent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'stop' }),
       })
-      setRunning(false)
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setRunning(false)
+      }
     } catch (e) {
-      console.error('Failed to stop persistent agent:', e)
+      console.error('Persistent agent stop failed')
     } finally {
       setLoading(false)
     }

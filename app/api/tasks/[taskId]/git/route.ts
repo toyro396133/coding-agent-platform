@@ -39,37 +39,43 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     switch (action) {
       case 'status': {
         const result = await runInProject(sandbox, 'git', ['status'])
-        return NextResponse.json({ success: true, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'log': {
         const count = body.count || 10
         const result = await runInProject(sandbox, 'git', ['log', `--oneline`, `-${count}`])
-        return NextResponse.json({ success: true, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'diff': {
         const result = await runInProject(sandbox, 'git', ['diff'])
-        return NextResponse.json({ success: true, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'diff:cached': {
         const result = await runInProject(sandbox, 'git', ['diff', '--cached'])
-        return NextResponse.json({ success: true, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'pull': {
         const currentBranch = await runInProject(sandbox, 'git', ['rev-parse', '--abbrev-ref', 'HEAD'])
-        const branch = currentBranch.output?.trim() || 'main'
+        if (!currentBranch.success || !currentBranch.output?.trim() || currentBranch.output.trim() === 'HEAD') {
+          return NextResponse.json({ success: false, error: 'Cannot pull in detached HEAD state' })
+        }
+        const branch = currentBranch.output.trim()
         const result = await runInProject(sandbox, 'git', ['pull', 'origin', branch])
-        return NextResponse.json({ success: result.success, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'push': {
         const currentBranch = await runInProject(sandbox, 'git', ['rev-parse', '--abbrev-ref', 'HEAD'])
-        const branch = currentBranch.output?.trim() || 'main'
+        if (!currentBranch.success || !currentBranch.output?.trim() || currentBranch.output.trim() === 'HEAD') {
+          return NextResponse.json({ success: false, error: 'Cannot push from detached HEAD state' })
+        }
+        const branch = currentBranch.output.trim()
         const result = await runInProject(sandbox, 'git', ['push', 'origin', branch])
-        return NextResponse.json({ success: result.success, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'commit': {
@@ -79,15 +85,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
         const addResult = await runInProject(sandbox, 'git', ['add', '.'])
         if (!addResult.success) {
-          return NextResponse.json({ success: false, output: addResult.output || '', error: addResult.error || 'Failed to add files' })
+          return NextResponse.json({ success: false, error: 'Failed to stage files' })
         }
         const commitResult = await runInProject(sandbox, 'git', ['commit', '-m', message])
-        return NextResponse.json({ success: commitResult.success, output: commitResult.output || '', error: commitResult.error })
+        return NextResponse.json({ success: commitResult.success, output: commitResult.success ? (commitResult.output || '') : '' })
       }
 
       case 'branch': {
         const result = await runInProject(sandbox, 'git', ['branch', '-a'])
-        return NextResponse.json({ success: true, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'checkout': {
@@ -96,19 +102,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           return NextResponse.json({ error: 'Branch name is required' }, { status: 400 })
         }
         const result = await runInProject(sandbox, 'git', ['checkout', branch])
-        return NextResponse.json({ success: result.success, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       case 'fetch': {
         const result = await runInProject(sandbox, 'git', ['fetch', '--all'])
-        return NextResponse.json({ success: result.success, output: result.output || '', error: result.error })
+        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
       }
 
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 })
     }
   } catch (error) {
-    console.error('Git operation error:', error)
+    console.error('Git operation failed')
     return NextResponse.json({ error: 'Git operation failed' }, { status: 500 })
   }
 }

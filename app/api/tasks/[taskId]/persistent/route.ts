@@ -33,8 +33,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (action === 'start') {
       const agent = task[0].selectedAgent || 'claude'
       const model = task[0].selectedModel || ''
-      const intervalMs = body.intervalMs || 60000
-      const maxRuns = body.maxRuns || 10
+
+      // Validate and normalize intervalMs
+      let intervalMs = body.intervalMs
+      if (typeof intervalMs !== 'number' || !Number.isFinite(intervalMs) || intervalMs <= 0) {
+        intervalMs = 60000 // Default to 60 seconds
+      }
+      // Clamp to reasonable bounds: min 10 seconds, max 24 hours
+      intervalMs = Math.max(10000, Math.min(intervalMs, 86400000))
+
+      // Validate and normalize maxRuns
+      let maxRuns = body.maxRuns
+      if (typeof maxRuns !== 'number' || !Number.isFinite(maxRuns) || maxRuns <= 0 || !Number.isInteger(maxRuns)) {
+        maxRuns = 10 // Default to 10 runs
+      }
+      // Clamp to reasonable bounds: min 1, max 1000
+      maxRuns = Math.max(1, Math.min(Math.floor(maxRuns), 1000))
 
       const started = startPersistentAgent({
         taskId,
@@ -59,7 +73,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
   } catch (error) {
-    console.error('Persistent agent error:', error)
+    console.error('Persistent agent operation failed')
     return NextResponse.json({ error: 'Failed to manage persistent agent' }, { status: 500 })
   }
 }
@@ -71,10 +85,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const agents = listActivePersistentAgents()
-    return NextResponse.json({ agents })
+    // Get all agents and filter by user's tasks
+    const allAgents = listActivePersistentAgents()
+    const userTaskIds = await db
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(and(eq(tasks.userId, session.user.id), isNull(tasks.deletedAt)))
+
+    const userTaskIdSet = new Set(userTaskIds.map(t => t.id))
+    const userAgents = allAgents.filter(agent => userTaskIdSet.has(agent.taskId))
+
+    return NextResponse.json({ agents: userAgents })
   } catch (error) {
-    console.error('Error listing persistent agents:', error)
+    console.error('Persistent agent list failed')
     return NextResponse.json({ error: 'Failed to list' }, { status: 500 })
   }
 }

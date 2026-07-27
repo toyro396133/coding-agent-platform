@@ -28,10 +28,14 @@ export function PluginManager({ className }: PluginManagerProps) {
   const fetchPlugins = async () => {
     try {
       const res = await fetch('/api/plugins')
+      if (!res.ok) {
+        console.error('Plugin fetch failed')
+        return
+      }
       const data = await res.json()
       setPlugins(data.plugins || [])
     } catch (e) {
-      console.error('Failed to fetch plugins:', e)
+      console.error('Plugin fetch failed')
     } finally {
       setLoading(false)
     }
@@ -39,22 +43,27 @@ export function PluginManager({ className }: PluginManagerProps) {
 
   useEffect(() => {
     fetchPlugins()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const addPlugin = async () => {
     if (!pluginName.trim() || !pluginSource.trim()) return
     setAdding(true)
     try {
-      await fetch('/api/plugins', {
+      const res = await fetch('/api/plugins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: pluginName.trim(), source: pluginSource.trim() }),
       })
+      if (!res.ok) {
+        console.error('Plugin add failed')
+        return
+      }
       setPluginName('')
       setPluginSource('')
       await fetchPlugins()
     } catch (e) {
-      console.error('Failed to add plugin:', e)
+      console.error('Plugin add failed')
     } finally {
       setAdding(false)
     }
@@ -62,10 +71,14 @@ export function PluginManager({ className }: PluginManagerProps) {
 
   const removePlugin = async (name: string) => {
     try {
-      await fetch(`/api/plugins?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+      const res = await fetch(`/api/plugins?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+      if (!res.ok) {
+        console.error('Plugin removal failed')
+        return
+      }
       await fetchPlugins()
     } catch (e) {
-      console.error('Failed to remove plugin:', e)
+      console.error('Plugin removal failed')
     }
   }
 
@@ -114,7 +127,7 @@ export function PluginManager({ className }: PluginManagerProps) {
                     {plugin.source}
                   </Badge>
                 </div>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removePlugin(plugin.name)}>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removePlugin(plugin.name)} aria-label={`Remove ${plugin.name} plugin`}>
                   <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </div>

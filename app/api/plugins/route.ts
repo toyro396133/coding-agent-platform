@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/session/get-server-session'
-import { listRegisteredPacks, registerPack, unregisterPack } from '@/lib/ai/orchestrator/runtime/plugin-registry'
+import {
+  listRegisteredPacks,
+  registerPack,
+  unregisterPack,
+  listExternalPlugins
+} from '@/lib/ai/orchestrator/runtime/plugin-registry'
 
 export async function GET() {
   try {
@@ -10,9 +15,18 @@ export async function GET() {
     }
 
     const packs = listRegisteredPacks()
-    return NextResponse.json({ plugins: packs })
+    const externalPlugins = listExternalPlugins()
+
+    return NextResponse.json({
+      plugins: packs,
+      externalPlugins: externalPlugins.map(p => ({
+        name: p.manifest.name,
+        enabled: p.enabled,
+        manifest: p.manifest
+      }))
+    })
   } catch (error) {
-    console.error('Error listing plugins:', error)
+    console.error('Failed to list plugins')
     return NextResponse.json({ error: 'Failed to list plugins' }, { status: 500 })
   }
 }
@@ -25,16 +39,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, source } = body
+    const { name } = body
 
-    if (!name || !source) {
-      return NextResponse.json({ error: 'Name and source are required' }, { status: 400 })
+    if (!name) {
+      return NextResponse.json({ error: 'Plugin name is required' }, { status: 400 })
     }
 
-    registerPack(name, (_ctx) => ({}), source)
-    return NextResponse.json({ success: true, name, source })
+    // Register with active state, using server-determined source only
+    registerPack(name, (_ctx) => ({}), 'external')
+    return NextResponse.json({ success: true, name })
   } catch (error) {
-    console.error('Error registering plugin:', error)
+    console.error('Failed to register plugin')
     return NextResponse.json({ error: 'Failed to register plugin' }, { status: 500 })
   }
 }
@@ -56,7 +71,7 @@ export async function DELETE(request: NextRequest) {
     const result = unregisterPack(name)
     return NextResponse.json({ success: result })
   } catch (error) {
-    console.error('Error unregistering plugin:', error)
+    console.error('Failed to unregister plugin')
     return NextResponse.json({ error: 'Failed to unregister plugin' }, { status: 500 })
   }
 }

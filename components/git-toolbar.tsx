@@ -36,7 +36,7 @@ export function GitToolbar({ taskId, className }: GitToolbarProps) {
   const [commitMessage, setCommitMessage] = useState('')
   const [showCommitInput, setShowCommitInput] = useState(false)
 
-  const runGit = useCallback(async (action: string, extra: Record<string, string> = {}) => {
+  const runGit = useCallback(async (action: string, extra: Record<string, string> = {}): Promise<GitResult> => {
     setLoading(action)
     setOutput(null)
     setError(null)
@@ -49,8 +49,10 @@ export function GitToolbar({ taskId, className }: GitToolbarProps) {
       const data = await res.json()
       if (data.output) setOutput(data.output)
       if (data.error) setError(data.error)
+      return data
     } catch (e) {
       setError('Network error')
+      return { success: false, error: 'Network error' }
     } finally {
       setLoading(null)
     }
@@ -58,9 +60,11 @@ export function GitToolbar({ taskId, className }: GitToolbarProps) {
 
   const handleCommit = useCallback(async () => {
     if (!commitMessage.trim()) return
-    await runGit('commit', { message: commitMessage.trim() })
-    setCommitMessage('')
-    setShowCommitInput(false)
+    const result = await runGit('commit', { message: commitMessage.trim() })
+    if (result.success) {
+      setCommitMessage('')
+      setShowCommitInput(false)
+    }
   }, [commitMessage, runGit])
 
   const btnClass = "h-8 px-2 text-xs gap-1"

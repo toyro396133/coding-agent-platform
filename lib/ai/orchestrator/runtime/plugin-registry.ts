@@ -22,10 +22,15 @@ export function registerPack(name: string, loader: PackLoader, source: string = 
 }
 
 export function unregisterPack(name: string): boolean {
+  const hadPack = registeredPacks.has(name)
+  const hadExternal = externalPlugins.has(name)
+  const hadHooks = pluginHooks.has(name)
+
   registeredPacks.delete(name)
   externalPlugins.delete(name)
   pluginHooks.delete(name)
-  return true
+
+  return hadPack || hadExternal || hadHooks
 }
 
 export function getRegisteredPack(name: string): RegisteredPack | undefined {
@@ -105,7 +110,7 @@ export function runPluginHooks(hookName: string, ...args: unknown[]): unknown[] 
       try {
         results.push(handler(...args))
       } catch (error) {
-        console.error(`Plugin hook error [${pluginName}:${hookName}]:`, error)
+        console.error('Plugin hook execution failed')
       }
     }
   }

@@ -24,11 +24,13 @@ export function startPersistentAgent(config: PersistentAgentConfig): boolean {
 
   let runs = 0
   const timer = setInterval(async () => {
+    // Get the current entry to update its runs count
+    const entry = activePersistentAgents.get(config.taskId)
+    if (!entry) return
+
+    // Increment and update the map entry's runs value
     runs++
-    if (runs >= config.maxRuns) {
-      stopPersistentAgent(config.taskId)
-      return
-    }
+    entry.runs = runs
 
     try {
       const result: PersistentRunResult = {
@@ -48,6 +50,11 @@ export function startPersistentAgent(config: PersistentAgentConfig): boolean {
         timestamp: Date.now(),
       }
       config.onResult?.(result)
+    }
+
+    // Check maxRuns limit AFTER allowing this run to execute
+    if (runs >= config.maxRuns) {
+      stopPersistentAgent(config.taskId)
     }
   }, config.intervalMs)
 

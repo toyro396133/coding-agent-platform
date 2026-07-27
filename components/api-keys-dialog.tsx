@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from '@/components/providers/locale-provider'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,7 @@ const PROVIDERS = [
 ]
 
 export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
+  const { t } = useLocale()
   const [apiKeys, setApiKeys] = useState<Record<Provider, string>>({
     openai: '',
     gemini: '',
@@ -222,7 +224,7 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
                     disabled={loading || !apiKeys[provider.id].trim()}
                     className="h-8 px-3 text-xs w-16"
                   >
-                    Save
+                    {t.common.save}
                   </Button>
                 ) : (
                   <Button

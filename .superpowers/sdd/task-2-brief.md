@@ -1,59 +1,83 @@
-﻿### Task 2: Database + Session + API for Locale
+﻿### Task 2: Create Orchestrator State Manager
 
 **Files:**
-- Modify: `lib/db/schema.ts` — add `locale` column to users table
-- Modify: `lib/db/users.ts` — add `updateUserLocale` function
-- Modify: `lib/session/types.ts` — add locale to Session/User type
-- Create: `app/api/user/locale/route.ts` — PATCH endpoint
-- Modify: relevant session files to read locale from DB
+- Create: `lib/ai/orchestrator/state.ts`
 
 **Interfaces:**
-- Produces: DB migration for locale column, `PATCH /api/user/locale` endpoint returning `{ success: true }`, `User` type including `locale: string`
+- Consumes: Task type (from schema.ts), LogEntry type
+- Produces: `OrchestratorState` class with `saveCheckpoint()`, `getResult()`
 
-**Implementation steps:**
+- [ ] **Step 1: Create file with OrchestratorState class**
 
-1. **Add `locale` field to `lib/db/schema.ts`** — after `passwordHash`, add:
-   ```typescript
-   locale: text('locale').default('he').notNull(),
-   ```
-   Also update `insertUserSchema` with `locale: z.enum(['en', 'he']).optional()`
+```typescript
+import { generateId } from '@/lib/utils/id'
 
-2. **Add `locale` to `lib/session/types.ts`** — User interface gets:
-   ```typescript
-   locale?: 'en' | 'he'
-   ```
+export interface SubAgentResult {
+  type: string
+  prompt: string
+  result: string
+}
 
-3. **Read locale from DB when building session** — in the session creation code (`getServerSession()`), include the locale field from the user query.
+export interface OrchestratorResult {
+  finalAnswer: string
+  steps: number
+  subAgentResults: SubAgentResult[]
+}
 
-4. **Create `app/api/user/locale/route.ts`**:
-   ```typescript
-   import { NextRequest, NextResponse } from 'next/server'
-   import { getServerSession } from '@/lib/session/get-server-session'
-   import { updateUserLocale } from '@/lib/db/users'
+export class OrchestratorState {
+  public steps = 0
+  public maxSteps: number
+  public currentPrompt: string
+  public accumulatedContext = ''
+  public completed = false
+  public subAgentResults: SubAgentResult[] = []
+  public taskId: string
+  private checkpointFrequency: number
 
-   export async function PATCH(request: NextRequest) {
-     const session = await getServerSession()
-     if (!session?.user?.id) {
-       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-     }
-     const { locale } = await request.json()
-     if (locale !== 'en' && locale !== 'he') {
-       return NextResponse.json({ error: 'Invalid locale' }, { status: 400 })
-     }
-     await updateUserLocale(session.user.id, locale)
-     return NextResponse.json({ success: true })
-   }
-   ```
+  constructor(taskId: string, initialPrompt: string, maxSteps = 20, checkpointFrequency = 5) {
+    this.taskId = taskId
+    this.currentPrompt = initialPrompt
+    this.maxSteps = maxSteps
+    this.checkpointFrequency = checkpointFrequency
+  }
 
-5. **Add `updateUserLocale` to `lib/db/users.ts`**:
-   ```typescript
-   export async function updateUserLocale(userId: string, locale: 'en' | 'he') {
-     return await db.update(users).set({ locale, updatedAt: new Date() }).where(eq(users.id, userId))
-   }
-   ```
+  addSubAgentResult(type: string, prompt: string, result: string): void {
+    this.subAgentResults.push({ type, prompt, result })
+  }
 
-6. **Find where `getServerSession()` builds the user object** and add `locale` to it. Look in `lib/session/*` files for where the user query selects fields and constructs the response.
+  appendContext(context: string): void {
+    this.accumulatedContext += context + '\n'
+  }
 
-7. **Verify**: `pnpm type-check` passes cleanly.
+  markCompleted(): void {
+    this.completed = true
+  }
 
-**Report back with:** status, list of commits made, type-check results, any concerns.
+  shouldCheckpoint(): boolean {
+    return this.steps > 0 && this.steps % this.checkpointFrequency === 0
+  }
+
+  getResult(): OrchestratorResult {
+    return {
+      finalAnswer: this.accumulatedContext || this.currentPrompt,
+      steps: this.steps,
+      subAgentResults: this.subAgentResults,
+    }
+  }
+}
+```
+
+- [ ] **Step 2: Run formatting and type-check**
+
+```bash
+pnpm format
+pnpm type-check
+pnpm lint
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add lib/ai/orchestrator/state.ts
+git commit -m "Create OrchestratorState manager"
+```

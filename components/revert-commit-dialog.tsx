@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, startTransition } from 'react'
+import { useLocale } from '@/components/providers/locale-provider'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,6 +129,7 @@ export function RevertCommitDialog({
   const [maxDuration, setMaxDuration] = useState(300)
   const [keepAlive, setKeepAlive] = useState(false)
   const [isReverting, setIsReverting] = useState(false)
+  const { t } = useLocale()
 
   // Update model when agent changes
   useEffect(() => {
@@ -170,19 +172,18 @@ export function RevertCommitDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-2xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>Revert Commit</AlertDialogTitle>
+          <AlertDialogTitle>{t.dialogs.revertCommit.title}</AlertDialogTitle>
           <AlertDialogDescription>
-            Create a new task to revert commit <code className="bg-muted px-1 py-0.5 rounded">{commitShortSha}</code>:{' '}
-            {commitMessage}
+            {t.dialogs.revertCommit.description.replace('{sha}', commitShortSha).replace('{message}', commitMessage)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="py-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Agent</label>
+              <label className="text-sm font-medium mb-2 block">{t.dialogs.revertCommit.agent}</label>
               <Select value={selectedAgent} onValueChange={setSelectedAgent}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select an agent" />
+                  <SelectValue placeholder={t.dialogs.revertCommit.selectAgent} />
                 </SelectTrigger>
                 <SelectContent>
                   {CODING_AGENTS.map((agent) => (
@@ -197,10 +198,10 @@ export function RevertCommitDialog({
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Model</label>
+              <label className="text-sm font-medium mb-2 block">{t.dialogs.revertCommit.model}</label>
               <Select value={selectedModel} onValueChange={setSelectedModel}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a model" />
+                  <SelectValue placeholder={t.dialogs.revertCommit.selectModel} />
                 </SelectTrigger>
                 <SelectContent>
                   {AGENT_MODELS[selectedAgent as keyof typeof AGENT_MODELS]?.map((model) => (
@@ -215,9 +216,9 @@ export function RevertCommitDialog({
 
           {/* Task Options */}
           <div className="border-t pt-4">
-            <h3 className="text-sm font-medium mb-3">Task Options</h3>
+            <h3 className="text-sm font-medium mb-3">{t.dialogs.revertCommit.taskOptions}</h3>
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
                   id="revert-install-deps"
                   checked={installDependencies}
@@ -227,13 +228,13 @@ export function RevertCommitDialog({
                   htmlFor="revert-install-deps"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Install Dependencies?
+                  {t.dialogs.revertCommit.installDependencies}
                 </Label>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="revert-max-duration" className="text-sm font-medium">
-                  Maximum Duration
+                  {t.dialogs.revertCommit.maxDuration}
                 </Label>
                 <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value))}>
                   <SelectTrigger id="revert-max-duration" className="w-full">
@@ -254,7 +255,7 @@ export function RevertCommitDialog({
                 </Select>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
                   id="revert-keep-alive"
                   checked={keepAlive}
@@ -264,16 +265,16 @@ export function RevertCommitDialog({
                   htmlFor="revert-keep-alive"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Keep Alive ({maxSandboxDuration} minutes max)
+                  {t.dialogs.revertCommit.keepAlive.replace('{minutes}', maxSandboxDuration.toString())}
                 </Label>
               </div>
             </div>
           </div>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t.dialogs.revertCommit.cancel}</AlertDialogCancel>
           <AlertDialogAction onClick={handleRevert} disabled={isReverting}>
-            {isReverting ? 'Creating...' : 'Create Task'}
+            {isReverting ? t.dialogs.revertCommit.creating : t.dialogs.revertCommit.createTask}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

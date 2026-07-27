@@ -1,40 +1,33 @@
-﻿### Task 1: Dictionary Files (en.ts + he.ts + index.ts)
+﻿### Task 1: DB Schema - Add `execution_mode` column
 
 **Files:**
-- Create: `dictionaries/en.ts`
-- Create: `dictionaries/he.ts`
-- Modify: `dictionaries/index.ts`
+- Modify: `lib/db/schema.ts`
 
-**Interfaces:**
-- Produces: `Locale` type (`'en' | 'he'`), `getDictionary(locale)` function, typed dictionary objects with hierarchical keys
+**Goal:** Add a new column `executionMode` to the `tasks` table and update the corresponding Zod schemas (`insertTaskSchema`, `selectTaskSchema`).
 
-- [ ] **Step 1: Create `dictionaries/en.ts`** with ALL English strings organized by domain
-
-Write this file with exact content from the plan `docs/superpowers/plans/2026-07-26-hebrew-localization.md` Task 1 Step 1.
-
-- [ ] **Step 2: Create `dictionaries/he.ts`** with ALL Hebrew translations
-
-Write this file with exact content from the plan Task 1 Step 2. All Hebrew strings from the plan.
-
-- [ ] **Step 3: Update `dictionaries/index.ts`** to re-export types and `getDictionary`
+- [ ] **Step 1: Modify `lib/db/schema.ts` to add `executionMode` column to `tasks` table.**
+  - Add `executionMode` as a `text` column with an enum of `['orchestrator_external', 'orchestrator_only', 'external_only']`.
+  - Set default value to `'orchestrator_external'`.
+  - Mark it as `notNull()`.
 
 ```typescript
-export type { Dictionary } from './en'
-export { en } from './en'
-export { he } from './he'
-
-export type Locale = 'en' | 'he'
-
-export const getDictionary = (locale: Locale): typeof en => {
-  return locale === 'he' ? he : en
-}
+  executionMode: text('execution_mode', {
+    enum: ['orchestrator_external', 'orchestrator_only', 'external_only'],
+  })
+    .notNull()
+    .default('orchestrator_external'),
 ```
 
-- [ ] **Step 4: Verify build**
+- [ ] **Step 2: Update `insertTaskSchema` to include `executionMode`.**
+  - Add `executionMode` with a Zod enum and default value.
 
-Run: `pnpm type-check`
-Expected: No type errors
+```typescript
+  executionMode: z.enum(['orchestrator_external', 'orchestrator_only', 'external_only']).default('orchestrator_external'),
+```
 
-- [ ] **Step 5: Report back with status (DONE/NEEDS_CONTEXT/BLOCKED)**
+- [ ] **Step 3: Update `selectTaskSchema` to include `executionMode`.**
+  - Add `executionMode` with a Zod enum (not optional).
 
-Return: status, list of commits made, test results, any concerns.
+```typescript
+  executionMode: z.enum(['orchestrator_external', 'orchestrator_only', 'external_only']),
+```

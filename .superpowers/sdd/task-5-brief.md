@@ -1,159 +1,73 @@
-﻿# Task 5: Admin Users API
+﻿### Task 5: API Route — Wire executionMode through POST handler
 
 **Files:**
-- Create: pp/api/auth/admin/users/route.ts
+- Modify: `app/api/tasks/route.ts`
 
 **Interfaces:**
-- Produces: GET /api/auth/admin/users (list users), POST /api/auth/admin/users (create/update)
-- Consumes: getServerSession (from lib/session/get-server-session.ts)
-- Consumes: getUserByUsername (from lib/db/users.ts)
+- Consumes: `executionMode` from request body; `runOrchestrator` from task 4
+- Produces: conditional orchestrator + sandbox agent flow
 
-## Steps
+- [ ] **Step 1: Add executionMode to processTask signature**
 
-- **Step 1: Create admin users route**
+Add `executionMode: string = 'orchestrator_external'` after `enableBrowser` in `processTask` function (around line 391).
 
-Create pp/api/auth/admin/users/route.ts:
+- [ ] **Step 2: Pass executionMode through processTaskWithTimeout**
 
-`	ypescript
-import 'server-only'
+Add `executionMode` parameter to `processTaskWithTimeout` (around line 262) and pass it to `processTask` call (around line 308).
 
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db/client'
-import { users } from '@/lib/db/schema'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { getUserByUsername } from '@/lib/db/users'
-import { nanoid } from 'nanoid'
-import bcrypt from 'bcryptjs'
-import { eq } from 'drizzle-orm'
+- [ ] **Step 3: Update POST handler to extract and pass executionMode**
 
-export async function GET() {
+In the `after()` block (around line 232), read `validatedData.executionMode` and pass it to `processTaskWithTimeout`.
+
+- [ ] **Step 4: Conditionally run orchestrator in processTask**
+
+Replace the inline orchestrator logic (lines 624-676) with conditional call to `runOrchestrator` from task 4:
+
+```typescript
+let finalPrompt = sanitizedPrompt
+if (executionMode !== 'external_only') {
   try {
-    const session = await getServerSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    await logger.info('Running orchestrator')
+    const result = await runOrchestrator(sanitizedPrompt, {
+      taskId,
+      selectedModel: selectedModel || 'gpt-4o-mini',
+    })
+    if (result.finalAnswer) {
+      finalPrompt = result.finalAnswer
+      await logger.info('Orchestrator refined the prompt')
     }
-
-    const allUsers = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        name: users.name,
-        provider: users.provider,
-        createdAt: users.createdAt,
-        hasPassword: users.passwordHash,
-      })
-      .from(users)
-      .orderBy(users.createdAt)
-
-    const safeUsers = allUsers.map((u) => ({
-      ...u,
-      hasPassword: u.hasPassword ? true : false,
-    }))
-
-    return NextResponse.json({ users: safeUsers })
-  } catch (error) {
-    console.error('Failed to fetch users:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 },
-    )
+  } catch (orchError) {
+    console.error('Orchestrator evaluation failed:', orchError)
+    await logger.info('Orchestrator skipped due to error, proceeding with standard execution')
   }
 }
+```
 
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+- [ ] **Step 5: Handle orchestrator_only mode — skip external agent**
 
-    const body = await req.json()
-    const { username, password, email, name, userId } = body
+Before the `executeAgentInSandbox` call (around line 681), add:
 
-    if (!password || password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
-        { status: 400 },
-      )
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10)
-
-    if (userId) {
-      // Update existing user's password
-      const existing = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1)
-
-      if (existing.length === 0) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 },
-        )
-      }
-
-      await db
-        .update(users)
-        .set({
-          passwordHash,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, userId))
-
-      return NextResponse.json({ success: true, userId })
-    }
-
-    // Create new user
-    if (!username) {
-      return NextResponse.json(
-        { error: 'Username is required for new users' },
-        { status: 400 },
-      )
-    }
-
-    const existing = await getUserByUsername(username)
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Username already taken' },
-        { status: 409 },
-      )
-    }
-
-    const newUserId = nanoid()
-    const now = new Date()
-
-    await db.insert(users).values({
-      id: newUserId,
-      provider: 'credentials',
-      externalId: username,
-      accessToken: '',
-      username,
-      email: email || null,
-      name: name || null,
-      passwordHash,
-      avatarUrl: '',
-      createdAt: now,
-      updatedAt: now,
-      lastLoginAt: now,
-    })
-
-    return NextResponse.json({
-      success: true,
-      userId: newUserId,
-      username,
-    })
-  } catch (error) {
-    console.error('Failed to create user:', error)
-    return NextResponse.json(
-      { error: 'Failed to create user' },
-      { status: 500 },
-    )
-  }
+```typescript
+if (executionMode === 'orchestrator_only') {
+  await logger.info('Orchestrator-only mode: skipping external agent execution')
+  await logger.success('Orchestrator completed')
+  await logger.updateStatus('completed')
+  await logger.updateProgress(100, 'Task completed successfully')
+  return
 }
-`
+```
 
-- **Step 2: Run format + type-check**
-- **Step 3: Commit**
+- [ ] **Step 6: Run formatting and type-check**
+
+```bash
+pnpm format
+pnpm type-check
+pnpm lint
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add app/api/tasks/route.ts
+git commit -m "Wire executionMode through API route and orchestrator"
+```

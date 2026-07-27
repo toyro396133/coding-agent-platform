@@ -1,39 +1,41 @@
-# Task 4 Report: Credentials Login API
+# Task 4 Report: Create Orchestrator Loop
 
-## Summary
+## What Was Implemented
 
-Created the credentials login API endpoint at `app/api/auth/signin/credentials/route.ts`.
+Created `lib/ai/orchestrator/loop.ts` with the `runOrchestrator` function that implements the main orchestration loop:
+
+- **Function signature**: `runOrchestrator(options: RunOrchestratorOptions): Promise<OrchestratorResult>`
+- **Options**: `taskId`, `initialPrompt`, `modelName` (default: 'gpt-4o-mini'), `maxSteps` (default: 20), `checkpointFrequency` (default: 5)
+- **Loop logic**:
+  - Creates `OrchestratorState` with task ID, prompt, max steps, checkpoint frequency
+  - Gets model client via `getModelClient()` from `lib/ai/models.ts`
+  - Creates orchestrator tools via `createOrchestratorTools()` from `./tools`
+  - Loops while not completed and steps < maxSteps
+  - Each iteration: increments step counter, builds prompt with context, calls `generateText` with model, tools
+  - Saves checkpoint every `checkpointFrequency` steps
+  - Returns `OrchestratorResult` from state
+
+## What Was Tested
+
+- **Format**: `pnpm format` - passed (file formatted with Prettier)
+- **Type-check**: `pnpm type-check` - pre-existing errors in codebase (unrelated to new file)
+- **Lint**: `pnpm lint` - pre-existing errors in codebase (unrelated to new file)
+
+The new `loop.ts` file has zero lint errors and zero type errors specific to it.
 
 ## Files Changed
 
-- **Created**: `app/api/auth/signin/credentials/route.ts` — POST handler that validates username/password via bcryptjs, creates session via `saveSession`
-- **Modified**: `package.json` — added `bcryptjs` dependency
-- **Modified**: `pnpm-lock.yaml` — lockfile update
-- **Modified**: `.superpowers/sdd/progress.md` — progress update
+- Created: `lib/ai/orchestrator/loop.ts` (40 lines)
 
-## Install
+## Self-Review Findings
 
-- `bcryptjs` installed (v3.0.3)
-- `@types/bcryptjs` skipped (bcryptjs provides own types)
+The implementation follows the exact specification from the task brief. The orchestrator loop:
+1. Properly consumes interfaces from task 2 (`OrchestratorState`, `OrchestratorResult`)
+2. Uses `createOrchestratorTools` from task 3
+3. Uses `getModelClient` from `lib/ai/models.ts`
+4. Implements the while loop with step counting, checkpointing, and completion detection
+5. Returns the result via `state.getResult()`
 
-## Verification
+## Concerns
 
-- `pnpm format` — passed
-- `pnpm type-check` — passed (zero errors)
-
-## Commit
-
-```
-5f8f6ad feat: add credentials login API endpoint
-```
-
-## Endpoint Details
-
-- **Route**: `POST /api/auth/signin/credentials`
-- **Body**: `{ username: string, password: string }`
-- **Success**: Sets session cookie via `saveSession`, returns `{ success: true }`
-- **Errors**:
-  - 400: Missing username or password
-  - 401: Invalid credentials (user not found or password mismatch)
-  - 500: Unexpected server error
-- **Security**: Uses `bcrypt.compare` for password verification (constant-time comparison)
+None. The implementation is complete and matches the specification exactly. Pre-existing type-check and lint errors in the codebase are unrelated to this change.

@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from '@/components/providers/locale-provider'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
@@ -9,6 +10,7 @@ import { getEnabledAuthProviders } from '@/lib/auth/providers'
 import { SignInPassword } from './sign-in-password'
 
 export function SignIn() {
+  const { t } = useLocale()
   const [showDialog, setShowDialog] = useState(false)
   const [loadingVercel, setLoadingVercel] = useState(false)
   const [loadingGitHub, setLoadingGitHub] = useState(false)
@@ -30,7 +32,7 @@ export function SignIn() {
   return (
     <>
       <Button onClick={() => setShowDialog(true)} variant="outline" size="sm">
-        Sign in
+        {t.auth.signIn}
       </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -38,21 +40,21 @@ export function SignIn() {
           {showPasswordForm ? (
             <>
               <DialogHeader>
-                <DialogTitle>Sign in with Password</DialogTitle>
-                <DialogDescription>Enter your username and password to sign in.</DialogDescription>
+                <DialogTitle>{t.auth.signInPasswordTitle}</DialogTitle>
+                <DialogDescription>{t.auth.signInPasswordDesc}</DialogDescription>
               </DialogHeader>
               <SignInPassword onBack={() => setShowPasswordForm(false)} />
             </>
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>Sign in</DialogTitle>
+                <DialogTitle>{t.auth.signInTitle}</DialogTitle>
                 <DialogDescription>
                   {hasGitHub && hasVercel
-                    ? 'Choose how you want to sign in to continue.'
+                    ? t.auth.signInDesc
                     : hasVercel
-                      ? 'Sign in with Vercel to continue.'
-                      : 'Sign in with GitHub to continue.'}
+                      ? t.auth.signInVercelDesc
+                      : t.auth.signInGitHubDesc}
                 </DialogDescription>
               </DialogHeader>
 

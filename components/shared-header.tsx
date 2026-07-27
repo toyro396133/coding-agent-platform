@@ -6,6 +6,7 @@ import { useTasks } from '@/components/app-layout'
 import { User } from '@/components/auth/user'
 import { GitHubStarsButton } from '@/components/github-stars-button'
 import { VERCEL_DEPLOY_URL } from '@/lib/constants'
+import { useLocale } from '@/components/providers/locale-provider'
 
 interface SharedHeaderProps {
   leftActions?: React.ReactNode
@@ -23,6 +24,7 @@ export function SharedHeader({
   hideDeployButton = false,
 }: SharedHeaderProps) {
   const { toggleSidebar } = useTasks()
+  const { t } = useLocale()
 
   return (
     <div className="px-0 pt-0.5 md:pt-3 pb-1.5 md:pb-4 overflow-visible">
@@ -55,7 +57,7 @@ export function SharedHeader({
                 <svg viewBox="0 0 76 65" className="h-3 w-3" fill="currentColor">
                   <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
                 </svg>
-                <span className="hidden sm:inline">Deploy Your Own</span>
+                <span className="hidden sm:inline">{t.home.deployYourOwn}</span>
               </a>
             </Button>
           )}

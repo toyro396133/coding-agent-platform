@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from '@/components/providers/locale-provider'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -37,6 +38,7 @@ export function CreatePRDialog({
   const [body, setBody] = useState(defaultBody)
   const [isCreating, setIsCreating] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const { t } = useLocale()
 
   useEffect(() => {
     // Check if the device is mobile
@@ -54,7 +56,7 @@ export function CreatePRDialog({
     e.preventDefault()
 
     if (!title.trim()) {
-      toast.error('Please enter a PR title')
+      toast.error(t.errors.requiredField)
       return
     }
 
@@ -77,20 +79,20 @@ export function CreatePRDialog({
 
       if (response.ok && result.success) {
         if (result.data.alreadyExists) {
-          toast.info('Pull request already exists')
+          toast.info(t.toasts.alreadyExists)
         } else {
-          toast.success('Pull request created successfully!')
+          toast.success(t.toasts.prCreated)
           if (onPRCreated && result.data.prUrl && result.data.prNumber) {
             onPRCreated(result.data.prUrl, result.data.prNumber)
           }
         }
         onOpenChange(false)
       } else {
-        toast.error(result.error || 'Failed to create pull request')
+        toast.error(result.error || t.errors.prCreate)
       }
     } catch (error) {
       console.error('Error creating PR:', error)
-      toast.error('Failed to create pull request')
+      toast.error(t.errors.prCreate)
     } finally {
       setIsCreating(false)
     }
@@ -100,19 +102,16 @@ export function CreatePRDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Create Pull Request</DialogTitle>
-          <DialogDescription>
-            Create a pull request for the changes made in this task. The PR will be created on GitHub and opened in a
-            new tab.
-          </DialogDescription>
+          <DialogTitle>{t.dialogs.createPR.title}</DialogTitle>
+          <DialogDescription>{t.dialogs.createPR.description}</DialogDescription>
         </DialogHeader>
         <form id="create-pr-form" onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4 overflow-y-auto flex-1 min-h-0">
             <div className="grid gap-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title">{t.dialogs.createPR.titleLabel} *</Label>
               <Input
                 id="title"
-                placeholder="Brief description of the changes"
+                placeholder={t.dialogs.createPR.titlePlaceholder}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={isCreating}
@@ -120,10 +119,10 @@ export function CreatePRDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="body">Description</Label>
+              <Label htmlFor="body">{t.dialogs.createPR.descriptionLabel}</Label>
               <Textarea
                 id="body"
-                placeholder="Detailed description of the changes (optional)"
+                placeholder={t.dialogs.createPR.descriptionPlaceholder}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 disabled={isCreating}
@@ -134,11 +133,11 @@ export function CreatePRDialog({
         </form>
         <DialogFooter className="flex-shrink-0">
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={isCreating}>
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button type="submit" form="create-pr-form" disabled={isCreating || !title.trim()}>
-            {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isCreating ? 'Creating...' : 'Create Pull Request'}
+            {isCreating && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+            {isCreating ? t.dialogs.createPR.creating : t.dialogs.createPR.createButton}
           </Button>
         </DialogFooter>
       </DialogContent>

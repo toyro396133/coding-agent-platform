@@ -1,87 +1,79 @@
-﻿# Task 4: Credentials Login API
+﻿### Task 4: Create Orchestrator Loop
 
 **Files:**
-- Create: pp/api/auth/signin/credentials/route.ts
-- Install: cryptjs (npm package)
+- Create: `lib/ai/orchestrator/loop.ts`
 
 **Interfaces:**
-- Consumes: getUserByUsername (from lib/db/users.ts)
-- Consumes: saveSession (from lib/session/create.ts)
-- Produces: POST /api/auth/signin/credentials endpoint
+- Consumes: `OrchestratorState`, `OrchestratorResult` from task 2; `createOrchestratorTools` from task 3; `getModelClient` from `lib/ai/models.ts`
+- Produces: `runOrchestrator(prompt, options)` function
 
-## Steps
+- [ ] **Step 1: Create the loop file**
 
-- **Step 1: Install bcryptjs**
+```typescript
+import { generateText } from 'ai'
+import { getModelClient } from '@/lib/ai/models'
+import { OrchestratorState, type OrchestratorResult } from './state'
+import { createOrchestratorTools } from './tools'
 
-`ash
-pnpm add bcryptjs
-pnpm add -D @types/bcryptjs
-`
-
-- **Step 2: Create login route**
-
-Create pp/api/auth/signin/credentials/route.ts:
-
-`	ypescript
-import 'server-only'
-
-import { NextResponse } from 'next/server'
-import { getUserByUsername } from '@/lib/db/users'
-import { saveSession } from '@/lib/session/create'
-import bcrypt from 'bcryptjs'
-
-export async function POST(req: Request) {
-  try {
-    const { username, password } = await req.json()
-
-    if (!username || !password) {
-      return NextResponse.json(
-        { error: 'Username and password are required' },
-        { status: 400 },
-      )
-    }
-
-    const user = await getUserByUsername(username)
-    if (!user || !user.passwordHash) {
-      return NextResponse.json(
-        { error: 'Invalid username or password' },
-        { status: 401 },
-      )
-    }
-
-    const valid = await bcrypt.compare(password, user.passwordHash)
-    if (!valid) {
-      return NextResponse.json(
-        { error: 'Invalid username or password' },
-        { status: 401 },
-      )
-    }
-
-    const session = {
-      created: Date.now(),
-      authProvider: 'credentials' as const,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email || undefined,
-        name: user.name || user.username,
-        avatar: user.avatarUrl || '',
-      },
-    }
-
-    const response = NextResponse.json({ success: true })
-    await saveSession(response, session)
-
-    return response
-  } catch (error) {
-    console.error('Login error:', error)
-    return NextResponse.json(
-      { error: 'An error occurred during sign in' },
-      { status: 500 },
-    )
-  }
+interface RunOrchestratorOptions {
+  taskId: string
+  selectedModel?: string
+  systemPrompt?: string
+  maxSteps?: number
 }
-`
 
-- **Step 3: Run format + type-check**
-- **Step 4: Commit**
+export async function runOrchestrator(
+  prompt: string,
+  options: RunOrchestratorOptions,
+): Promise<OrchestratorResult> {
+  const state = new OrchestratorState(
+    options.taskId,
+    prompt,
+    options.maxSteps || 20,
+  )
+
+  const model = getModelClient(options.selectedModel || 'gpt-4o-mini')
+  const systemPrompt =
+    options.systemPrompt ||
+    'You are the Orchestrator Agent. Analyze the task below. If it is complex, spawn sub-agents using the available tools. Once you have all necessary results, call `finalize` with your synthesized answer or refined prompt. Keep your answer concise and actionable.'
+
+  while (state.steps < state.maxSteps && !state.completed) {
+    const tools = createOrchestratorTools(state)
+
+    const { text } = await generateText({
+      model,
+      system: systemPrompt,
+      prompt: state.currentPrompt,
+      tools,
+      maxSteps: 1,
+    })
+
+    if (text) {
+      state.appendContext(text)
+    }
+
+    state.steps++
+
+    if (state.completed) {
+      break
+    }
+  }
+
+  return state.getResult()
+}
+```
+
+- [ ] **Step 2: Run formatting and type-check**
+
+```bash
+pnpm format
+pnpm type-check
+pnpm lint
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add lib/ai/orchestrator/loop.ts
+git commit -m "Create orchestrator loop with extended tools"
+```

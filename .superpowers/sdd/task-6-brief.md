@@ -1,127 +1,87 @@
-﻿# Task 6: Password Login UI
+﻿### Task 6: UI — Task Form Execution Mode Select
 
 **Files:**
-- Create: components/auth/sign-in-password.tsx
-- Modify: components/auth/sign-in.tsx
+- Modify: `components/task-form.tsx`
 
 **Interfaces:**
-- Consumes: existing sign-in dialog, sessionAtom from @/lib/atoms/session
-- Produces: password login form component, integrated into sign-in
+- Consumes: `TaskFormProps` (onSubmit interface)
+- Produces: execution mode Select + conditional Agent/Model visibility
 
-## Steps
+- [ ] **Step 1: Add execution mode constants and state**
 
-- **Step 1: Create password login form component**
+After the existing `useState` declarations (around line 100), add:
 
-Create components/auth/sign-in-password.tsx:
+```typescript
+const EXECUTION_MODES = [
+  { value: 'orchestrator_external', label: 'Orchestrator + External Agent', description: 'Orchestrator refines prompt, then external agent executes' },
+  { value: 'orchestrator_only', label: 'Orchestrator Only', description: 'Orchestrator analyzes and plans without executing code' },
+  { value: 'external_only', label: 'External Agent Only', description: 'Skip orchestrator, send prompt directly to agent' },
+] as const
 
-`	ypescript
-'use client'
+const [executionMode, setExecutionMode] = useState('orchestrator_external')
+```
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { useSetAtom } from 'jotai'
-import { sessionAtom } from '@/lib/atoms/session'
+- [ ] **Step 2: Add execution mode Select to the form UI**
 
-export function SignInPassword({ onBack }: { onBack: () => void }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const setSession = useSetAtom(sessionAtom)
+Insert after the prompt textarea (after line 440) and before Agent Selection:
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+```tsx
+{/* Execution Mode */}
+<div className="px-4 pb-2">
+  <Select
+    value={executionMode}
+    onValueChange={(value) => setExecutionMode(value)}
+    disabled={isSubmitting}
+  >
+    <SelectTrigger className="w-full sm:w-[280px] h-8 text-xs border-border/50">
+      <SelectValue placeholder="Execution mode" />
+    </SelectTrigger>
+    <SelectContent>
+      {EXECUTION_MODES.map((mode) => (
+        <SelectItem key={mode.value} value={mode.value}>
+          <div className="flex flex-col">
+            <span>{mode.label}</span>
+            <span className="text-xs text-muted-foreground">{mode.description}</span>
+          </div>
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
+```
 
-    try {
-      const res = await fetch('/api/auth/signin/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      })
+- [ ] **Step 3: Conditionally hide Agent/Model for orchestrator_only**
 
-      if (res.ok) {
-        toast.success('Signed in successfully')
-        setSession({ user: undefined })
-        router.refresh()
-      } else {
-        const data = await res.json()
-        toast.error(data.error || 'Invalid credentials')
-      }
-    } catch {
-      toast.error('An error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }
+Wrap the Agent Selection section (from line 442 "Agent Selection" through Model Selection) with:
 
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-4">
-      <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
-        <Input
-          id="username"
-          type="text"
-          placeholder="Enter your username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          autoFocus
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      <Button type="submit" disabled={loading} size="lg" className="w-full">
-        {loading ? 'Signing in...' : 'Sign in'}
-      </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-        Back to sign in options
-      </Button>
-    </form>
-  )
-}
-`
+```tsx
+{executionMode !== 'orchestrator_only' && (
+  // ... existing Agent and Model selection code ...
+)}
+```
 
-- **Step 2: Update sign-in dialog**
+- [ ] **Step 4: Add executionMode to onSubmit data**
 
-Modify components/auth/sign-in.tsx:
+In the submit handler (find where `onSubmit` is called with data object), add `executionMode` to the data:
 
-Add import:
-`	ypescript
-import { SignInPassword } from './sign-in-password'
-`
+```typescript
+onSubmit({
+  // ... existing fields
+  executionMode,
+})
+```
 
-Add state after other useState lines (around line 14):
-`	ypescript
-const [showPasswordForm, setShowPasswordForm] = useState(false)
-`
+- [ ] **Step 5: Run formatting and type-check**
 
-Update the DialogContent section. Replace the opening DialogContent block and its inner content:
+```bash
+pnpm format
+pnpm type-check
+pnpm lint
+```
 
-The existing DialogContent section renders OAuth buttons. After the DialogDescription and before the closing of the button group </div>, add an "Or" separator and a "Sign in with Password" button. Then conditionally show the password form when showPasswordForm is true.
+- [ ] **Step 6: Commit**
 
-When showPasswordForm is true:
-- Title: "Sign in with Password"
-- Description: "Enter your username and password to sign in."
-- Content: <SignInPassword onBack={() => setShowPasswordForm(false)} />
-
-When showPasswordForm is false (normal OAuth view):
-- Add "Or" separator with a horizontal line
-- Add "Sign in with Password" button that sets showPasswordForm(true)
-- Keep existing OAuth buttons unchanged
-
-- **Step 3: Run format + type-check**
-- **Step 4: Commit**
+```bash
+git add components/task-form.tsx
+git commit -m "Add execution mode Select to task form"
+```

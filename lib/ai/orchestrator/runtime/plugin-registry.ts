@@ -1,4 +1,5 @@
 import type { ToolContext } from '../capabilities/types'
+import type { PluginManifest, Plugin } from '@/lib/plugins/types'
 
 type ToolRegistry = Record<string, any>
 type PackLoader = (ctx: ToolContext) => ToolRegistry
@@ -10,6 +11,8 @@ interface RegisteredPack {
 }
 
 const registeredPacks = new Map<string, RegisteredPack>()
+const externalPlugins = new Map<string, Plugin>()
+const pluginHooks = new Map<string, Map<string, (...args: unknown[]) => unknown>>()
 
 export function registerPack(name: string, loader: PackLoader, source: string = 'built-in'): void {
   if (registeredPacks.has(name)) {
@@ -19,7 +22,15 @@ export function registerPack(name: string, loader: PackLoader, source: string = 
 }
 
 export function unregisterPack(name: string): boolean {
-  return registeredPacks.delete(name)
+  const hadPack = registeredPacks.has(name)
+  const hadExternal = externalPlugins.has(name)
+  const hadHooks = pluginHooks.has(name)
+
+  registeredPacks.delete(name)
+  externalPlugins.delete(name)
+  pluginHooks.delete(name)
+
+  return hadPack || hadExternal || hadHooks
 }
 
 export function getRegisteredPack(name: string): RegisteredPack | undefined {
@@ -42,4 +53,66 @@ export function loadPacksTools(names: string[], ctx: ToolContext): ToolRegistry 
     Object.assign(tools, loadPackTools(name, ctx))
   }
   return tools
+}
+
+export function registerExternalPlugin(manifest: PluginManifest): boolean {
+  if (externalPlugins.has(manifest.name)) {
+    return false
+  }
+
+  const plugin: Plugin = {
+    manifest,
+    enabled: true,
+    loaded: false,
+  }
+
+  externalPlugins.set(manifest.name, plugin)
+  pluginHooks.set(manifest.name, new Map())
+  return true
+}
+
+export function unregisterExternalPlugin(name: string): boolean {
+  externalPlugins.delete(name)
+  pluginHooks.delete(name)
+  return true
+}
+
+export function listExternalPlugins(): Plugin[] {
+  return Array.from(externalPlugins.values())
+}
+
+export function setPluginEnabled(name: string, enabled: boolean): boolean {
+  const plugin = externalPlugins.get(name)
+  if (!plugin) return false
+  plugin.enabled = enabled
+  return true
+}
+
+export function registerPluginHook(
+  pluginName: string,
+  hookName: string,
+  handler: (...args: unknown[]) => unknown,
+): boolean {
+  const hooks = pluginHooks.get(pluginName)
+  if (!hooks) return false
+  hooks.set(hookName, handler)
+  return true
+}
+
+export function runPluginHooks(hookName: string, ...args: unknown[]): unknown[] {
+  const results: unknown[] = []
+  for (const [pluginName, hooks] of pluginHooks) {
+    const plugin = externalPlugins.get(pluginName)
+    if (!plugin || !plugin.enabled) continue
+
+    const handler = hooks.get(hookName)
+    if (handler) {
+      try {
+        results.push(handler(...args))
+      } catch (error) {
+        console.error('Plugin hook execution failed')
+      }
+    }
+  }
+  return results
 }

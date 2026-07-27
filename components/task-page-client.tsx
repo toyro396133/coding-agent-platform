@@ -6,6 +6,12 @@ import { TaskDetails } from '@/components/task-details'
 import { SharedHeader } from '@/components/shared-header'
 import { TaskActions } from '@/components/task-actions'
 import { LogsPane } from '@/components/logs-pane'
+import { GitToolbar } from '@/components/git-toolbar'
+import { PluginManager } from '@/components/plugin-manager'
+import { PersistentAgentControl } from '@/components/persistent-agent-control'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { GitBranch, Puzzle, X } from 'lucide-react'
 import type { Session } from '@/lib/session/types'
 
 interface TaskPageClientProps {
@@ -41,7 +47,10 @@ export function TaskPageClient({
   maxSandboxDuration = 300,
 }: TaskPageClientProps) {
   const { task, isLoading, error } = useTask(taskId)
-  const [logsPaneHeight, setLogsPaneHeight] = useState(40) // Default to collapsed height
+  const [logsPaneHeight, setLogsPaneHeight] = useState(40)
+  const [showGitPanel, setShowGitPanel] = useState(false)
+  const [showPlugins, setShowPlugins] = useState(false)
+  const [showPersistent, setShowPersistent] = useState(false)
 
   const repoInfo = useMemo(() => parseRepoFromUrl(task?.repoUrl ?? null), [task?.repoUrl])
 
@@ -89,6 +98,54 @@ export function TaskPageClient({
           initialStars={initialStars}
           extraActions={<TaskActions task={task} />}
         />
+      </div>
+
+      {/* Git Toolbar & Extensions */}
+      <div className="flex-shrink-0 border-b bg-muted/30 px-3 py-1.5">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('h-7 px-2 text-xs gap-1', showGitPanel && 'bg-accent')}
+            onClick={() => { setShowGitPanel(!showGitPanel); setShowPlugins(false); setShowPersistent(false) }}
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            Git
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('h-7 px-2 text-xs gap-1', showPlugins && 'bg-accent')}
+            onClick={() => { setShowPlugins(!showPlugins); setShowGitPanel(false); setShowPersistent(false) }}
+          >
+            <Puzzle className="h-3.5 w-3.5" />
+            Extensions
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('h-7 px-2 text-xs gap-1', showPersistent && 'bg-accent')}
+            onClick={() => { setShowPersistent(!showPersistent); setShowGitPanel(false); setShowPlugins(false) }}
+          >
+            <X className="h-3.5 w-3.5" />
+            Cloud Agent
+          </Button>
+        </div>
+        {showGitPanel && (
+          <div className="mt-2 pb-2">
+            <GitToolbar taskId={task.id} />
+          </div>
+        )}
+        {showPlugins && (
+          <div className="mt-2 pb-2">
+            <PluginManager />
+          </div>
+        )}
+        {showPersistent && (
+          <div className="mt-2 pb-2">
+            <PersistentAgentControl taskId={task.id} agent={task.selectedAgent || 'claude'} />
+          </div>
+        )}
       </div>
 
       {/* Task details */}

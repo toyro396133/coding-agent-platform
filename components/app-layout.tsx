@@ -242,6 +242,7 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
       prNumber: null,
       prStatus: null,
       prMergeCommitSha: null,
+      executionMode: 'orchestrator_external',
       createdAt: new Date(),
       updatedAt: new Date(),
       completedAt: null,

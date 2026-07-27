@@ -1,6 +1,6 @@
 export interface SessionUserInfo {
   user: User | undefined
-  authProvider?: 'github' | 'vercel' // Which provider the user signed in with
+  authProvider?: 'github' | 'vercel' | 'credentials' // Which provider the user signed in with
 }
 
 export interface Tokens {
@@ -11,7 +11,7 @@ export interface Tokens {
 
 export interface Session {
   created: number
-  authProvider: 'github' | 'vercel' // Which provider the user signed in with
+  authProvider: 'github' | 'vercel' | 'credentials' // Which provider the user signed in with
   user: User
 }
 
@@ -21,4 +21,5 @@ interface User {
   email: string | undefined
   avatar: string
   name?: string
+  locale?: 'en' | 'he'
 }

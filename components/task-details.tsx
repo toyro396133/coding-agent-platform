@@ -1,6 +1,7 @@
 'use client'
 
 import { InteractiveTaskPanel } from '@/components/tasks/interactive-task-panel'
+import { useLocale } from '@/components/providers/locale-provider'
 
 import { Task, Connector } from '@/lib/db/schema'
 import { Button } from '@/components/ui/button'
@@ -179,6 +180,7 @@ const DEFAULT_MODELS = {
  * @param maxSandboxDuration - Maximum sandbox duration used as the fallback for retry settings.
  */
 export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps) {
+  const { t } = useLocale()
   const [optimisticStatus, setOptimisticStatus] = useState<Task['status'] | null>(null)
   const [mcpServers, setMcpServers] = useState<Connector[]>([])
   const [loadingMcpServers, setLoadingMcpServers] = useState(false)
@@ -1427,10 +1429,10 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   size="sm"
                   onClick={handleOpenPR}
                   className="h-7 md:h-8 px-2 md:px-3 flex-shrink-0"
-                  title="Create PR"
+                  title={t.taskDetails.createPR}
                 >
                   <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
-                  <span className="text-xs md:text-sm">Open PR</span>
+                  <span className="text-xs md:text-sm">{t.taskDetails.createPR}</span>
                 </Button>
               )}
               {prUrl &&
@@ -1473,7 +1475,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                       ) : (
                         <>
                           <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
-                          <span className="text-xs md:text-sm">Merge PR</span>
+                          <span className="text-xs md:text-sm">{t.taskDetails.mergePR}</span>
                         </>
                       )}
                     </Button>

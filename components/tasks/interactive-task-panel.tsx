@@ -135,7 +135,7 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
 
       {executions.length > 0 && (
         <div className="space-y-4 mt-4">
-          <h3 className="font-semibold text-sm tracking-tight">{t.testExecutions}</h3>
+          <h3 className="font-semibold text-sm tracking-tight">{t.tasks.testExecutions}</h3>
           <Accordion type="single" collapsible className="w-full space-y-2">
             {executions.map((exec) => (
               <AccordionItem key={exec.id} value={exec.id} className="border rounded-md px-3 bg-card">
@@ -147,18 +147,18 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
                       }
                       className="text-[10px]"
                     >
-                      {t[exec.status as keyof typeof t] || exec.status}
+                      {t.tasks[exec.status as keyof typeof t.tasks] || exec.status}
                     </Badge>
                     <span className="font-medium truncate">{exec.testId}</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-1 pb-3">
                   <div className="text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap font-mono">
-                    {exec.logs ? redactSensitiveInfo(exec.logs) : t.noLogsAvailable}
+                    {exec.logs ? redactSensitiveInfo(exec.logs) : t.tasks.noLogsAvailable}
                   </div>
                   {exec.remediationPatch && (
                     <div className="mt-2 text-xs">
-                      <p className="font-semibold mb-1">{t.remediationApplied}:</p>
+                      <p className="font-semibold mb-1">{t.tasks.remediationApplied}:</p>
                       <pre className="bg-muted p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap font-mono">
                         {redactSensitiveInfo(JSON.stringify(exec.remediationPatch, null, 2))}
                       </pre>

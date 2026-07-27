@@ -3,9 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getDynamicRoutes } from '@/lib/actions/routing'
 import { RoutingForm } from './routing-form'
-import { ApiPoolManager } from '@/components/api-pool-manager'
-import { VercelIntegration } from '@/components/vercel-integration'
-import { NeonIntegration } from '@/components/neon-integration'
+import { AdminUsers } from '@/components/auth/admin-users'
 
 export const metadata = {
   title: 'Settings',
@@ -18,18 +16,14 @@ export default async function SettingsPage() {
     <div className="container max-w-4xl py-6 space-y-8 mx-auto">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-        <p className="text-muted-foreground">
-          Manage your account settings, agent routing preferences, and API key pools.
-        </p>
+        <p className="text-muted-foreground">Manage your account settings and agent routing preferences.</p>
       </div>
 
       <Tabs defaultValue="routing" className="space-y-6">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="routing">Agent Routing</TabsTrigger>
-          <TabsTrigger value="apis">API Pool</TabsTrigger>
-          <TabsTrigger value="vercel">Vercel</TabsTrigger>
-          <TabsTrigger value="neon">Neon</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
         </TabsList>
         <TabsContent value="general" className="space-y-6">
           <Card>
@@ -58,19 +52,9 @@ export default async function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="apis" className="space-y-6">
-          <Suspense fallback={<div>Loading API pool…</div>}>
-            <ApiPoolManager />
-          </Suspense>
-        </TabsContent>
-        <TabsContent value="vercel" className="space-y-6">
-          <Suspense fallback={<div>Loading Vercel integration…</div>}>
-            <VercelIntegration />
-          </Suspense>
-        </TabsContent>
-        <TabsContent value="neon" className="space-y-6">
-          <Suspense fallback={<div>Loading Neon integration…</div>}>
-            <NeonIntegration />
+        <TabsContent value="users" className="space-y-6">
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminUsers />
           </Suspense>
         </TabsContent>
       </Tabs>

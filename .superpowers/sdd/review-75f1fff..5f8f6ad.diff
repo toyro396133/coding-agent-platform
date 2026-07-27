@@ -1,0 +1,129 @@
+ .superpowers/sdd/progress.md             |  3 +++
+ app/api/auth/signin/credentials/route.ts | 46 ++++++++++++++++++++++++++++++++
+ package.json                             |  1 +
+ pnpm-lock.yaml                           | 13 +++++++--
+ 4 files changed, 61 insertions(+), 2 deletions(-)
+ 
+diff --git a/.superpowers/sdd/progress.md b/.superpowers/sdd/progress.md
+index d87c88d..d987d6d 100644
+--- a/.superpowers/sdd/progress.md
++++ b/.superpowers/sdd/progress.md
+@@ -1,3 +1,6 @@
+ # Subagent-Driven Development Progress
+ 
+ 
++Task 1: complete (commits 268d628..49152ec, review clean after fix)
++Task 2: complete (commits 3dc2026, review clean)
++Task 3: complete (commits 75f1fff, review clean)
+diff --git a/app/api/auth/signin/credentials/route.ts b/app/api/auth/signin/credentials/route.ts
+new file mode 100644
+index 0000000..893cca8
+--- /dev/null
++++ b/app/api/auth/signin/credentials/route.ts
+@@ -0,0 +1,46 @@
++import 'server-only'
++
++import { NextResponse } from 'next/server'
++import { getUserByUsername } from '@/lib/db/users'
++import { saveSession } from '@/lib/session/create'
++import bcrypt from 'bcryptjs'
++
++export async function POST(req: Request) {
++  try {
++    const { username, password } = await req.json()
++
++    if (!username || !password) {
++      return NextResponse.json({ error: 'Username and password are required' }, { status: 400 })
++    }
++
++    const user = await getUserByUsername(username)
++    if (!user || !user.passwordHash) {
++      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
++    }
++
++    const valid = await bcrypt.compare(password, user.passwordHash)
++    if (!valid) {
++      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
++    }
++
++    const session = {
++      created: Date.now(),
++      authProvider: 'credentials' as const,
++      user: {
++        id: user.id,
++        username: user.username,
++        email: user.email || undefined,
++        name: user.name || user.username,
++        avatar: user.avatarUrl || '',
++      },
++    }
++
++    const response = NextResponse.json({ success: true })
++    await saveSession(response, session)
++
++    return response
++  } catch (error) {
++    console.error('Login error:', error)
++    return NextResponse.json({ error: 'An error occurred during sign in' }, { status: 500 })
++  }
++}
+diff --git a/package.json b/package.json
+index 2dcd73e..69f06bd 100644
+--- a/package.json
++++ b/package.json
+@@ -47,6 +47,7 @@
+     "@vercel/speed-insights": "^1.3.1",
+     "ai": "5.0.51",
+     "arctic": "^3.7.0",
++    "bcryptjs": "^3.0.3",
+     "class-variance-authority": "^0.7.1",
+     "clsx": "^2.1.1",
+     "drizzle-kit": "^0.30.6",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index d2536ef..918e936 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -98,6 +98,9 @@ importers:
+       arctic:
+         specifier: ^3.7.0
+         version: 3.7.0
++      bcryptjs:
++        specifier: ^3.0.3
++        version: 3.0.3
+       class-variance-authority:
+         specifier: ^0.7.1
+         version: 0.7.1
+@@ -360,11 +363,11 @@ packages:
+ 
+   '@esbuild-kit/core-utils@3.3.2':
+     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
+-    deprecated: 'Merged into tsx: https://tsx.is'
++    deprecated: 'Merged into tsx: https://tsx.hirok.io'
+ 
+   '@esbuild-kit/esm-loader@2.6.5':
+     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
+-    deprecated: 'Merged into tsx: https://tsx.is'
++    deprecated: 'Merged into tsx: https://tsx.hirok.io'
+ 
+   '@esbuild/aix-ppc64@0.19.12':
+     resolution: {integrity: sha512-bmoCYyWdEL3wDQIVbcyzRyeKLgk2WtWLTWz1ZIAZF/EGbNOwSA6ew3PftJ1PqMiOOGu0OyFMzG53L0zqIpPeNA==}
+@@ -2340,6 +2343,10 @@ packages:
+     engines: {node: '>=6.0.0'}
+     hasBin: true
+ 
++  bcryptjs@3.0.3:
++    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
++    hasBin: true
++
+   before-after-hook@4.0.0:
+     resolution: {integrity: sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ==}
+ 
+@@ -6555,6 +6562,8 @@ snapshots:
+ 
+   baseline-browser-mapping@2.10.40: {}
+ 
++  bcryptjs@3.0.3: {}
++
+   before-after-hook@4.0.0: {}
+ 
+   brace-expansion@1.1.15:

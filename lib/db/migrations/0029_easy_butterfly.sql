@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "password_hash" text;--> statement-breakpoint
+CREATE INDEX "background_test_executions_task_id_created_at_idx" ON "background_test_executions" USING btree ("task_id","created_at");

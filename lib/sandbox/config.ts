@@ -8,6 +8,7 @@ export function validateEnvironmentVariables(
     ANTHROPIC_API_KEY?: string
     AI_GATEWAY_API_KEY?: string
   },
+  repoUrl?: string,
 ) {
   const errors: string[] = []
 
@@ -41,9 +42,8 @@ export function validateEnvironmentVariables(
     }
   }
 
-  // Check for GitHub token for private repositories
-  // Use user's token if provided
-  if (!githubToken) {
+  // Check for GitHub token only when a repo URL is provided
+  if (repoUrl && !githubToken) {
     errors.push('GitHub is required for repository access. Please connect your GitHub account.')
   }
 

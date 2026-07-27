@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from '@/components/providers/locale-provider'
 import { TaskForm } from '@/components/task-form'
 import { SharedHeader } from '@/components/shared-header'
 import { RepoSelector } from '@/components/repo-selector'
@@ -63,6 +64,7 @@ export function HomePageContent({
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showOpenRepoDialog, setShowOpenRepoDialog] = useState(false)
   const [showMultiRepoDialog, setShowMultiRepoDialog] = useState(false)
+  const { t } = useLocale()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { refreshTasks, addTaskOptimistically } = useTasks()
@@ -220,14 +222,14 @@ export function HomePageContent({
   const handleOpenRepoUrl = async (repoUrl: string) => {
     try {
       if (!user) {
-        toast.error('Sign in required', {
-          description: 'Please sign in to create tasks with custom repository URLs.',
+        toast.error(t.home.signInRequired, {
+          description: t.home.signInRequiredDesc,
         })
         return
       }
 
       const taskData = {
-        prompt: 'Work on this repository',
+        prompt: t.home.workOnThisRepo,
         repoUrl: repoUrl,
         selectedAgent: localStorage.getItem('last-selected-agent') || 'claude',
         selectedModel: localStorage.getItem('last-selected-model-claude') || 'claude-sonnet-4-5',
@@ -248,14 +250,14 @@ export function HomePageContent({
       })
 
       if (response.ok) {
-        toast.success('Task created successfully!')
+        toast.success(t.home.taskCreated)
       } else {
         const error = await response.json()
-        toast.error(error.message || error.error || 'Failed to create task')
+        toast.error(error.message || error.error || t.home.failedToCreateTask)
       }
     } catch (error) {
       console.error('Error creating task:', error)
-      toast.error('Failed to create task')
+      toast.error(t.home.failedToCreateTask)
     }
   }
 
@@ -274,7 +276,7 @@ export function HomePageContent({
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" title="More options">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" title={t.home.moreOptions}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from '@/components/providers/locale-provider'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Eye, EyeOff, ExternalLink } from 'lucide-react'
-import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface ApiKeysDialogProps {
   open: boolean
@@ -24,9 +24,8 @@ const PROVIDERS = [
   { id: 'cursor' as Provider, name: 'Cursor', placeholder: 'cur_...' },
 ]
 
-// Backwards-compat single-key dialog. The richer pool manager lives at
-// /settings -> "API Pool" tab and supports multiple keys per provider.
 export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
+  const { t } = useLocale()
   const [apiKeys, setApiKeys] = useState<Record<Provider, string>>({
     openai: '',
     gemini: '',
@@ -183,17 +182,8 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
         <DialogHeader>
           <DialogTitle>API Keys</DialogTitle>
           <DialogDescription>
-            Configure your own API keys. System defaults will be used if not provided. For multiple keys per provider
-            round-robin and quota tracking, head to <strong>Settings → API Pool</strong>.
+            Configure your own API keys. System defaults will be used if not provided.
           </DialogDescription>
-          <div className="pt-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/settings" onClick={() => onOpenChange(false)}>
-                Open API Pool
-                <ExternalLink className="h-3.5 w-3.5 ms-2" />
-              </Link>
-            </Button>
-          </div>
         </DialogHeader>
 
         <div className="space-y-2">
@@ -234,7 +224,7 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
                     disabled={loading || !apiKeys[provider.id].trim()}
                     className="h-8 px-3 text-xs w-16"
                   >
-                    Save
+                    {t.common.save}
                   </Button>
                 ) : (
                   <Button

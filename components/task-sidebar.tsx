@@ -28,6 +28,7 @@ import { sessionAtom } from '@/lib/atoms/session'
 import { PRStatusIcon } from '@/components/pr-status-icon'
 import { PRCheckStatus } from '@/components/pr-check-status'
 import { githubConnectionAtom } from '@/lib/atoms/github-connection'
+import { useLocale } from '@/components/providers/locale-provider'
 
 // Model mappings for human-friendly names
 const AGENT_MODELS = {
@@ -95,6 +96,7 @@ interface GitHubRepoInfo {
 
 export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
   const pathname = usePathname()
+  const { t } = useLocale()
   const { refreshTasks, toggleSidebar } = useTasks()
   const session = useAtomValue(sessionAtom)
   const githubConnection = useAtomValue(githubConnectionAtom)
@@ -387,7 +389,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
                 )}
               >
-                Tasks
+                {t.sidebar.tasks}
               </button>
               <button
                 onClick={() => setActiveTab('repos')}
@@ -398,7 +400,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
                 )}
               >
-                Repos
+                {t.sidebar.repos}
               </button>
             </div>
             <div className="flex items-center gap-1">
@@ -408,12 +410,12 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                 className="h-8 w-8 p-0"
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={true}
-                title="Delete Tasks"
+                title={t.sidebar.deleteTasks}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
               <Link href="/" onClick={handleLinkClick}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="New Task">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </Link>
@@ -424,7 +426,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           {activeTab === 'tasks' && (
             <Card>
               <CardContent className="p-3 text-center text-xs text-muted-foreground">
-                Sign in to view and create tasks
+                {t.sidebar.signInToViewTasks}
               </CardContent>
             </Card>
           )}

@@ -5,6 +5,7 @@
 export function getEnabledAuthProviders(): {
   github: boolean
   vercel: boolean
+  credentials: boolean
 } {
   const providers = process.env.NEXT_PUBLIC_AUTH_PROVIDERS || 'github'
   const enabledProviders = providers.split(',').map((p) => p.trim().toLowerCase())
@@ -12,5 +13,6 @@ export function getEnabledAuthProviders(): {
   return {
     github: enabledProviders.includes('github'),
     vercel: enabledProviders.includes('vercel'),
+    credentials: enabledProviders.includes('credentials'),
   }
 }

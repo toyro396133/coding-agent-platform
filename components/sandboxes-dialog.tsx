@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { ExternalLink, StopCircle, Loader2, Server } from 'lucide-react'
+import { useLocale } from '@/components/providers/locale-provider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -32,6 +33,7 @@ export function SandboxesDialog({ open, onOpenChange }: SandboxesDialogProps) {
   const [loading, setLoading] = useState(false)
   const [stoppingId, setStoppingId] = useState<string | null>(null)
   const router = useRouter()
+  const { t } = useLocale()
 
   useEffect(() => {
     if (open) {
@@ -108,8 +110,8 @@ export function SandboxesDialog({ open, onOpenChange }: SandboxesDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Running Sandboxes</DialogTitle>
-          <DialogDescription>Manage your active sandbox environments</DialogDescription>
+          <DialogTitle>{t.dialogs.sandboxes.title}</DialogTitle>
+          <DialogDescription>{t.dialogs.sandboxes.description}</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">

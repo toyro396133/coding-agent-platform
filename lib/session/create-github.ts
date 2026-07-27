@@ -3,7 +3,7 @@ import 'server-only'
 import type { Session } from './types'
 import { SESSION_COOKIE_NAME } from './constants'
 import { encryptJWE } from '@/lib/jwe/encrypt'
-import { upsertUser } from '@/lib/db/users'
+import { upsertUser, getUserById } from '@/lib/db/users'
 import { encrypt } from '@/lib/crypto'
 import ms from 'ms'
 
@@ -64,6 +64,8 @@ export async function createGitHubSession(accessToken: string, scope?: string): 
     avatarUrl: githubUser.avatar_url,
   })
 
+  const dbUser = await getUserById(userId)
+
   const session: Session = {
     created: Date.now(),
     authProvider: 'github',
@@ -73,6 +75,7 @@ export async function createGitHubSession(accessToken: string, scope?: string): 
       email: email || undefined,
       name: githubUser.name || githubUser.login,
       avatar: githubUser.avatar_url,
+      locale: (dbUser?.locale as 'en' | 'he') || 'he',
     },
   }
 

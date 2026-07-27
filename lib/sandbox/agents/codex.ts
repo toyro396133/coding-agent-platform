@@ -159,7 +159,7 @@ model_provider = "vercel-ai-gateway"
 name = "Vercel AI Gateway"
 base_url = "https://ai-gateway.vercel.sh/v1"
 env_key = "AI_GATEWAY_API_KEY"
-wire_api = "chat"
+wire_api = "responses"
 
 # Debug settings
 [debug]

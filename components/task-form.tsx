@@ -21,6 +21,7 @@ import { setInstallDependencies, setMaxDuration, setKeepAlive, setEnableBrowser 
 import { useConnectors } from '@/components/connectors-provider'
 import { ConnectorDialog } from '@/components/connectors/manage-connectors'
 import { toast } from 'sonner'
+import { useLocale } from '@/components/providers/locale-provider'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { taskPromptAtom } from '@/lib/atoms/task'
 import { lastSelectedAgentAtom, lastSelectedModelAtomFamily } from '@/lib/atoms/agent-selection'
@@ -59,7 +60,7 @@ interface TaskFormProps {
 }
 
 const CODING_AGENTS = [
-  { value: 'multi-agent', label: 'Compare', icon: Users, isLogo: false },
+  { value: 'multi-agent', label: 'Compare Agents', icon: Users, isLogo: false },
   { value: 'divider', label: '', icon: () => null, isLogo: false, isDivider: true },
   { value: 'claude', label: 'Claude', icon: Claude, isLogo: true },
   { value: 'codex', label: 'Codex', icon: Codex, isLogo: true },
@@ -167,6 +168,7 @@ export function TaskForm({
   initialEnableBrowser = false,
   maxSandboxDuration = 300,
 }: TaskFormProps) {
+  const { t } = useLocale()
   const [prompt, setPrompt] = useAtom(taskPromptAtom)
   const [savedAgent, setSavedAgent] = useAtom(lastSelectedAgentAtom)
   const [selectedAgent, setSelectedAgent] = useState(savedAgent || 'claude')
@@ -330,7 +332,7 @@ export function TaskForm({
 
     // Validate that multi-agent mode has at least one model selected
     if (selectedAgent === 'multi-agent' && selectedModels.length === 0) {
-      toast.error('Please select at least one model for multi-agent mode')
+      toast.error(t.taskForm.selectAtLeastOneModel)
       return
     }
 
@@ -371,8 +373,10 @@ export function TaskForm({
           }
           const providerName = providerNames[data.provider] || data.provider
 
-          toast.error(`${providerName} API key required`, {
-            description: `Please add your ${providerName} API key in the user menu to use the ${data.agentName} agent with this model.`,
+          toast.error(t.taskForm.apiKeyRequired, {
+            description: t.taskForm.apiKeyRequiredDesc
+              .replace('{provider}', providerName)
+              .replace('{agent}', data.agentName),
           })
           return
         }
@@ -428,7 +432,7 @@ export function TaskForm({
             <Textarea
               ref={textareaRef}
               id="prompt"
-              placeholder="Describe what you want the AI agent to do..."
+              placeholder={t.taskForm.promptPlaceholder}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleTextareaKeyDown}
@@ -462,7 +466,9 @@ export function TaskForm({
                           return agent ? (
                             <div className="flex items-center gap-2">
                               <agent.icon className="w-4 h-4" />
-                              <span className="hidden sm:inline">{agent.label}</span>
+                              <span className="hidden sm:inline">
+                                {agent.value === 'multi-agent' ? t.taskForm.compare : agent.label}
+                              </span>
                             </div>
                           ) : null
                         })()}
@@ -477,7 +483,7 @@ export function TaskForm({
                         <SelectItem key={agent.value} value={agent.value}>
                           <div className="flex items-center gap-2">
                             <agent.icon className="w-4 h-4" />
-                            <span>{agent.label}</span>
+                            <span>{agent.value === 'multi-agent' ? t.taskForm.compare : agent.label}</span>
                           </div>
                         </SelectItem>
                       )
@@ -490,7 +496,7 @@ export function TaskForm({
                   <Select value="multi-select" onValueChange={() => {}} disabled={isSubmitting}>
                     <SelectTrigger className="flex-1 sm:flex-none sm:w-auto sm:min-w-[140px] border-0 bg-transparent shadow-none focus:ring-0 h-8 min-w-0">
                       <SelectValue>
-                        {selectedModels.length === 0 ? 'Select models' : `${selectedModels.length} Selected`}
+                        {selectedModels.length === 0 ? t.taskForm.selectModels : t.taskForm.selected}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -559,7 +565,7 @@ export function TaskForm({
                   <div className="hidden sm:flex items-center gap-2 flex-wrap">
                     {!installDependencies && (
                       <Badge variant="secondary" className="text-xs h-6 px-2 gap-1 bg-transparent border-0">
-                        Skip Install
+                        {t.taskForm.skipInstall}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -630,7 +636,7 @@ export function TaskForm({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Agent Browser</p>
+                        <p>{t.taskForm.agentBrowser}</p>
                       </TooltipContent>
                     </Tooltip>
 
@@ -655,7 +661,7 @@ export function TaskForm({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>MCP Servers</p>
+                        <p>{t.taskForm.mcpServers}</p>
                       </TooltipContent>
                     </Tooltip>
 
@@ -689,11 +695,11 @@ export function TaskForm({
                           </DropdownMenuTrigger>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Task Options</p>
+                          <p>{t.taskForm.taskOptions}</p>
                         </TooltipContent>
                       </Tooltip>
                       <DropdownMenuContent className="w-72" align="end">
-                        <DropdownMenuLabel>Task Options</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t.taskForm.taskOptions}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <div className="p-2 space-y-4">
                           <div className="flex items-center space-x-2">
@@ -706,12 +712,12 @@ export function TaskForm({
                               htmlFor="install-deps"
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                             >
-                              Install Dependencies?
+                              {t.taskForm.installDependencies}
                             </Label>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="max-duration" className="text-sm font-medium">
-                              Maximum Duration
+                              {t.taskForm.maxDuration}
                             </Label>
                             <Select
                               value={maxDuration.toString()}
@@ -745,10 +751,10 @@ export function TaskForm({
                                 htmlFor="keep-alive"
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                               >
-                                Keep Alive ({maxSandboxDuration}m max)
+                                {t.taskForm.keepAlive} ({maxSandboxDuration}m max)
                               </Label>
                             </div>
-                            <p className="text-xs text-muted-foreground pl-6">Keep sandbox running after completion.</p>
+                            <p className="text-xs text-muted-foreground pl-6">{t.taskForm.keepAliveHint}</p>
                           </div>
                         </div>
                       </DropdownMenuContent>

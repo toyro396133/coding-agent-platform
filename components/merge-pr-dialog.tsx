@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from '@/components/providers/locale-provider'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,13 +28,14 @@ interface MergePRDialogProps {
 
 export function MergePRDialog({
   taskId,
-  prUrl: _prUrl,
+  prUrl,
   prNumber,
   open,
   onOpenChange,
   onPRMerged,
   onMergeInitiated,
 }: MergePRDialogProps) {
+  const { t } = useLocale()
   const [mergeMethod, setMergeMethod] = useState<'squash' | 'merge' | 'rebase'>('squash')
   const [isMerging, setIsMerging] = useState(false)
   const [showConflictDialog, setShowConflictDialog] = useState(false)
@@ -73,12 +75,12 @@ export function MergePRDialog({
           // Show the conflict resolution dialog
           setShowConflictDialog(true)
         } else {
-          toast.error(result.error || 'Failed to merge pull request')
+          toast.error(result.error || t.errors.mergePR)
         }
       }
     } catch (error) {
       console.error('Error merging PR:', error)
-      toast.error('Failed to merge pull request')
+      toast.error(t.errors.mergePR)
     } finally {
       setIsMerging(false)
     }
@@ -103,15 +105,15 @@ export function MergePRDialog({
       const result = await response.json()
 
       if (response.ok && result.success) {
-        toast.success('Agent is now fixing the merge conflict')
+        toast.success(t.toasts.agentFixingConflict)
         setShowConflictDialog(false)
         onOpenChange(false)
       } else {
-        toast.error(result.error || 'Failed to send message to agent')
+        toast.error(result.error || t.errors.agentFixConflict)
       }
     } catch (error) {
       console.error('Error sending message to agent:', error)
-      toast.error('Failed to send message to agent')
+      toast.error(t.errors.agentFixConflict)
     } finally {
       setIsSendingMessage(false)
     }
@@ -128,14 +130,14 @@ export function MergePRDialog({
       <Dialog open={open && !showConflictDialog} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Merge Pull Request</DialogTitle>
+            <DialogTitle>{t.dialogs.mergePR.title}</DialogTitle>
             <DialogDescription>
-              This will merge PR #{prNumber} into the main branch. Choose your preferred merge method.
+              {t.dialogs.mergePR.description.replace('{prNumber}', prNumber.toString())}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="mergeMethod">Merge Method</Label>
+              <Label htmlFor="mergeMethod">{t.dialogs.mergePR.mergeMethod}</Label>
               <Select
                 value={mergeMethod}
                 onValueChange={(value: 'squash' | 'merge' | 'rebase') => setMergeMethod(value)}
@@ -145,20 +147,20 @@ export function MergePRDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="squash">Squash and merge</SelectItem>
-                  <SelectItem value="merge">Create a merge commit</SelectItem>
-                  <SelectItem value="rebase">Rebase and merge</SelectItem>
+                  <SelectItem value="squash">{t.dialogs.mergePR.squash}</SelectItem>
+                  <SelectItem value="merge">{t.dialogs.mergePR.merge}</SelectItem>
+                  <SelectItem value="rebase">{t.dialogs.mergePR.rebase}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isMerging}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button onClick={handleMergePR} disabled={isMerging}>
-              {isMerging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isMerging ? 'Merging...' : 'Merge Pull Request'}
+              {isMerging && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {isMerging ? t.dialogs.mergePR.merging : t.dialogs.mergePR.merge}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -178,29 +180,26 @@ export function MergePRDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Merge Conflict Detected
+              {t.dialogs.mergeConflict.title}
             </DialogTitle>
-            <DialogDescription>
-              This pull request has merge conflicts that prevent automatic merging. Would you like an AI agent to
-              resolve the conflicts for you?
-            </DialogDescription>
+            <DialogDescription>{t.dialogs.mergeConflict.description}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground">The agent will:</p>
+            <p className="text-sm text-muted-foreground">{t.dialogs.mergeConflict.agentWill}</p>
             <ul className="list-disc list-inside text-sm text-muted-foreground mt-2 space-y-1">
-              <li>Analyze the conflicting changes</li>
-              <li>Intelligently merge the code</li>
-              <li>Create a new commit with the resolved conflicts</li>
-              <li>Push the changes to your branch</li>
+              <li>{t.dialogs.mergeConflict.analyzeChanges}</li>
+              <li>{t.dialogs.mergeConflict.intelligentlyMerge}</li>
+              <li>{t.dialogs.mergeConflict.createCommit}</li>
+              <li>{t.dialogs.mergeConflict.pushChanges}</li>
             </ul>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleCancelConflictDialog} disabled={isSendingMessage}>
-              Cancel
+              {t.dialogs.mergeConflict.cancel}
             </Button>
             <Button onClick={handleAgentFixConflict} disabled={isSendingMessage}>
-              {isSendingMessage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSendingMessage ? 'Sending Message...' : 'Fix with Agent'}
+              {isSendingMessage && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {isSendingMessage ? t.dialogs.mergeConflict.sendingMessage : t.dialogs.mergeConflict.fixWithAgent}
             </Button>
           </DialogFooter>
         </DialogContent>

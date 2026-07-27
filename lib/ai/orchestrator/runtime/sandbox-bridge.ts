@@ -76,7 +76,10 @@ export class SandboxBridge {
     const searchPath = basePath || '.'
     const escapedPath = searchPath.replace(/'/g, "'\\''")
     const escapedPattern = pattern.replace(/'/g, "'\\''")
-    const result = await runInProject(sandbox, 'sh', ['-c', `find '${escapedPath}' -name '${escapedPattern}' -type f 2>/dev/null | sort`])
+    const result = await runInProject(sandbox, 'sh', [
+      '-c',
+      `find '${escapedPath}' -name '${escapedPattern}' -type f 2>/dev/null | sort`,
+    ])
     if (!result.output) return []
     return result.output.trim().split('\n').filter(Boolean)
   }

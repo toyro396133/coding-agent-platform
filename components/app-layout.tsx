@@ -31,6 +31,7 @@ interface TasksContextType {
     selectedModel: string
     installDependencies: boolean
     maxDuration: number
+    executionLevel?: string
   }) => { id: string; optimisticTask: Task }
 }
 
@@ -216,6 +217,7 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
     selectedModel: string
     installDependencies: boolean
     maxDuration: number
+    executionLevel?: string
   }) => {
     const id = nanoid()
     const optimisticTask: Task = {
@@ -245,6 +247,7 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
       prStatus: null,
       prMergeCommitSha: null,
       executionMode: 'orchestrator_external',
+      executionLevel: (taskData.executionLevel || 'basic') as 'basic' | 'enhanced' | 'auto',
       createdAt: new Date(),
       updatedAt: new Date(),
       completedAt: null,

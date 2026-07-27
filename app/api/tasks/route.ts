@@ -244,6 +244,7 @@ export async function POST(request: NextRequest) {
           validatedData.keepAlive || false,
           validatedData.enableBrowser || false,
           validatedData.executionMode || 'orchestrator_external',
+          validatedData.executionLevel || 'basic',
           userApiKeys,
           userGithubToken,
           githubUser,
@@ -273,6 +274,7 @@ async function processTaskWithTimeout(
   keepAlive: boolean = false,
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
+  executionLevel: string = 'basic',
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -320,6 +322,7 @@ async function processTaskWithTimeout(
         keepAlive,
         enableBrowser,
         executionMode,
+        executionLevel,
         apiKeys,
         githubToken,
         githubUser,
@@ -391,6 +394,7 @@ async function processTask(
   keepAlive: boolean = false,
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
+  executionLevel: string = 'basic',
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -630,7 +634,9 @@ async function processTask(
         await logger.info('Running orchestrator')
         const result = await runOrchestrator(sanitizedPrompt, {
           taskId,
+          userId,
           selectedModel: selectedModel || 'gpt-4o-mini',
+          capabilityLevel: executionLevel as 'basic' | 'enhanced' | 'auto',
         })
         if (result.finalAnswer) {
           finalPrompt = result.finalAnswer

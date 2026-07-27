@@ -42,7 +42,8 @@ export function createFileTools(ctx: ToolContext) {
     }),
 
     editFile: tool({
-      description: 'Edit a file by replacing text. Uses exact string matching (not regex). Use replaceAll to replace every occurrence.',
+      description:
+        'Edit a file by replacing text. Uses exact string matching (not regex). Use replaceAll to replace every occurrence.',
       inputSchema: z.object({
         path: z.string().describe('Absolute or project-relative path to the file'),
         oldString: z.string().describe('The exact text to replace'),
@@ -79,7 +80,8 @@ export function createFileTools(ctx: ToolContext) {
     }),
 
     grep: tool({
-      description: 'Search file contents using a regex pattern. Returns matching lines with file paths and line numbers.',
+      description:
+        'Search file contents using a regex pattern. Returns matching lines with file paths and line numbers.',
       inputSchema: z.object({
         pattern: z.string().describe('Regex pattern to search for'),
         path: z.string().optional().default('.').describe('Directory or file to search in'),

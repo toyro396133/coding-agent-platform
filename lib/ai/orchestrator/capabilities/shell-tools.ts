@@ -8,11 +8,18 @@ export function createShellTools(ctx: ToolContext) {
 
   return {
     bash: tool({
-      description: 'Execute a shell command in the project sandbox. Use for running build commands, tests, scripts, and any CLI operations.',
+      description:
+        'Execute a shell command in the project sandbox. Use for running build commands, tests, scripts, and any CLI operations.',
       inputSchema: z.object({
         command: z.string().describe('The shell command to execute'),
         args: z.array(z.string()).optional().describe('Command arguments'),
-        timeout: z.number().min(1000).max(300000).optional().default(60000).describe('Timeout in milliseconds (max 300s)'),
+        timeout: z
+          .number()
+          .min(1000)
+          .max(300000)
+          .optional()
+          .default(60000)
+          .describe('Timeout in milliseconds (max 300s)'),
         description: z.string().optional().describe('What this command does (for logging)'),
       }),
       execute: async ({ command, args, timeout, description }) => {
@@ -22,7 +29,8 @@ export function createShellTools(ctx: ToolContext) {
           let output = description ? `Command: ${description}\n` : ''
           if (result.exitCode !== undefined) output += `Exit code: ${result.exitCode}\n`
           if (result.output) {
-            const truncated = result.output.length > 10000 ? result.output.slice(0, 10000) + '\n... (output truncated)' : result.output
+            const truncated =
+              result.output.length > 10000 ? result.output.slice(0, 10000) + '\n... (output truncated)' : result.output
             output += truncated
           }
           if (result.error) output += `\nStderr: ${result.error}`
@@ -34,7 +42,8 @@ export function createShellTools(ctx: ToolContext) {
     }),
 
     monitor: tool({
-      description: 'Run a long-lived command with streaming output. Best for dev servers, watch mode, or any process that produces ongoing output.',
+      description:
+        'Run a long-lived command with streaming output. Best for dev servers, watch mode, or any process that produces ongoing output.',
       inputSchema: z.object({
         command: z.string().describe('The command to run'),
         args: z.array(z.string()).optional().describe('Command arguments'),

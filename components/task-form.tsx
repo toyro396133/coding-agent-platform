@@ -48,6 +48,7 @@ interface TaskFormProps {
     maxDuration: number
     keepAlive: boolean
     enableBrowser: boolean
+    executionLevel?: string
   }) => void
   isSubmitting: boolean
   selectedOwner: string
@@ -182,6 +183,7 @@ export function TaskForm({
   const [maxDuration, setMaxDurationState] = useState(initialMaxDuration)
   const [keepAlive, setKeepAliveState] = useState(initialKeepAlive)
   const [enableBrowser, setEnableBrowserState] = useState(initialEnableBrowser)
+  const [executionLevel, setExecutionLevel] = useState<string>('basic')
   const [showMcpServersDialog, setShowMcpServersDialog] = useState(false)
 
   // Connectors state
@@ -349,6 +351,7 @@ export function TaskForm({
         maxDuration,
         keepAlive,
         enableBrowser,
+        executionLevel,
       })
       return
     }
@@ -396,6 +399,7 @@ export function TaskForm({
       maxDuration,
       keepAlive,
       enableBrowser,
+      executionLevel,
     })
   }
 
@@ -755,6 +759,24 @@ export function TaskForm({
                               </Label>
                             </div>
                             <p className="text-xs text-muted-foreground pl-6">{t.taskForm.keepAliveHint}</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Capability Level</Label>
+                            <Select value={executionLevel} onValueChange={setExecutionLevel}>
+                              <SelectTrigger className="w-full h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="basic">Basic — current behavior only</SelectItem>
+                                <SelectItem value="enhanced">Enhanced — all capability packs</SelectItem>
+                                <SelectItem value="auto">Auto — adapts to task complexity</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              {executionLevel === 'basic' && 'Standard orchestrator without extra tools'}
+                              {executionLevel === 'enhanced' && 'Web search, planning, file/shell tools, research, session management'}
+                              {executionLevel === 'auto' && 'Starts basic, escalates based on task analysis'}
+                            </p>
                           </div>
                         </div>
                       </DropdownMenuContent>

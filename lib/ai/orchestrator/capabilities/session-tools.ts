@@ -26,8 +26,7 @@ export function createSessionTools(ctx: ToolContext) {
     }),
 
     restore: tool({
-      description:
-        'Restore to a previous checkpoint. Use this to undo changes or explore alternative approaches.',
+      description: 'Restore to a previous checkpoint. Use this to undo changes or explore alternative approaches.',
       inputSchema: z.object({
         checkpointId: z.string().describe('The checkpoint ID to restore'),
       }),
@@ -42,8 +41,7 @@ export function createSessionTools(ctx: ToolContext) {
     }),
 
     getHistory: tool({
-      description:
-        'View the execution history including all checkpoints and sub-agent results.',
+      description: 'View the execution history including all checkpoints and sub-agent results.',
       inputSchema: z.object({
         maxEntries: z.number().min(1).max(50).optional().default(10),
       }),

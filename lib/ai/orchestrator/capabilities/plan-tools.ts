@@ -21,10 +21,7 @@ export function createPlanTools(ctx: ToolContext) {
           .array(
             z.object({
               description: z.string().describe('What this step does'),
-              dependsOn: z
-                .array(z.string())
-                .optional()
-                .describe('IDs of steps this depends on'),
+              dependsOn: z.array(z.string()).optional().describe('IDs of steps this depends on'),
             }),
           )
           .describe('The ordered list of steps to accomplish the objective'),
@@ -85,18 +82,14 @@ export function createPlanTools(ctx: ToolContext) {
     }),
 
     revisePlan: tool({
-      description:
-        'Update the plan based on new information or feedback. Can add, remove, or modify steps.',
+      description: 'Update the plan based on new information or feedback. Can add, remove, or modify steps.',
       inputSchema: z.object({
         feedback: z.string().describe('What should change and why'),
         updatedSteps: z
           .array(
             z.object({
               description: z.string().describe('What this step does'),
-              dependsOn: z
-                .array(z.string())
-                .optional()
-                .describe('IDs of steps this depends on'),
+              dependsOn: z.array(z.string()).optional().describe('IDs of steps this depends on'),
             }),
           )
           .describe('The updated list of steps'),

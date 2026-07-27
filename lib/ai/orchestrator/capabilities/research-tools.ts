@@ -60,15 +60,10 @@ export function createResearchTools(ctx: ToolContext) {
     }),
 
     readDocumentation: tool({
-      description:
-        'Fetch and summarize documentation for a specific topic, library, or API.',
+      description: 'Fetch and summarize documentation for a specific topic, library, or API.',
       inputSchema: z.object({
         topic: z.string().describe('The topic, library, or API to look up'),
-        source: z
-          .enum(['web', 'memory'])
-          .optional()
-          .default('web')
-          .describe('Where to look for documentation'),
+        source: z.enum(['web', 'memory']).optional().default('web').describe('Where to look for documentation'),
       }),
       execute: async ({ topic, source }) => {
         if (source === 'memory') {

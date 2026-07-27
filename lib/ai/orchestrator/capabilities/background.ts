@@ -7,15 +7,10 @@ export function createBackgroundTools(ctx: ToolContext) {
 
   return {
     scheduleTask: tool({
-      description:
-        'Schedule a task to run in the background. The task will be tracked and can be monitored later.',
+      description: 'Schedule a task to run in the background. The task will be tracked and can be monitored later.',
       inputSchema: z.object({
         prompt: z.string().describe('The task prompt to execute in background'),
-        schedule: z
-          .enum(['immediate', 'deferred'])
-          .optional()
-          .default('immediate')
-          .describe('When to run the task'),
+        schedule: z.enum(['immediate', 'deferred']).optional().default('immediate').describe('When to run the task'),
       }),
       execute: async ({ prompt, schedule }) => {
         const id = `bg-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`
@@ -33,17 +28,14 @@ export function createBackgroundTools(ctx: ToolContext) {
     }),
 
     monitorBackground: tool({
-      description:
-        'Check the status and results of a background task.',
+      description: 'Check the status and results of a background task.',
       inputSchema: z.object({
         taskId: z.string().describe('The ID of the background task to monitor'),
       }),
       execute: async ({ taskId }) => {
         const task = tasks.find((t) => t.id === taskId)
         if (!task) {
-          const available = tasks
-            .map((t) => `${t.id}: ${t.prompt.slice(0, 60)}... [${t.status}]`)
-            .join('\n')
+          const available = tasks.map((t) => `${t.id}: ${t.prompt.slice(0, 60)}... [${t.status}]`).join('\n')
           return `Background task "${taskId}" not found.\nAvailable tasks:\n${available || 'No background tasks yet.'}`
         }
         let result = `Task: ${task.prompt.slice(0, 200)}\nStatus: ${task.status}\nCreated: ${task.createdAt.toISOString()}`
@@ -53,8 +45,7 @@ export function createBackgroundTools(ctx: ToolContext) {
     }),
 
     parallelMap: tool({
-      description:
-        'Execute multiple items concurrently. Use for parallel processing of independent sub-tasks.',
+      description: 'Execute multiple items concurrently. Use for parallel processing of independent sub-tasks.',
       inputSchema: z.object({
         items: z
           .array(

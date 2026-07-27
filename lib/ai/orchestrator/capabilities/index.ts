@@ -5,6 +5,8 @@ import { createPlanTools } from './plan-tools'
 import { createSessionTools } from './session-tools'
 import { createBackgroundTools } from './background'
 import { createResearchTools } from './research-tools'
+import { createFileTools } from './file-tools'
+import { createShellTools } from './shell-tools'
 
 type ToolRegistry = Record<string, any>
 
@@ -14,6 +16,8 @@ const packLoaders: Record<string, (ctx: ToolContext) => ToolRegistry> = {
   session: (ctx) => createSessionTools(ctx),
   background: (ctx) => createBackgroundTools(ctx),
   research: (ctx) => createResearchTools(ctx),
+  file: (ctx) => createFileTools(ctx),
+  shell: (ctx) => createShellTools(ctx),
 }
 
 export function loadCapabilityTools(level: CapabilityLevel, context: ToolContext): ToolRegistry {

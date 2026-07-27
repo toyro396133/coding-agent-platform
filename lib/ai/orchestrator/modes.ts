@@ -14,7 +14,7 @@ const modeConfigs: Record<CapabilityLevel, OrchestratorModeConfig> = {
   },
   enhanced: {
     level: 'enhanced',
-    packs: ['web', 'plan', 'session', 'background', 'research'],
+    packs: ['web', 'plan', 'session', 'background', 'research', 'file', 'shell'],
     autoEscalate: false,
   },
   auto: {

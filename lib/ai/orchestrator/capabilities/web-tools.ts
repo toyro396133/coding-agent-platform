@@ -9,11 +9,7 @@ export function createWebTools(ctx: ToolContext) {
         'Fetch content from a URL and return it as markdown or text. Use for reading documentation, APIs, or web pages.',
       inputSchema: z.object({
         url: z.string().url().describe('The URL to fetch'),
-        format: z
-          .enum(['markdown', 'text', 'html'])
-          .optional()
-          .default('markdown')
-          .describe('Output format'),
+        format: z.enum(['markdown', 'text', 'html']).optional().default('markdown').describe('Output format'),
       }),
       execute: async ({ url, format }) => {
         try {
@@ -25,7 +21,11 @@ export function createWebTools(ctx: ToolContext) {
           const text = await response.text()
           if (format === 'text') return text.replace(/<[^>]+>/g, '').slice(0, 10000)
           if (format === 'html') return text.slice(0, 10000)
-          const cleaned = text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 10000)
+          const cleaned = text
+            .replace(/<[^>]+>/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 10000)
           return cleaned || 'No content returned'
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
@@ -47,10 +47,10 @@ export function createWebTools(ctx: ToolContext) {
         try {
           const controller = new AbortController()
           const timeout = setTimeout(() => controller.abort(), 10000)
-          const response = await fetch(
-            `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
-            { signal: controller.signal, headers: { 'User-Agent': 'Mozilla/5.0' } },
-          )
+          const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+          })
           clearTimeout(timeout)
           if (!response.ok) return `Search failed with HTTP ${response.status}`
           const html = await response.text()
@@ -61,7 +61,12 @@ export function createWebTools(ctx: ToolContext) {
           const linkRegex = /<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
           let match
           while ((match = linkRegex.exec(html)) !== null && titles.length < numResults) {
-            links.push(match[1]?.replace(/&amp;/g, '&').replace(/<[^>]+>/g, '').trim() || '')
+            links.push(
+              match[1]
+                ?.replace(/&amp;/g, '&')
+                .replace(/<[^>]+>/g, '')
+                .trim() || '',
+            )
             titles.push(match[2]?.replace(/<[^>]+>/g, '').trim() || '')
           }
 

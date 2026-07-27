@@ -4,6 +4,7 @@ import type { ToolContext, Checkpoint } from './types'
 
 export function createSessionTools(ctx: ToolContext) {
   const checkpoints: Checkpoint[] = []
+  let forkCount = 0
 
   return {
     checkpoint: tool({
@@ -62,6 +63,25 @@ export function createSessionTools(ctx: ToolContext) {
         }
         if (lines.length === 1) return 'No history available yet.'
         return lines.join('\n')
+      },
+    }),
+
+    fork: tool({
+      description: 'Create a fork (branch) from the current session state. Returns a fork identifier that can be used to track separate exploration paths.',
+      inputSchema: z.object({
+        label: z.string().optional().describe('A label describing this fork'),
+      }),
+      execute: async ({ label }) => {
+        forkCount++
+        const forkId = `fork-${forkCount}-${Date.now().toString(36)}`
+        checkpoints.push({
+          id: forkId,
+          label: label || `Fork ${forkCount}`,
+          timestamp: new Date(),
+          context: ctx.accumulatedContext.slice(-2000),
+          subAgentResults: ctx.subAgentResults.slice(-10),
+        })
+        return `Fork "${label || forkId}" created with id "${forkId}". You are now on a new exploration path. Use restore with this id to return to this fork point.`
       },
     }),
   }

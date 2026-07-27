@@ -774,7 +774,8 @@ export function TaskForm({
                             </Select>
                             <p className="text-xs text-muted-foreground">
                               {executionLevel === 'basic' && 'Standard orchestrator without extra tools'}
-                              {executionLevel === 'enhanced' && 'Web search, planning, file/shell tools, research, session management'}
+                              {executionLevel === 'enhanced' &&
+                                'Web search, planning, file/shell tools, research, session management'}
                               {executionLevel === 'auto' && 'Starts basic, escalates based on task analysis'}
                             </p>
                           </div>

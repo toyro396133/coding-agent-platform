@@ -50,6 +50,7 @@ export interface ResearchResult {
 export interface ToolContext {
   taskId: string
   userId: string
+  repoUrl?: string
   capabilityLevel: CapabilityLevel
   accumulatedContext: string
   subAgentResults: { type: string; prompt: string; result: string }[]

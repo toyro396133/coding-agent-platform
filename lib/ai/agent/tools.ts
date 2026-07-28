@@ -106,8 +106,28 @@ export const runBashWithTimeoutTool = (sandbox: Sandbox) => ({
     try {
       // Command allowlist for security
       const allowedCommands = [
-        'npm', 'npx', 'node', 'git', 'cat', 'ls', 'pwd', 'echo', 'mkdir', 'rm', 'cp', 'mv',
-        'grep', 'find', 'sed', 'awk', 'tsc', 'eslint', 'prettier', 'test', 'jest', 'vitest',
+        'npm',
+        'npx',
+        'node',
+        'git',
+        'cat',
+        'ls',
+        'pwd',
+        'echo',
+        'mkdir',
+        'rm',
+        'cp',
+        'mv',
+        'grep',
+        'find',
+        'sed',
+        'awk',
+        'tsc',
+        'eslint',
+        'prettier',
+        'test',
+        'jest',
+        'vitest',
       ]
 
       // Extract the first command from the command string

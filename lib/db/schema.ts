@@ -95,7 +95,7 @@ export const tasks = pgTable('tasks', {
   keepAlive: boolean('keep_alive').default(false),
   enableBrowser: boolean('enable_browser').default(false),
   status: text('status', {
-    enum: ['pending', 'processing', 'completed', 'error', 'stopped'],
+    enum: ['pending', 'processing', 'completed', 'error', 'stopped', 'PLANNING_PENDING_APPROVAL'],
   })
     .notNull()
     .default('pending'),
@@ -649,3 +649,132 @@ export const selectBackgroundTestExecutionSchema = z.object({
 
 export type BackgroundTestExecution = z.infer<typeof selectBackgroundTestExecutionSchema>
 export type InsertBackgroundTestExecution = z.infer<typeof insertBackgroundTestExecutionSchema>
+
+export const repositoryEmbeddings = pgTable(
+  'repository_embeddings',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    repoUrl: text('repo_url').notNull(),
+    filePath: text('file_path').notNull(),
+    content: text('content').notNull(),
+    embedding: vector('embedding', { dimensions: 1536 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdRepoIdx: index('repository_embeddings_user_repo_idx').on(table.userId, table.repoUrl),
+    embeddingIdx: index('repository_embeddings_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  }),
+)
+
+export const insertRepositoryEmbeddingSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().min(1, 'User ID is required'),
+  repoUrl: z.string().min(1, 'Repo URL is required'),
+  filePath: z.string().min(1, 'File path is required'),
+  content: z.string().min(1, 'Content is required'),
+  createdAt: z.date().optional(),
+})
+
+export const selectRepositoryEmbeddingSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  repoUrl: z.string(),
+  filePath: z.string(),
+  content: z.string(),
+  createdAt: z.date(),
+})
+
+export type RepositoryEmbedding = z.infer<typeof selectRepositoryEmbeddingSchema>
+export type InsertRepositoryEmbedding = z.infer<typeof insertRepositoryEmbeddingSchema>
+
+export const taskPlans = pgTable('task_plans', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  taskId: text('task_id')
+    .notNull()
+    .references(() => tasks.id, { onDelete: 'cascade' }),
+  planContent: jsonb('plan_content').notNull(),
+  hash: text('hash').notNull(),
+  version: integer('version').notNull().default(1),
+  status: text('status', {
+    enum: ['pending_approval', 'approved', 'rejected'],
+  })
+    .notNull()
+    .default('pending_approval'),
+  approvedAt: timestamp('approved_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const insertTaskPlanSchema = z.object({
+  id: z.string().optional(),
+  taskId: z.string().min(1, 'Task ID is required'),
+  planContent: z.any(),
+  hash: z.string().min(1, 'Hash is required'),
+  version: z.number().optional(),
+  status: z.enum(['pending_approval', 'approved', 'rejected']).optional(),
+  approvedAt: z.date().optional().nullable(),
+  createdAt: z.date().optional(),
+})
+
+export const selectTaskPlanSchema = z.object({
+  id: z.string(),
+  taskId: z.string(),
+  planContent: z.any(),
+  hash: z.string(),
+  version: z.number(),
+  status: z.enum(['pending_approval', 'approved', 'rejected']),
+  approvedAt: z.date().nullable(),
+  createdAt: z.date(),
+})
+
+export type TaskPlan = z.infer<typeof selectTaskPlanSchema>
+export type InsertTaskPlan = z.infer<typeof insertTaskPlanSchema>
+
+export const projectRules = pgTable(
+  'project_rules',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    repoUrl: text('repo_url').notNull(),
+    ruleContent: text('rule_content').notNull(),
+    isApproved: boolean('is_approved').default(false).notNull(),
+    sourceTaskId: text('source_task_id').references(() => tasks.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdRepoIdx: index('project_rules_user_repo_idx').on(table.userId, table.repoUrl),
+  }),
+)
+
+export const insertProjectRuleSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().min(1, 'User ID is required'),
+  repoUrl: z.string().min(1, 'Repo URL is required'),
+  ruleContent: z.string().min(1, 'Rule content is required'),
+  isApproved: z.boolean().optional(),
+  sourceTaskId: z.string().optional().nullable(),
+  createdAt: z.date().optional(),
+})
+
+export const selectProjectRuleSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  repoUrl: z.string(),
+  ruleContent: z.string(),
+  isApproved: z.boolean(),
+  sourceTaskId: z.string().nullable(),
+  createdAt: z.date(),
+})
+
+export type ProjectRule = z.infer<typeof selectProjectRuleSchema>
+export type InsertProjectRule = z.infer<typeof insertProjectRuleSchema>

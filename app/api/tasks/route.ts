@@ -25,7 +25,7 @@ import { getServerSession } from '@/lib/session/get-server-session'
 import { parseMentionsAndInjectContext } from '@/lib/memory/mention-parser'
 import { retrieveRelevantMemories } from '@/lib/memory/engine'
 
-import { summarizeAndStoreTask } from '@/lib/memory/summarize'
+import { summarizeAndStoreTask, extractAndStoreProjectRules } from '@/lib/memory/summarize'
 import { runOrchestrator } from '@/lib/ai/orchestrator/loop'
 import { checkLocalEnvironment } from '@/lib/sandbox/local-execution'
 import { reviewChanges } from '@/lib/sandbox/code-review'
@@ -664,6 +664,7 @@ async function processTask(
         await logger.info('Running orchestrator')
         const result = await runOrchestrator(sanitizedPrompt, {
           taskId,
+          repoUrl,
           userId,
           selectedModel: finalModel,
           capabilityLevel: executionLevel as 'basic' | 'enhanced' | 'auto',
@@ -813,6 +814,7 @@ async function processTask(
         // Store long-term memory asynchronously
         after(async () => {
           await summarizeAndStoreTask(userId, taskId, prompt, agentResult.agentResponse || null)
+          await extractAndStoreProjectRules(userId, repoUrl || '', taskId, prompt, agentResult.agentResponse || null)
         })
 
         console.log('Task completed successfully')

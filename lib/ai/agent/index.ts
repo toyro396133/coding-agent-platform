@@ -66,17 +66,18 @@ export class NativeCloudAgent {
           case 'Execute':
             this.context.state = await this.execute(currentPrompt)
             break
-          case 'Verify':
+          case 'Verify': {
             const verification = await this.verify()
             if (verification.isValid) {
               this.context.state = 'Done'
             } else {
               // Self-healing path
-              console.log('Verification failed, self-healing triggered', verification.errors)
+              console.log('Verification failed, self-healing triggered')
               currentPrompt = `Previous attempt failed validation with errors:\n${verification.errors.join('\n')}\nPlease fix these errors.`
               this.context.state = 'Analyze' // Go back to Analyze for self-healing
             }
             break
+          }
         }
         this.context.stepsCompleted++
       } catch (error) {

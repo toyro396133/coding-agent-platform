@@ -8,11 +8,16 @@ export interface ValidationResult {
 
 export async function validateProject(sandbox: Sandbox): Promise<ValidationResult> {
   try {
-    // Run a type check using TypeScript (assuming tsc is installed in the project)
-    // We use --noEmit so it just checks types without compiling files
-    // We add || true so the script doesn't completely crash if there are type errors,
-    // allowing us to capture the stdout/stderr.
-    const result = await runCommandInSandbox(sandbox, 'npx', ['tsc', '--noEmit'])
+    // Run a type check using TypeScript with a timeout to prevent indefinite blocking
+    const timeoutMs = 60000 // 60 second timeout
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Validation timed out after 60 seconds')), timeoutMs)
+    })
+
+    const validationPromise = runCommandInSandbox(sandbox, 'npx', ['tsc', '--noEmit'])
+
+    const result = await Promise.race([validationPromise, timeoutPromise])
 
     // In many setups, tsc outputs errors to stdout, not stderr.
     const output = result.output || ''

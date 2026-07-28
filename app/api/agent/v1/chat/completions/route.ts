@@ -109,6 +109,10 @@ export async function POST(req: NextRequest) {
             if (parsed.protocol !== 'https:') {
               return false
             }
+            // Reject URLs with credentials (username or password)
+            if (parsed.username || parsed.password) {
+              return false
+            }
             // Restrict to approved repository hosts
             const allowedHosts = ['github.com', 'gitlab.com', 'bitbucket.org']
             return allowedHosts.includes(parsed.hostname)

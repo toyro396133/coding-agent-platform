@@ -20,4 +20,4 @@ agents = [
     "Continue.dev",
     "Cline (VS Code)"
 ]
-print(f"Total agents: {len(agents)}")
+print(f"Total agents: len({agents})")

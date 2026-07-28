@@ -28,7 +28,11 @@ export async function checkLocalEnvironment(): Promise<LocalExecutionResult> {
 
     return {
       available: false,
-      reason: hasOllama ? 'Ollama found but opencode not installed' : hasOpenCode ? 'opencode found but Ollama not installed' : 'No local tools found. Install ollama (ollama.com) or opencode (npm i -g opencode-ai)',
+      reason: hasOllama
+        ? 'Ollama found but opencode not installed'
+        : hasOpenCode
+          ? 'opencode found but Ollama not installed'
+          : 'No local tools found. Install ollama (ollama.com) or opencode (npm i -g opencode-ai)',
     }
   } catch {
     return { available: false, reason: 'Could not check local environment' }

@@ -4,7 +4,7 @@ import {
   listRegisteredPacks,
   registerPack,
   unregisterPack,
-  listExternalPlugins
+  listExternalPlugins,
 } from '@/lib/ai/orchestrator/runtime/plugin-registry'
 
 export async function GET() {
@@ -19,11 +19,11 @@ export async function GET() {
 
     return NextResponse.json({
       plugins: packs,
-      externalPlugins: externalPlugins.map(p => ({
+      externalPlugins: externalPlugins.map((p) => ({
         name: p.manifest.name,
         enabled: p.enabled,
-        manifest: p.manifest
-      }))
+        manifest: p.manifest,
+      })),
     })
   } catch (error) {
     console.error('Failed to list plugins')

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { generateText, tool, stepCountIs } from 'ai'
 import { z } from 'zod'
 import { getSubAgentModel } from '@/lib/ai/router'
+import { routePrompt } from '@/lib/ai/smart-router'
 import { getModelClient } from '@/lib/ai/models'
 import { Sandbox } from '@vercel/sandbox'
 import { db } from '@/lib/db/client'
@@ -465,11 +466,13 @@ async function processTask(
     await logger.updateProgress(15, 'Creating sandbox environment')
     console.log('Creating sandbox')
 
-    checkLocalEnvironment().then((localEnv) => {
-      if (localEnv.available) {
-        console.log('Local environment available')
-      }
-    }).catch(() => {})
+    checkLocalEnvironment()
+      .then((localEnv) => {
+        if (localEnv.available) {
+          console.log('Local environment available')
+        }
+      })
+      .catch(() => {})
 
     // Detect the appropriate port for the project
     const port = await detectPortFromRepo(repoUrl, githubToken)
@@ -636,7 +639,25 @@ async function processTask(
       .replace(/\\/g, '') // Remove backslashes
       .replace(/^-/gm, ' -') // Prefix lines starting with dash to avoid CLI option parsing
 
+    // === SMART ROUTING LOGIC ===
+    let finalModel = selectedModel
+    if (!selectedModel || selectedModel === 'auto') {
+      try {
+        await logger.info('Analyzing prompt complexity for smart routing...')
+        const routingDecision = await routePrompt(prompt)
+        finalModel = routingDecision.model
+        await logger.info(`Routing decision: Complexity ${routingDecision.complexity}/5 -> Model ${finalModel}`)
+      } catch (error) {
+        console.error('Smart routing failed, defaulting to gpt-4o:', error)
+        finalModel = 'gpt-4o'
+      }
+    } else {
+      finalModel = selectedModel
+    }
+    // === END SMART ROUTING ===
+
     // === ORCHESTRATOR SUB-AGENT LOGIC ===
+
     let finalPrompt = sanitizedPrompt
     if (executionMode !== 'external_only') {
       try {
@@ -644,7 +665,7 @@ async function processTask(
         const result = await runOrchestrator(sanitizedPrompt, {
           taskId,
           userId,
-          selectedModel: selectedModel || 'gpt-4o-mini',
+          selectedModel: finalModel,
           capabilityLevel: executionLevel as 'basic' | 'enhanced' | 'auto',
         })
         if (result.finalAnswer) {
@@ -674,7 +695,7 @@ async function processTask(
       finalPrompt,
       selectedAgent as AgentType,
       logger,
-      selectedModel,
+      finalModel,
       mcpServers,
       undefined,
       apiKeys,

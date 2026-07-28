@@ -39,23 +39,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     switch (action) {
       case 'status': {
         const result = await runInProject(sandbox, 'git', ['status'])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'log': {
         const count = body.count || 10
         const result = await runInProject(sandbox, 'git', ['log', `--oneline`, `-${count}`])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'diff': {
         const result = await runInProject(sandbox, 'git', ['diff'])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'diff:cached': {
         const result = await runInProject(sandbox, 'git', ['diff', '--cached'])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'pull': {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
         const branch = currentBranch.output.trim()
         const result = await runInProject(sandbox, 'git', ['pull', 'origin', branch])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'push': {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
         const branch = currentBranch.output.trim()
         const result = await runInProject(sandbox, 'git', ['push', 'origin', branch])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'commit': {
@@ -88,12 +88,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           return NextResponse.json({ success: false, error: 'Failed to stage files' })
         }
         const commitResult = await runInProject(sandbox, 'git', ['commit', '-m', message])
-        return NextResponse.json({ success: commitResult.success, output: commitResult.success ? (commitResult.output || '') : '' })
+        return NextResponse.json({
+          success: commitResult.success,
+          output: commitResult.success ? commitResult.output || '' : '',
+        })
       }
 
       case 'branch': {
         const result = await runInProject(sandbox, 'git', ['branch', '-a'])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'checkout': {
@@ -102,12 +105,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           return NextResponse.json({ error: 'Branch name is required' }, { status: 400 })
         }
         const result = await runInProject(sandbox, 'git', ['checkout', branch])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       case 'fetch': {
         const result = await runInProject(sandbox, 'git', ['fetch', '--all'])
-        return NextResponse.json({ success: result.success, output: result.success ? (result.output || '') : '' })
+        return NextResponse.json({ success: result.success, output: result.success ? result.output || '' : '' })
       }
 
       default:

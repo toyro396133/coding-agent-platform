@@ -375,6 +375,51 @@ export const selectKeySchema = z.object({
 export type Key = z.infer<typeof selectKeySchema>
 export type InsertKey = z.infer<typeof insertKeySchema>
 
+// Platform API Keys table - keys issued BY the platform to users for external API access
+export const platformApiKeys = pgTable(
+  'platform_api_keys',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    hashedValue: text('hashed_value').notNull(),
+    hint: text('hint').notNull(), // e.g. sk-platform-...1234
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    hashedValueIdx: index('platform_api_keys_hashed_value_idx').on(table.hashedValue),
+    userIdCreatedAtIdx: index('platform_api_keys_user_id_created_at_idx').on(table.userId, table.createdAt),
+  }),
+)
+
+export const insertPlatformApiKeySchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().min(1, 'User ID is required'),
+  name: z.string().min(1, 'Name is required'),
+  hashedValue: z.string().min(1, 'Hashed value is required'),
+  hint: z.string().min(1, 'Hint is required'),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+export const selectPlatformApiKeySchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  hashedValue: z.string(),
+  hint: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export type PlatformApiKey = z.infer<typeof selectPlatformApiKeySchema>
+export type InsertPlatformApiKey = z.infer<typeof insertPlatformApiKeySchema>
+
 // Task messages table - stores user and agent messages for each task
 export const taskMessages = pgTable('task_messages', {
   id: text('id').primaryKey(),

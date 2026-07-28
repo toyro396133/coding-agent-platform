@@ -1,4 +1,15 @@
-import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index, vector, unique } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  text,
+  timestamp,
+  integer,
+  jsonb,
+  boolean,
+  uniqueIndex,
+  index,
+  vector,
+  unique,
+} from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { planContentSchema, type PlanContent } from '@/lib/ai/orchestrator/capabilities/plan-tools'
@@ -144,7 +155,9 @@ export const insertTaskSchema = z.object({
   maxDuration: z.number().default(parseInt(process.env.MAX_SANDBOX_DURATION || '300', 10)),
   keepAlive: z.boolean().default(false),
   enableBrowser: z.boolean().default(false),
-  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped', 'PLANNING_PENDING_APPROVAL']).default('pending'),
+  status: z
+    .enum(['pending', 'processing', 'completed', 'error', 'stopped', 'PLANNING_PENDING_APPROVAL'])
+    .default('pending'),
   progress: z.number().min(0).max(100).default(0),
   logs: z.array(logEntrySchema).optional(),
   error: z.string().optional(),
@@ -693,26 +706,30 @@ export const selectRepositoryEmbeddingSchema = z.object({
 export type RepositoryEmbedding = z.infer<typeof selectRepositoryEmbeddingSchema>
 export type InsertRepositoryEmbedding = z.infer<typeof insertRepositoryEmbeddingSchema>
 
-export const taskPlans = pgTable('task_plans', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => nanoid()),
-  taskId: text('task_id')
-    .notNull()
-    .references(() => tasks.id, { onDelete: 'cascade' }),
-  planContent: jsonb('plan_content').$type<PlanContent>().notNull(),
-  hash: text('hash').notNull(),
-  version: integer('version').notNull().default(1),
-  status: text('status', {
-    enum: ['pending_approval', 'approved', 'rejected'],
-  })
-    .notNull()
-    .default('pending_approval'),
-  approvedAt: timestamp('approved_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
-  taskVersionUnique: unique('task_plans_task_id_version_unique').on(table.taskId, table.version),
-}))
+export const taskPlans = pgTable(
+  'task_plans',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    planContent: jsonb('plan_content').$type<PlanContent>().notNull(),
+    hash: text('hash').notNull(),
+    version: integer('version').notNull().default(1),
+    status: text('status', {
+      enum: ['pending_approval', 'approved', 'rejected'],
+    })
+      .notNull()
+      .default('pending_approval'),
+    approvedAt: timestamp('approved_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    taskVersionUnique: unique('task_plans_task_id_version_unique').on(table.taskId, table.version),
+  }),
+)
 
 export const insertTaskPlanSchema = z.object({
   id: z.string().optional(),

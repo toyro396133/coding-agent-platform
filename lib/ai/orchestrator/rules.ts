@@ -12,7 +12,13 @@ export async function getProjectRules(userId: string, repoUrl: string): Promise<
     const rules = await db
       .select({ content: projectRules.ruleContent })
       .from(projectRules)
-      .where(and(eq(projectRules.userId, userId), eq(projectRules.repoUrl, normalizedRepoUrl), eq(projectRules.isApproved, true)))
+      .where(
+        and(
+          eq(projectRules.userId, userId),
+          eq(projectRules.repoUrl, normalizedRepoUrl),
+          eq(projectRules.isApproved, true),
+        ),
+      )
 
     if (rules.length === 0) return ''
 

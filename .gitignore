@@ -64,3 +64,5 @@ opensrc/
 
 .vercel
 .env*
+lib/sandbox/tools/mcp/visual-qa/node_modules/
+lib/sandbox/tools/mcp/visual-qa/dist/

@@ -1,3 +1,5 @@
+import * as fs from 'fs'
+import * as path from 'path'
 import { Sandbox } from '@vercel/sandbox'
 import { Writable } from 'stream'
 import { validateEnvironmentVariables, createAuthenticatedRepoUrl } from './config'
@@ -115,6 +117,46 @@ export async function createSandbox(config: SandboxConfig, logger: TaskLogger): 
       const mkdirResult = await runCommandInSandbox(sandbox, 'mkdir', ['-p', PROJECT_DIR])
       if (!mkdirResult.success) {
         throw new Error('Failed to create project directory')
+      }
+
+      // Copy and setup visual-qa MCP server in the Sandbox
+      await logger.info('Setting up Visual QA MCP Server in sandbox...')
+      const mcpDir = '/vercel/sandbox/mcp/visual-qa'
+      await runCommandInSandbox(sandbox, 'mkdir', ['-p', mcpDir])
+
+      try {
+        const localMcpPath = path.join(process.cwd(), 'lib/sandbox/tools/mcp/visual-qa')
+
+        // Write package.json
+        const packageJsonContent = fs.readFileSync(path.join(localMcpPath, 'package.json'), 'utf8')
+        // Using a more reliable way to write file contents containing quotes
+        const writePkgCmd = `cat > ${mcpDir}/package.json << 'MCP_EOF'
+${packageJsonContent}
+MCP_EOF`
+        await runCommandInSandbox(sandbox, 'sh', ['-c', writePkgCmd])
+
+        // Write index.js (the compiled output)
+        const indexJsContent = fs.readFileSync(path.join(localMcpPath, 'dist/index.js'), 'utf8')
+        const writeIndexCmd = `cat > ${mcpDir}/index.js << 'MCP_EOF'
+${indexJsContent.replace(/\$/g, '\\$')}
+MCP_EOF`
+        await runCommandInSandbox(sandbox, 'sh', ['-c', writeIndexCmd])
+
+        // Install dependencies inside sandbox
+        await logger.info('Installing MCP server dependencies...')
+        await runCommandInSandbox(sandbox, 'sh', ['-c', `cd ${mcpDir} && npm install --no-audit --no-fund`])
+
+        // Ensure index.js is executable
+        await runCommandInSandbox(sandbox, 'sh', ['-c', `chmod +x ${mcpDir}/index.js`])
+
+        // Setup playwright dependencies
+        await logger.info('Setting up headless browser dependencies...')
+        await runCommandInSandbox(sandbox, 'sh', ['-c', `cd ${mcpDir} && npx playwright install chromium --with-deps`])
+
+        await logger.info('Visual QA MCP Server setup completed successfully')
+      } catch (err: any) {
+        await logger.error(`Failed to setup MCP server in sandbox: ${err.message}`)
+        // Continue execution even if MCP setup fails, as it's an optional enhancement
       }
 
       if (authenticatedRepoUrl) {
@@ -835,6 +877,47 @@ SKILL_EOF`
       await logger.info('Created initial commit on main branch')
 
       // Push to origin if repo URL is configured
+
+      // Copy and setup visual-qa MCP server in the Sandbox
+      await logger.info('Setting up Visual QA MCP Server in sandbox...')
+      const mcpDir = '/vercel/sandbox/mcp/visual-qa'
+      await runCommandInSandbox(sandbox, 'mkdir', ['-p', mcpDir])
+
+      try {
+        const localMcpPath = path.join(process.cwd(), 'lib/sandbox/tools/mcp/visual-qa')
+
+        // Write package.json
+        const packageJsonContent = fs.readFileSync(path.join(localMcpPath, 'package.json'), 'utf8')
+        // Using a more reliable way to write file contents containing quotes
+        const writePkgCmd = `cat > ${mcpDir}/package.json << 'MCP_EOF'
+${packageJsonContent}
+MCP_EOF`
+        await runCommandInSandbox(sandbox, 'sh', ['-c', writePkgCmd])
+
+        // Write index.js (the compiled output)
+        const indexJsContent = fs.readFileSync(path.join(localMcpPath, 'dist/index.js'), 'utf8')
+        const writeIndexCmd = `cat > ${mcpDir}/index.js << 'MCP_EOF'
+${indexJsContent.replace(/\$/g, '\\$')}
+MCP_EOF`
+        await runCommandInSandbox(sandbox, 'sh', ['-c', writeIndexCmd])
+
+        // Install dependencies inside sandbox
+        await logger.info('Installing MCP server dependencies...')
+        await runCommandInSandbox(sandbox, 'sh', ['-c', `cd ${mcpDir} && npm install --no-audit --no-fund`])
+
+        // Ensure index.js is executable
+        await runCommandInSandbox(sandbox, 'sh', ['-c', `chmod +x ${mcpDir}/index.js`])
+
+        // Setup playwright dependencies
+        await logger.info('Setting up headless browser dependencies...')
+        await runCommandInSandbox(sandbox, 'sh', ['-c', `cd ${mcpDir} && npx playwright install chromium --with-deps`])
+
+        await logger.info('Visual QA MCP Server setup completed successfully')
+      } catch (err: any) {
+        await logger.error(`Failed to setup MCP server in sandbox: ${err.message}`)
+        // Continue execution even if MCP setup fails, as it's an optional enhancement
+      }
+
       if (authenticatedRepoUrl) {
         const gitPush = await runInProject(sandbox, 'git', ['push', '-u', 'origin', 'main'])
         if (!gitPush.success) {

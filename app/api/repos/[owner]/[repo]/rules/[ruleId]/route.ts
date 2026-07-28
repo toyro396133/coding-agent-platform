@@ -5,7 +5,10 @@ import { projectRules } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { normalizeRepoUrl } from '@/lib/utils/repo-url'
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ owner: string; repo: string; ruleId: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ owner: string; repo: string; ruleId: string }> },
+) {
   const session = await getSessionFromReq(request)
   if (!session?.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 })
@@ -29,11 +32,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ o
     const updatedRule = await db
       .update(projectRules)
       .set({ isApproved: body.isApproved })
-      .where(and(
-        eq(projectRules.id, ruleId),
-        eq(projectRules.userId, session.user.id),
-        eq(projectRules.repoUrl, repoUrl)
-      ))
+      .where(
+        and(eq(projectRules.id, ruleId), eq(projectRules.userId, session.user.id), eq(projectRules.repoUrl, repoUrl)),
+      )
       .returning()
 
     if (!updatedRule || updatedRule.length === 0) {

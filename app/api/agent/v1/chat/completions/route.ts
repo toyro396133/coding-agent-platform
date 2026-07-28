@@ -6,7 +6,16 @@ import { tasks } from '@/lib/db/schema'
 import { createFallbackBranchName } from '@/lib/utils/branch-name-generator'
 import { createFallbackTitle } from '@/lib/utils/title-generator'
 
-// OpenAI Chat Completions compatible endpoint
+/**
+ * Initializes a background task from an OpenAI Chat Completions-compatible request.
+ *
+ * Authenticates the request, validates the user prompt and target repository, creates
+ * a pending task, and dispatches it for background processing. Supports streaming and
+ * non-streaming responses that include the task identifier and started status.
+ *
+ * @returns An OpenAI-compatible response containing the initialized task details, or
+ * an error response when authentication, validation, or processing fails.
+ */
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate Request

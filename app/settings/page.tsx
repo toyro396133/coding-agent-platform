@@ -10,6 +10,9 @@ export const metadata = {
   title: 'Settings',
 }
 
+/**
+ * Renders the settings page for account, agent routing, user, and API key management.
+ */
 export default async function SettingsPage() {
   const routes = await getDynamicRoutes()
 

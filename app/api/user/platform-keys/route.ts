@@ -6,18 +6,32 @@ import { eq, and } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import crypto from 'crypto'
 
-// Utility to create a secure API key
+/**
+ * Generates a cryptographically secure platform API key.
+ *
+ * @returns A platform API key with a secure random hexadecimal value
+ */
 function generateSecureApiKey() {
   const bytes = crypto.randomBytes(32)
   return `sk-platform-${bytes.toString('hex')}`
 }
 
-// Utility to hash the key for storage (we never store the raw key)
+/**
+ * Computes a SHA-256 digest for an API key.
+ *
+ * @param key - The raw API key to hash
+ * @returns The SHA-256 digest encoded as a hexadecimal string
+ */
 function hashApiKey(key: string) {
   return crypto.createHash('sha256').update(key).digest('hex')
 }
 
-// Get all platform keys for a user
+/**
+ * Retrieves the authenticated user's platform API keys, ordered from newest to oldest.
+ *
+ * @param req - The incoming request used to authenticate the user.
+ * @returns A JSON response containing the user's API keys, or an error response if authentication or retrieval fails.
+ */
 export async function GET(req: NextRequest) {
   try {
     const session = await getSessionFromReq(req)
@@ -48,7 +62,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Create a new platform key
+/**
+ * Creates a platform API key for the authenticated user.
+ *
+ * The raw key is included in the response only at creation time; subsequent access provides only its hint.
+ *
+ * @returns A JSON response containing the created key, or an error response if authentication, validation, or creation fails.
+ */
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromReq(req)
@@ -94,7 +114,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Delete a platform key
+/**
+ * Deletes an authenticated user's platform API key.
+ *
+ * @param req - The request containing the key ID in its query parameters
+ * @returns A success response when the key is deleted, or an error response if authentication fails, the ID is missing, the key is not found, or deletion fails
+ */
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getSessionFromReq(req)

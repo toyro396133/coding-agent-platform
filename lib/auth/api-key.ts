@@ -4,8 +4,10 @@ import { eq } from 'drizzle-orm'
 import crypto from 'crypto'
 
 /**
- * Validates a Bearer token against platform API keys.
- * Expects token format: sk-platform-...
+ * Validates a platform API key and identifies its associated user.
+ *
+ * @param token - The platform API key to validate.
+ * @returns The associated user ID if the key is valid, `null` otherwise.
  */
 export async function validatePlatformApiKey(token: string): Promise<string | null> {
   try {
@@ -34,7 +36,10 @@ export async function validatePlatformApiKey(token: string): Promise<string | nu
 }
 
 /**
- * Extracts Bearer token from Authorization header
+ * Extracts a bearer token from an HTTP Authorization header.
+ *
+ * @param authHeader - The Authorization header value
+ * @returns The token following the `Bearer ` prefix, or `null` if the header is missing or uses a different format.
  */
 export function extractBearerToken(authHeader: string | null): string | null {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -1,6 +1,7 @@
-import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, jsonb, boolean, uniqueIndex, index, vector, unique } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
+import { planContentSchema, type PlanContent } from '@/lib/ai/orchestrator/capabilities/plan-tools'
 
 // Log entry types
 export const logEntrySchema = z.object({
@@ -143,7 +144,7 @@ export const insertTaskSchema = z.object({
   maxDuration: z.number().default(parseInt(process.env.MAX_SANDBOX_DURATION || '300', 10)),
   keepAlive: z.boolean().default(false),
   enableBrowser: z.boolean().default(false),
-  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped']).default('pending'),
+  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped', 'PLANNING_PENDING_APPROVAL']).default('pending'),
   progress: z.number().min(0).max(100).default(0),
   logs: z.array(logEntrySchema).optional(),
   error: z.string().optional(),
@@ -699,7 +700,7 @@ export const taskPlans = pgTable('task_plans', {
   taskId: text('task_id')
     .notNull()
     .references(() => tasks.id, { onDelete: 'cascade' }),
-  planContent: jsonb('plan_content').notNull(),
+  planContent: jsonb('plan_content').$type<PlanContent>().notNull(),
   hash: text('hash').notNull(),
   version: integer('version').notNull().default(1),
   status: text('status', {
@@ -709,12 +710,14 @@ export const taskPlans = pgTable('task_plans', {
     .default('pending_approval'),
   approvedAt: timestamp('approved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+}, (table) => ({
+  taskVersionUnique: unique('task_plans_task_id_version_unique').on(table.taskId, table.version),
+}))
 
 export const insertTaskPlanSchema = z.object({
   id: z.string().optional(),
   taskId: z.string().min(1, 'Task ID is required'),
-  planContent: z.any(),
+  planContent: planContentSchema,
   hash: z.string().min(1, 'Hash is required'),
   version: z.number().optional(),
   status: z.enum(['pending_approval', 'approved', 'rejected']).optional(),
@@ -725,7 +728,7 @@ export const insertTaskPlanSchema = z.object({
 export const selectTaskPlanSchema = z.object({
   id: z.string(),
   taskId: z.string(),
-  planContent: z.any(),
+  planContent: planContentSchema,
   hash: z.string(),
   version: z.number(),
   status: z.enum(['pending_approval', 'approved', 'rejected']),

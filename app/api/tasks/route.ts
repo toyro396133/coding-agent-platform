@@ -36,6 +36,7 @@ import { getGitHubUser } from '@/lib/github/client'
 import { getUserApiKeys } from '@/lib/api-keys/user-keys'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { getMaxSandboxDuration } from '@/lib/db/settings'
+import { normalizeRepoUrl } from '@/lib/utils/repo-url'
 
 export async function GET() {
   try {
@@ -95,12 +96,16 @@ export async function POST(request: NextRequest) {
       logs: [],
     })
 
+    // Normalize repoUrl before insertion
+    const normalizedRepoUrl = validatedData.repoUrl ? normalizeRepoUrl(validatedData.repoUrl) : validatedData.repoUrl
+
     // Insert the task into the database - ensure id is definitely present
     const [newTask] = await db
       .insert(tasks)
       .values({
         ...validatedData,
         id: taskId, // Ensure id is always present
+        repoUrl: normalizedRepoUrl,
       })
       .returning()
 
@@ -659,6 +664,7 @@ async function processTask(
     // === ORCHESTRATOR SUB-AGENT LOGIC ===
 
     let finalPrompt = sanitizedPrompt
+    let orchestratorPaused = false
     if (executionMode !== 'external_only') {
       try {
         await logger.info('Running orchestrator')
@@ -669,7 +675,10 @@ async function processTask(
           selectedModel: finalModel,
           capabilityLevel: executionLevel as 'basic' | 'enhanced' | 'auto',
         })
-        if (result.finalAnswer) {
+        if (result.paused) {
+          orchestratorPaused = true
+          await logger.info('Task paused for plan approval')
+        } else if (result.finalAnswer) {
           finalPrompt = result.finalAnswer
           await logger.info('Orchestrator refined the prompt')
         }
@@ -688,6 +697,12 @@ async function processTask(
       await logger.success('Orchestrator completed')
       await logger.updateStatus('completed')
       await logger.updateProgress(100, 'Task completed successfully')
+      return
+    }
+
+    // If orchestrator paused for plan approval, skip sandbox execution
+    if (orchestratorPaused) {
+      await logger.info('Waiting for plan approval before proceeding')
       return
     }
 

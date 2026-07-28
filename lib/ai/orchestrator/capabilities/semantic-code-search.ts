@@ -44,7 +44,8 @@ export const semanticCodeSearchTool = (userId: string, repoUrl: string) => {
 
         return formattedResults
       } catch (error: any) {
-        return `Failed to search: ${error.message}`
+        console.error('Semantic search failed')
+        return `Failed to search the codebase. Please try again or use a different query.`
       }
     },
   })

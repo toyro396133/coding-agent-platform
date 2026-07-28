@@ -6,6 +6,19 @@ import { eq } from 'drizzle-orm'
 import * as crypto from 'crypto'
 import type { ToolContext, PlanStep } from './types'
 
+export const planStepSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  dependencies: z.array(z.string()).optional(),
+})
+
+export const planContentSchema = z.object({
+  objective: z.string(),
+  steps: z.array(planStepSchema),
+})
+
+export type PlanContent = z.infer<typeof planContentSchema>
+
 export function createPlanTools(ctx: ToolContext) {
   return {
     createPlan: tool({
@@ -16,6 +29,7 @@ export function createPlanTools(ctx: ToolContext) {
         steps: z
           .array(
             z.object({
+              id: z.string().describe('Unique identifier for this step'),
               description: z.string().describe('What this step does'),
               dependencies: z.array(z.string()).optional().describe('IDs of steps this depends on'),
             }),
@@ -28,28 +42,39 @@ export function createPlanTools(ctx: ToolContext) {
           const planString = JSON.stringify(planContent)
           const hash = crypto.createHash('sha256').update(planString).digest('hex')
 
-          // Check if a plan already exists to increment version
+          await db.transaction(async (tx) => {
+            // Check if a plan already exists to increment version
+            const existingPlans = await tx
+              .select({ version: taskPlans.version })
+              .from(taskPlans)
+              .where(eq(taskPlans.taskId, ctx.taskId))
+              .orderBy(taskPlans.version)
+
+            const nextVersion = existingPlans.length > 0 ? existingPlans[existingPlans.length - 1].version + 1 : 1
+
+            await tx.insert(taskPlans).values({
+              taskId: ctx.taskId,
+              planContent,
+              hash,
+              version: nextVersion,
+              status: 'pending_approval',
+            })
+
+            await tx.update(tasks).set({ status: 'PLANNING_PENDING_APPROVAL' }).where(eq(tasks.id, ctx.taskId))
+          })
+
           const existingPlans = await db
             .select({ version: taskPlans.version })
             .from(taskPlans)
             .where(eq(taskPlans.taskId, ctx.taskId))
             .orderBy(taskPlans.version)
 
-          const nextVersion = existingPlans.length > 0 ? existingPlans[existingPlans.length - 1].version + 1 : 1
+          const insertedVersion = existingPlans.length > 0 ? existingPlans[existingPlans.length - 1].version : 1
 
-          await db.insert(taskPlans).values({
-            taskId: ctx.taskId,
-            planContent,
-            hash,
-            version: nextVersion,
-            status: 'pending_approval',
-          })
-
-          await db.update(tasks).set({ status: 'PLANNING_PENDING_APPROVAL' }).where(eq(tasks.id, ctx.taskId))
-
-          return `Plan submitted for user approval with version ${nextVersion}. The task is now paused until the user approves this plan.`
+          return `Plan submitted for user approval with version ${insertedVersion}. The task is now paused until the user approves this plan.`
         } catch (error: any) {
-          return `Failed to create plan: ${error.message}`
+          console.error('Failed to create plan')
+          return `Failed to create plan. Please try again.`
         }
       },
     }),

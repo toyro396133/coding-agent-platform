@@ -11,6 +11,7 @@ export interface OrchestratorResult {
   finalAnswer: string
   steps: number
   subAgentResults: SubAgentResult[]
+  paused?: boolean
 }
 
 export class OrchestratorState {
@@ -19,6 +20,7 @@ export class OrchestratorState {
   public currentPrompt: string
   public accumulatedContext = ''
   public completed = false
+  public paused = false
   public subAgentResults: SubAgentResult[] = []
   public taskId: string
   public capabilityLevel: CapabilityLevel = 'basic'
@@ -87,6 +89,7 @@ export class OrchestratorState {
       finalAnswer: this.accumulatedContext || this.currentPrompt,
       steps: this.steps,
       subAgentResults: this.subAgentResults,
+      paused: this.paused,
     }
   }
 

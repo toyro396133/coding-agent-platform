@@ -54,6 +54,7 @@ export async function runOrchestrator(prompt: string, options: RunOrchestratorOp
     const [currentTask] = await db.select({ status: tasks.status }).from(tasks).where(eq(tasks.id, options.taskId))
     if (currentTask && currentTask.status === 'PLANNING_PENDING_APPROVAL') {
       state.completed = true
+      state.paused = true
       state.appendContext('Task paused waiting for user approval of the plan.')
       break
     }

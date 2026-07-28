@@ -8,34 +8,44 @@ import { Loader2, Trash2, CheckCircle2, Circle } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ProjectRule } from '@/lib/db/schema'
 
-export default function RulesPage({ params }: { params: { owner: string; repo: string } }) {
+export default function RulesPage({ params }: { params: Promise<{ owner: string; repo: string }> }) {
+  const unwrappedParams = React.use(params)
   const [rules, setRules] = useState<ProjectRule[]>([])
   const [loading, setLoading] = useState(true)
   const [newRule, setNewRule] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const fetchRules = async () => {
+  const fetchRules = async (abortSignal: AbortSignal) => {
     try {
-      const res = await fetch(`/api/repos/${params.owner}/${params.repo}/rules`)
+      const res = await fetch(`/api/repos/${unwrappedParams.owner}/${unwrappedParams.repo}/rules`, { signal: abortSignal })
       if (res.ok) {
-        setRules(await res.json())
+        const data = await res.json()
+        if (!abortSignal.aborted) {
+          setRules(data)
+        }
       }
     } catch (error) {
-      toast.error('Failed to load rules')
+      if (error instanceof Error && error.name !== 'AbortError' && !abortSignal.aborted) {
+        toast.error('Failed to load rules')
+      }
     } finally {
-      setLoading(false)
+      if (!abortSignal.aborted) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
-    fetchRules()
-  }, [params.owner, params.repo])
+    const controller = new AbortController()
+    fetchRules(controller.signal)
+    return () => controller.abort()
+  }, [unwrappedParams.owner, unwrappedParams.repo])
 
   const handleAddRule = async () => {
     if (!newRule.trim()) return
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/repos/${params.owner}/${params.repo}/rules`, {
+      const res = await fetch(`/api/repos/${unwrappedParams.owner}/${unwrappedParams.repo}/rules`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ruleContent: newRule }),
@@ -43,7 +53,8 @@ export default function RulesPage({ params }: { params: { owner: string; repo: s
       if (res.ok) {
         toast.success('Rule added successfully')
         setNewRule('')
-        fetchRules()
+        const controller = new AbortController()
+        fetchRules(controller.signal)
       } else {
         toast.error('Failed to add rule')
       }
@@ -56,14 +67,17 @@ export default function RulesPage({ params }: { params: { owner: string; repo: s
 
   const toggleApproval = async (ruleId: string, currentStatus: boolean) => {
     try {
-      const res = await fetch(`/api/repos/${params.owner}/${params.repo}/rules/${ruleId}`, {
+      const res = await fetch(`/api/repos/${unwrappedParams.owner}/${unwrappedParams.repo}/rules/${ruleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isApproved: !currentStatus }),
       })
       if (res.ok) {
-        fetchRules()
+        const controller = new AbortController()
+        fetchRules(controller.signal)
         toast.success(`Rule ${!currentStatus ? 'approved' : 'unapproved'}`)
+      } else {
+        toast.error('Failed to update rule')
       }
     } catch (error) {
       toast.error('Failed to update rule')
@@ -73,12 +87,15 @@ export default function RulesPage({ params }: { params: { owner: string; repo: s
   const deleteRule = async (ruleId: string) => {
     if (!confirm('Are you sure you want to delete this rule?')) return
     try {
-      const res = await fetch(`/api/repos/${params.owner}/${params.repo}/rules/${ruleId}`, {
+      const res = await fetch(`/api/repos/${unwrappedParams.owner}/${unwrappedParams.repo}/rules/${ruleId}`, {
         method: 'DELETE',
       })
       if (res.ok) {
-        fetchRules()
+        const controller = new AbortController()
+        fetchRules(controller.signal)
         toast.success('Rule deleted')
+      } else {
+        toast.error('Failed to delete rule')
       }
     } catch (error) {
       toast.error('Failed to delete rule')
@@ -101,7 +118,7 @@ export default function RulesPage({ params }: { params: { owner: string; repo: s
         <h1 className="text-3xl font-bold tracking-tight">Project Rules</h1>
         <p className="text-muted-foreground mt-2">
           Manage long-term memory and rules for this repository. These rules are injected as untrusted context into the
-          agent's prompts.
+          agent&apos;s prompts.
         </p>
       </div>
 

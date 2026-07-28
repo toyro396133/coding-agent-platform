@@ -28,7 +28,7 @@ export function PlanReview({ taskId, onReviewed }: PlanReviewProps) {
           setPlans(data)
         }
       } catch (error) {
-        console.error('Failed to fetch plans:', error)
+        console.error('Failed to fetch plans')
       } finally {
         setLoading(false)
       }
@@ -86,8 +86,8 @@ export function PlanReview({ taskId, onReviewed }: PlanReviewProps) {
         <div className="prose dark:prose-invert max-w-none text-sm">
           <h4>Objective: {activePlan.planContent.objective}</h4>
           <ol className="mt-2 space-y-2">
-            {activePlan.planContent.steps?.map((step: any, index: number) => (
-              <li key={index} className="p-2 bg-background rounded-md border">
+            {activePlan.planContent.steps?.map((step) => (
+              <li key={step.id} className="p-2 bg-background rounded-md border">
                 {step.description}
               </li>
             ))}
@@ -95,8 +95,9 @@ export function PlanReview({ taskId, onReviewed }: PlanReviewProps) {
         </div>
 
         <div className="space-y-2 mt-4">
-          <label className="text-sm font-medium">Feedback (Required for rejection)</label>
+          <label htmlFor="plan-feedback" className="text-sm font-medium">Feedback (Required for rejection)</label>
           <Textarea
+            id="plan-feedback"
             placeholder="Tell the agent what to change..."
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}

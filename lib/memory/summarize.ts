@@ -3,6 +3,7 @@ import { openai } from '@ai-sdk/openai'
 import { saveMemory } from './engine'
 import { db } from '@/lib/db/client'
 import { projectRules } from '@/lib/db/schema'
+import { normalizeRepoUrl } from '@/lib/utils/repo-url'
 
 function redactSensitiveData(text: string): string {
   let redacted = text
@@ -90,6 +91,8 @@ export async function extractAndStoreProjectRules(
       return
     }
 
+    const normalizedRepoUrl = normalizeRepoUrl(repoUrl)
+
     const sanitizedPrompt = redactSensitiveData(prompt)
     const sanitizedResponse = agentResponse ? redactSensitiveData(agentResponse) : ''
     const contextText = `User Request: ${sanitizedPrompt}\n\nAgent Output: ${sanitizedResponse}`
@@ -112,25 +115,33 @@ Extract rules as a bulleted list. Each bullet must be a clear, standalone rule. 
       if (text !== 'NO_RULES' && text.trim().length > 0) {
         const rules = text
           .split('\n')
-          .filter((r) => r.trim().startsWith('-'))
-          .map((r) => redactSensitiveData(r.replace(/^- /, '').trim()))
+          .filter((r) => r.trim().match(/^-\s+/))
+          .map((r) => redactSensitiveData(r.replace(/^-\s*/, '').trim()))
+          .filter((r) => r.length > 0)
+          .slice(0, 50)
 
-        for (const rule of rules) {
-          await db.insert(projectRules).values({
+        if (rules.length > 0) {
+          const ruleRows = rules.map((rule) => ({
             userId,
-            repoUrl,
+            repoUrl: normalizedRepoUrl,
             ruleContent: rule,
             isApproved: false,
             sourceTaskId: taskId,
-          })
+          }))
+
+          await db.insert(projectRules).values(ruleRows)
+          console.log('[Rules] Successfully extracted rules for task')
         }
-        console.log('[Rules] Successfully extracted rules for task')
       }
     } catch (error) {
       clearTimeout(timeoutId)
-      console.error(`[Rules] Error extracting rules for task ${taskId}:`, error)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('[Rules] Rule extraction timed out')
+      } else {
+        console.error('[Rules] Error extracting rules')
+      }
     }
   } catch (error) {
-    console.error(`[Rules] Error extracting rules for task ${taskId}:`, error)
+    console.error('[Rules] Error extracting rules')
   }
 }

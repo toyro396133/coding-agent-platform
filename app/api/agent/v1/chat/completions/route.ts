@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
 import { generateId } from '@/lib/utils/id'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
 import { createFallbackBranchName } from '@/lib/utils/branch-name-generator'
 import { createFallbackTitle } from '@/lib/utils/title-generator'
+import { z } from 'zod'
+import { eq } from 'drizzle-orm'
 
 // OpenAI Chat Completions compatible endpoint
 export async function POST(req: NextRequest) {
@@ -34,7 +36,18 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Parse OpenAI Payload
-    const body = await req.json()
+    let body: any
+    try {
+      body = await req.json()
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: { message: 'Invalid JSON in request body', type: 'invalid_request_error' },
+        },
+        { status: 400 },
+      )
+    }
+
     const { messages, model, stream, platform_config, extra_body } = body
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -48,6 +61,15 @@ export async function POST(req: NextRequest) {
 
     // Get the last user message as the prompt
     const lastMessage = messages[messages.length - 1]
+    if (!lastMessage || typeof lastMessage !== 'object' || lastMessage === null) {
+      return NextResponse.json(
+        {
+          error: { message: 'Invalid message format', type: 'invalid_request_error' },
+        },
+        { status: 400 },
+      )
+    }
+
     if (lastMessage.role !== 'user') {
       return NextResponse.json(
         {
@@ -75,6 +97,38 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Validate repoUrl format and scheme
+    const repoUrlSchema = z.string().url().refine(
+      (url) => {
+        try {
+          const parsed = new URL(url)
+          // Only allow https scheme
+          if (parsed.protocol !== 'https:') {
+            return false
+          }
+          // Restrict to approved repository hosts
+          const allowedHosts = ['github.com', 'gitlab.com', 'bitbucket.org']
+          return allowedHosts.includes(parsed.hostname)
+        } catch {
+          return false
+        }
+      },
+      { message: 'Repository URL must be HTTPS and from an approved host (github.com, gitlab.com, bitbucket.org)' },
+    )
+
+    const repoUrlValidation = repoUrlSchema.safeParse(repoUrl)
+    if (!repoUrlValidation.success) {
+      return NextResponse.json(
+        {
+          error: {
+            message: repoUrlValidation.error.issues[0]?.message || 'Invalid repository URL',
+            type: 'invalid_request_error',
+          },
+        },
+        { status: 400 },
+      )
+    }
+
     // 3. Create Task Record
     const taskId = generateId(12)
     const actualBranchName = branchName || createFallbackBranchName(taskId)
@@ -92,6 +146,8 @@ export async function POST(req: NextRequest) {
       status: 'pending',
       repoUrl,
       branchName: actualBranchName,
+      selectedAgent,
+      keepAlive,
 
       agentSessionId: null,
       progress: 0,
@@ -108,7 +164,7 @@ export async function POST(req: NextRequest) {
       selectedAgent,
       keepAlive,
       installDependencies: true,
-      executionMode: 'auto',
+      executionMode: 'orchestrator_external',
       executionLevel: 'auto',
     }
 
@@ -118,19 +174,55 @@ export async function POST(req: NextRequest) {
     // OR if streaming is requested, we pipe the SSE.
 
     // Start the process in the background using the internal API
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `http://${req.headers.get('host')}`
+    const baseUrl = process.env.INTERNAL_API_BASE_URL
+    const internalToken = process.env.INTERNAL_SYSTEM_TOKEN
 
-    // We don't await this so it runs in background
-    fetch(`${baseUrl}/api/tasks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // In a real app we'd need an internal system token here, or bypass auth for internal calls
-        // For simplicity in this implementation we'll pass the API key again
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(orchestratorPayload),
-    }).catch((err) => console.error('Background task start failed', err))
+    if (!baseUrl || !internalToken) {
+      return NextResponse.json(
+        {
+          error: {
+            message: 'Internal API configuration is missing',
+            type: 'api_error',
+          },
+        },
+        { status: 500 },
+      )
+    }
+
+    // Use after() to ensure the task invocation continues after response is returned
+    after(async () => {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+        const response = await fetch(`${baseUrl}/api/tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${internalToken}`,
+          },
+          body: JSON.stringify(orchestratorPayload),
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error('Task invocation failed')
+        }
+      } catch (err) {
+        // Update task to error status
+        await db
+          .update(tasks)
+          .set({
+            status: 'error',
+            error: 'Failed to start background task processing',
+            updatedAt: new Date(),
+          })
+          .where(eq(tasks.id, taskId))
+        console.error('Background task invocation failed')
+      }
+    })
 
     // 4. Return OpenAI Compatible Response
     if (stream) {
@@ -214,7 +306,7 @@ export async function POST(req: NextRequest) {
       })
     }
   } catch (error) {
-    console.error('Error in OpenAI compatible endpoint:', error)
+    console.error('Error in OpenAI compatible endpoint')
     return NextResponse.json(
       {
         error: {

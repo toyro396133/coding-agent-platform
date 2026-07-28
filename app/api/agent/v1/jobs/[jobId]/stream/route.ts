@@ -2,7 +2,35 @@ import { NextRequest } from 'next/server'
 import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
 import { db } from '@/lib/db/client'
 import { tasks, taskMessages } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, asc } from 'drizzle-orm'
+
+// Maximum polling duration in milliseconds (5 minutes)
+const MAX_POLLING_DURATION = 5 * 60 * 1000
+
+// Helper function to fetch and send final messages
+async function sendFinalMessages(jobId: string, sendEvent: (data: any) => void) {
+  const msgs = await db
+    .select()
+    .from(taskMessages)
+    .where(eq(taskMessages.taskId, jobId))
+    .orderBy(asc(taskMessages.createdAt))
+    .limit(100)
+
+  if (msgs.length > 0) {
+    sendEvent({
+      id: `job-messages-${jobId}`,
+      object: 'platform.job.messages',
+      created: Math.floor(Date.now() / 1000),
+      messages: msgs.map((m) => ({
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt,
+      })),
+    })
+  }
+
+  sendEvent({ done: true })
+}
 
 export async function GET(req: NextRequest, context: { params: Promise<{ jobId: string }> }) {
   try {
@@ -52,17 +80,27 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
 
     // 3. Set up SSE stream
     const encoder = new TextEncoder()
+    let isClosed = false
+    let intervalId: NodeJS.Timeout | null = null
     const stream = new ReadableStream({
       async start(controller) {
-        let isClosed = false
-
         req.signal.addEventListener('abort', () => {
           isClosed = true
+          if (intervalId) {
+            clearInterval(intervalId)
+          }
         })
 
         const sendEvent = (data: any) => {
-          if (!isClosed) {
+          if (isClosed) return
+          try {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+          } catch (err) {
+            // Stream is closed or errored, mark as closed to stop further attempts
+            isClosed = true
+            if (intervalId) {
+              clearInterval(intervalId)
+            }
           }
         }
 
@@ -77,23 +115,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
 
         // If the task is already in a terminal state, just send the final status and close
         if (task.status === 'completed' || task.status === 'error' || task.status === 'stopped') {
-          // Fetch any agent messages
-          const msgs = await db.select().from(taskMessages).where(eq(taskMessages.taskId, jobId))
-
-          if (msgs.length > 0) {
-            sendEvent({
-              id: `job-messages-${jobId}`,
-              object: 'platform.job.messages',
-              created: Math.floor(Date.now() / 1000),
-              messages: msgs.map((m) => ({
-                role: m.role,
-                content: m.content,
-                createdAt: m.createdAt,
-              })),
-            })
-          }
-
-          sendEvent({ done: true })
+          await sendFinalMessages(jobId, sendEvent)
           if (!isClosed) {
             controller.enqueue(encoder.encode('data: [DONE]\n\n'))
             controller.close()
@@ -107,74 +129,103 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
 
         let lastStatus = task.status as any
         let lastProgress = task.progress || 0
+        let lastHeartbeat = Date.now()
+        const pollingStartTime = Date.now()
 
-        const intervalId = setInterval(async () => {
+        intervalId = setInterval(async () => {
           if (isClosed) {
-            clearInterval(intervalId)
+            if (intervalId) {
+              clearInterval(intervalId)
+            }
             return
           }
 
           try {
+            // Check for max polling duration
+            if (Date.now() - pollingStartTime > MAX_POLLING_DURATION) {
+              if (!isClosed) {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                controller.close()
+              }
+              if (intervalId) {
+                clearInterval(intervalId)
+              }
+              return
+            }
+
+            // Send periodic heartbeat (every 15 seconds)
+            if (Date.now() - lastHeartbeat > 15000) {
+              if (!isClosed) {
+                controller.enqueue(encoder.encode(': ping\n\n'))
+              }
+              lastHeartbeat = Date.now()
+            }
+
             const currentTaskResult = await db
               .select({ status: tasks.status, progress: tasks.progress })
               .from(tasks)
               .where(eq(tasks.id, jobId))
               .limit(1)
 
-            if (currentTaskResult.length > 0) {
-              const currentTask = currentTaskResult[0]
+            // Task no longer exists
+            if (currentTaskResult.length === 0) {
+              if (!isClosed) {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                controller.close()
+              }
+              if (intervalId) {
+                clearInterval(intervalId)
+              }
+              return
+            }
 
-              if (currentTask.status !== lastStatus || currentTask.progress !== lastProgress) {
-                lastStatus = currentTask.status as any
-                lastProgress = currentTask.progress || 0
+            const currentTask = currentTaskResult[0]
 
-                sendEvent({
-                  id: `job-sync-${jobId}-${Date.now()}`,
-                  object: 'platform.job.status',
-                  created: Math.floor(Date.now() / 1000),
-                  status: currentTask.status,
-                  progress: currentTask.progress || 0,
-                })
+            if (currentTask.status !== lastStatus || currentTask.progress !== lastProgress) {
+              lastStatus = currentTask.status as any
+              lastProgress = currentTask.progress || 0
 
-                if (
-                  currentTask.status === 'completed' ||
-                  currentTask.status === 'error' ||
-                  currentTask.status === 'stopped'
-                ) {
-                  // Fetch final messages
-                  const msgs = await db.select().from(taskMessages).where(eq(taskMessages.taskId, jobId))
+              sendEvent({
+                id: `job-sync-${jobId}-${Date.now()}`,
+                object: 'platform.job.status',
+                created: Math.floor(Date.now() / 1000),
+                status: currentTask.status,
+                progress: currentTask.progress || 0,
+              })
 
-                  if (msgs.length > 0) {
-                    sendEvent({
-                      id: `job-messages-${jobId}`,
-                      object: 'platform.job.messages',
-                      created: Math.floor(Date.now() / 1000),
-                      messages: msgs.map((m) => ({
-                        role: m.role,
-                        content: m.content,
-                        createdAt: m.createdAt,
-                      })),
-                    })
-                  }
-
-                  sendEvent({ done: true })
-                  if (!isClosed) {
-                    controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-                    controller.close()
-                  }
+              if (
+                currentTask.status === 'completed' ||
+                currentTask.status === 'error' ||
+                currentTask.status === 'stopped'
+              ) {
+                await sendFinalMessages(jobId, sendEvent)
+                if (!isClosed) {
+                  controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                  controller.close()
+                }
+                if (intervalId) {
                   clearInterval(intervalId)
                 }
               }
             }
           } catch (e) {
-            console.error('Error polling task status:', e)
+            console.error('Error polling task status')
           }
         }, 3000) // Poll every 3 seconds
 
         // Cleanup on close
         req.signal.addEventListener('abort', () => {
-          clearInterval(intervalId)
+          if (intervalId) {
+            clearInterval(intervalId)
+          }
         })
+      },
+      cancel() {
+        // Handle client disconnects
+        isClosed = true
+        if (intervalId) {
+          clearInterval(intervalId)
+        }
       },
     })
 
@@ -186,7 +237,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
       },
     })
   } catch (error) {
-    console.error('Error in job stream endpoint:', error)
+    console.error('Error in job stream endpoint')
     return new Response(
       JSON.stringify({
         error: { message: 'Internal server error', type: 'api_error' },

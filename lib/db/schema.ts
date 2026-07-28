@@ -376,19 +376,26 @@ export type Key = z.infer<typeof selectKeySchema>
 export type InsertKey = z.infer<typeof insertKeySchema>
 
 // Platform API Keys table - keys issued BY the platform to users for external API access
-export const platformApiKeys = pgTable('platform_api_keys', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => nanoid()),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  hashedValue: text('hashed_value').notNull(),
-  hint: text('hint').notNull(), // e.g. sk-platform-...1234
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+export const platformApiKeys = pgTable(
+  'platform_api_keys',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    hashedValue: text('hashed_value').notNull(),
+    hint: text('hint').notNull(), // e.g. sk-platform-...1234
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    hashedValueIdx: index('platform_api_keys_hashed_value_idx').on(table.hashedValue),
+    userIdCreatedAtIdx: index('platform_api_keys_user_id_created_at_idx').on(table.userId, table.createdAt),
+  }),
+)
 
 export const insertPlatformApiKeySchema = z.object({
   id: z.string().optional(),

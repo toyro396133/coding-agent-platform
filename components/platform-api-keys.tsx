@@ -30,16 +30,25 @@ export function PlatformApiKeys() {
   const [newKeyName, setNewKeyName] = useState('')
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<{ name: string; value: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [fetchSequence, setFetchSequence] = useState(0)
 
-  const fetchKeys = async () => {
+  const fetchKeys = async (currentSequence: number) => {
     try {
       const res = await fetch('/api/user/platform-keys')
       if (res.ok) {
         const data = await res.json()
-        setKeys(data.apiKeys || [])
+        // Only update state if this is still the current fetch sequence
+        setKeys((prev) => {
+          if (currentSequence >= fetchSequence) {
+            return data.apiKeys || []
+          }
+          return prev
+        })
+      } else {
+        toast.error('Failed to load API keys')
       }
     } catch (error) {
-      console.error('Error fetching keys:', error)
+      console.error('Error fetching keys')
       toast.error('Failed to load API keys')
     } finally {
       setLoading(false)
@@ -47,8 +56,10 @@ export function PlatformApiKeys() {
   }
 
   useEffect(() => {
-    fetchKeys()
-  }, [])
+    const currentSeq = fetchSequence
+    fetchKeys(currentSeq)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchSequence])
 
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,13 +77,13 @@ export function PlatformApiKeys() {
         const data = await res.json()
         setNewlyCreatedKey(data.key)
         setNewKeyName('')
-        fetchKeys() // Refresh list
+        setFetchSequence((seq) => seq + 1) // Trigger refresh
       } else {
         const error = await res.json()
         toast.error(error.error || 'Failed to create key')
       }
     } catch (error) {
-      console.error('Error creating key:', error)
+      console.error('Error creating key')
       toast.error('Failed to create API key')
     } finally {
       setCreating(false)
@@ -91,7 +102,7 @@ export function PlatformApiKeys() {
 
       if (res.ok) {
         toast.success('API key revoked')
-        setKeys(keys.filter((k) => k.id !== id))
+        setKeys((prev) => prev.filter((k) => k.id !== id))
       } else {
         toast.error('Failed to revoke key')
       }
@@ -100,11 +111,15 @@ export function PlatformApiKeys() {
     }
   }
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (newlyCreatedKey?.value) {
-      navigator.clipboard.writeText(newlyCreatedKey.value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      try {
+        await navigator.clipboard.writeText(newlyCreatedKey.value)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        toast.error('Failed to copy to clipboard')
+      }
     }
   }
 
@@ -174,6 +189,7 @@ export function PlatformApiKeys() {
                             size="icon"
                             className="text-destructive hover:bg-destructive/10"
                             onClick={() => handleDeleteKey(key.id)}
+                            aria-label="Revoke API key"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -194,8 +210,8 @@ export function PlatformApiKeys() {
             <DialogTitle>API Key Created</DialogTitle>
             <DialogDescription>
               Please save this secret key somewhere safe and accessible. For security reasons,{' '}
-              <strong>you won't be able to view it again</strong> through your account. If you lose this secret key,
-              you'll need to generate a new one.
+              <strong>you won&apos;t be able to view it again</strong> through your account. If you lose this secret
+              key, you&apos;ll need to generate a new one.
             </DialogDescription>
           </DialogHeader>
 
@@ -208,7 +224,7 @@ export function PlatformApiKeys() {
                 className="font-mono text-sm bg-muted"
               />
             </div>
-            <Button size="icon" onClick={copyToClipboard} variant="outline">
+            <Button size="icon" onClick={copyToClipboard} variant="outline" aria-label="Copy API key">
               {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>

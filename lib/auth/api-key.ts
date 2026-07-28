@@ -28,7 +28,7 @@ export async function validatePlatformApiKey(token: string): Promise<string | nu
 
     return null
   } catch (error) {
-    console.error('Error validating platform API key:', error)
+    console.error('Error validating platform API key')
     return null
   }
 }

@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       apiKeys: keys.reverse(), // latest first
     })
   } catch (error) {
-    console.error('Error fetching platform API keys:', error)
+    console.error('Error fetching platform API keys')
     return NextResponse.json({ error: 'Failed to fetch API keys' }, { status: 500 })
   }
 }
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { name } = body as { name: string }
 
-    if (!name || name.trim().length === 0) {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error creating platform API key:', error)
+    console.error('Error creating platform API key')
     return NextResponse.json({ error: 'Failed to create API key' }, { status: 500 })
   }
 }
@@ -121,7 +121,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting platform API key:', error)
+    console.error('Error deleting platform API key')
     return NextResponse.json({ error: 'Failed to delete API key' }, { status: 500 })
   }
 }

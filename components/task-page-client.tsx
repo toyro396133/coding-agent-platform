@@ -107,11 +107,7 @@ export function TaskPageClient({
             variant="ghost"
             size="sm"
             className={cn('h-7 px-2 text-xs gap-1', showGitPanel && 'bg-accent')}
-            onClick={() => {
-              setShowGitPanel(!showGitPanel)
-              setShowPlugins(false)
-              setShowPersistent(false)
-            }}
+            onClick={() => { setShowGitPanel(!showGitPanel); setShowPlugins(false); setShowPersistent(false) }}
           >
             <GitBranch className="h-3.5 w-3.5" />
             Git
@@ -120,11 +116,7 @@ export function TaskPageClient({
             variant="ghost"
             size="sm"
             className={cn('h-7 px-2 text-xs gap-1', showPlugins && 'bg-accent')}
-            onClick={() => {
-              setShowPlugins(!showPlugins)
-              setShowGitPanel(false)
-              setShowPersistent(false)
-            }}
+            onClick={() => { setShowPlugins(!showPlugins); setShowGitPanel(false); setShowPersistent(false) }}
           >
             <Puzzle className="h-3.5 w-3.5" />
             Extensions
@@ -133,11 +125,7 @@ export function TaskPageClient({
             variant="ghost"
             size="sm"
             className={cn('h-7 px-2 text-xs gap-1', showPersistent && 'bg-accent')}
-            onClick={() => {
-              setShowPersistent(!showPersistent)
-              setShowGitPanel(false)
-              setShowPlugins(false)
-            }}
+            onClick={() => { setShowPersistent(!showPersistent); setShowGitPanel(false); setShowPlugins(false) }}
           >
             <X className="h-3.5 w-3.5" />
             Cloud Agent

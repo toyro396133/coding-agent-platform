@@ -29,11 +29,9 @@ export async function runOrchestrator(prompt: string, options: RunOrchestratorOp
   const config = getModeConfig(level)
   let modeInstructions = ''
   if (level === 'enhanced') {
-    modeInstructions =
-      '\nYou are in enhanced mode with additional capabilities: web search, planning, file tools, shell tools, LSP, browser, research, session management, and background tasks. Use these tools when appropriate.'
+    modeInstructions = '\nYou are in enhanced mode with additional capabilities: web search, planning, file tools, shell tools, LSP, browser, research, session management, and background tasks. Use these tools when appropriate.'
   } else if (level === 'auto') {
-    modeInstructions =
-      '\nYou are in auto mode. You start with session and background tools, and can escalate to additional capabilities as needed based on task complexity.'
+    modeInstructions = '\nYou are in auto mode. You start with session and background tools, and can escalate to additional capabilities as needed based on task complexity.'
   }
 
   const systemPrompt =

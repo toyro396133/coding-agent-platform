@@ -3,12 +3,7 @@ import { getServerSession } from '@/lib/session/get-server-session'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import {
-  startPersistentAgent,
-  stopPersistentAgent,
-  getPersistentAgentStatus,
-  listActivePersistentAgents,
-} from '@/lib/ai/orchestrator/runtime/persistent-agent'
+import { startPersistentAgent, stopPersistentAgent, getPersistentAgentStatus, listActivePersistentAgents } from '@/lib/ai/orchestrator/runtime/persistent-agent'
 
 interface RouteParams {
   params: Promise<{ taskId: string }>
@@ -97,8 +92,8 @@ export async function GET() {
       .from(tasks)
       .where(and(eq(tasks.userId, session.user.id), isNull(tasks.deletedAt)))
 
-    const userTaskIdSet = new Set(userTaskIds.map((t) => t.id))
-    const userAgents = allAgents.filter((agent) => userTaskIdSet.has(agent.taskId))
+    const userTaskIdSet = new Set(userTaskIds.map(t => t.id))
+    const userAgents = allAgents.filter(agent => userTaskIdSet.has(agent.taskId))
 
     return NextResponse.json({ agents: userAgents })
   } catch (error) {

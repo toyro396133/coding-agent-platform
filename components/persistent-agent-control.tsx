@@ -89,7 +89,11 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
           <Badge variant={running ? 'default' : 'secondary'} className="text-[10px] px-2 py-0 h-5">
             {running ? 'Running' : 'Stopped'}
           </Badge>
-          {running && <span className="text-xs text-muted-foreground">Runs: {runs}</span>}
+          {running && (
+            <span className="text-xs text-muted-foreground">
+              Runs: {runs}
+            </span>
+          )}
           <div className="flex-1" />
           {running ? (
             <Button variant="destructive" size="sm" className="h-7 px-3 text-xs" onClick={stopAgent} disabled={loading}>

@@ -39,10 +39,7 @@ Analyze for:
 
 Output a JSON with "summary" (string) and "issues" (array of {severity, file, line?, message})`
 
-    const result = await runInProject(sandbox, 'sh', [
-      '-c',
-      `echo "${reviewPrompt}" | head -c 10000 > /tmp/review-prompt.txt`,
-    ])
+    const result = await runInProject(sandbox, 'sh', ['-c', `echo "${reviewPrompt}" | head -c 10000 > /tmp/review-prompt.txt`])
     if (!result.success) return defaultIssues
 
     return {

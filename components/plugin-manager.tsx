@@ -104,13 +104,7 @@ export function PluginManager({ className }: PluginManagerProps) {
             onChange={(e) => setPluginSource(e.target.value)}
             className="h-8 text-xs flex-1"
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-2 text-xs"
-            onClick={addPlugin}
-            disabled={adding || !pluginName || !pluginSource}
-          >
+          <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={addPlugin} disabled={adding || !pluginName || !pluginSource}>
             {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             Add
           </Button>
@@ -133,13 +127,7 @@ export function PluginManager({ className }: PluginManagerProps) {
                     {plugin.source}
                   </Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => removePlugin(plugin.name)}
-                  aria-label={`Remove ${plugin.name} plugin`}
-                >
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removePlugin(plugin.name)} aria-label={`Remove ${plugin.name} plugin`}>
                   <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </div>

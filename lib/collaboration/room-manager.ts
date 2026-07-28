@@ -68,7 +68,10 @@ export function leaveRoom(taskId: string, userId: string): boolean {
   return deleted
 }
 
-export function addMessage(taskId: string, message: Omit<CollaborationMessage, 'timestamp'>): CollaborationMessage | null {
+export function addMessage(
+  taskId: string,
+  message: Omit<CollaborationMessage, 'timestamp'>,
+): CollaborationMessage | null {
   const room = rooms.get(taskId)
   if (!room) return null
 

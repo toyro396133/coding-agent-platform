@@ -465,11 +465,13 @@ async function processTask(
     await logger.updateProgress(15, 'Creating sandbox environment')
     console.log('Creating sandbox')
 
-    checkLocalEnvironment().then((localEnv) => {
-      if (localEnv.available) {
-        console.log('Local environment available')
-      }
-    }).catch(() => {})
+    checkLocalEnvironment()
+      .then((localEnv) => {
+        if (localEnv.available) {
+          console.log('Local environment available')
+        }
+      })
+      .catch(() => {})
 
     // Detect the appropriate port for the project
     const port = await detectPortFromRepo(repoUrl, githubToken)

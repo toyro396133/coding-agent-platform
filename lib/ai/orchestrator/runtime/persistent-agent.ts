@@ -15,7 +15,10 @@ export interface PersistentRunResult {
   timestamp: number
 }
 
-const activePersistentAgents = new Map<string, { config: PersistentAgentConfig; timer: ReturnType<typeof setInterval>; runs: number }>()
+const activePersistentAgents = new Map<
+  string,
+  { config: PersistentAgentConfig; timer: ReturnType<typeof setInterval>; runs: number }
+>()
 
 export function startPersistentAgent(config: PersistentAgentConfig): boolean {
   if (activePersistentAgents.has(config.taskId)) {
@@ -71,7 +74,11 @@ export function stopPersistentAgent(taskId: string): boolean {
   return true
 }
 
-export function getPersistentAgentStatus(taskId: string): { running: boolean; runs: number; config?: PersistentAgentConfig } {
+export function getPersistentAgentStatus(taskId: string): {
+  running: boolean
+  runs: number
+  config?: PersistentAgentConfig
+} {
   const entry = activePersistentAgents.get(taskId)
   if (!entry) {
     return { running: false, runs: 0 }

@@ -98,23 +98,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate repoUrl format and scheme
-    const repoUrlSchema = z.string().url().refine(
-      (url) => {
-        try {
-          const parsed = new URL(url)
-          // Only allow https scheme
-          if (parsed.protocol !== 'https:') {
+    const repoUrlSchema = z
+      .string()
+      .url()
+      .refine(
+        (url) => {
+          try {
+            const parsed = new URL(url)
+            // Only allow https scheme
+            if (parsed.protocol !== 'https:') {
+              return false
+            }
+            // Restrict to approved repository hosts
+            const allowedHosts = ['github.com', 'gitlab.com', 'bitbucket.org']
+            return allowedHosts.includes(parsed.hostname)
+          } catch {
             return false
           }
-          // Restrict to approved repository hosts
-          const allowedHosts = ['github.com', 'gitlab.com', 'bitbucket.org']
-          return allowedHosts.includes(parsed.hostname)
-        } catch {
-          return false
-        }
-      },
-      { message: 'Repository URL must be HTTPS and from an approved host (github.com, gitlab.com, bitbucket.org)' },
-    )
+        },
+        { message: 'Repository URL must be HTTPS and from an approved host (github.com, gitlab.com, bitbucket.org)' },
+      )
 
     const repoUrlValidation = repoUrlSchema.safeParse(repoUrl)
     if (!repoUrlValidation.success) {

@@ -95,7 +95,9 @@ export function PlanReview({ taskId, onReviewed }: PlanReviewProps) {
         </div>
 
         <div className="space-y-2 mt-4">
-          <label htmlFor="plan-feedback" className="text-sm font-medium">Feedback (Required for rejection)</label>
+          <label htmlFor="plan-feedback" className="text-sm font-medium">
+            Feedback (Required for rejection)
+          </label>
           <Textarea
             id="plan-feedback"
             placeholder="Tell the agent what to change..."

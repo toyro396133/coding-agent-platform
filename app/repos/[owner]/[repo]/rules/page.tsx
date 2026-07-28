@@ -17,7 +17,9 @@ export default function RulesPage({ params }: { params: Promise<{ owner: string;
 
   const fetchRules = async (abortSignal: AbortSignal) => {
     try {
-      const res = await fetch(`/api/repos/${unwrappedParams.owner}/${unwrappedParams.repo}/rules`, { signal: abortSignal })
+      const res = await fetch(`/api/repos/${unwrappedParams.owner}/${unwrappedParams.repo}/rules`, {
+        signal: abortSignal,
+      })
       if (res.ok) {
         const data = await res.json()
         if (!abortSignal.aborted) {

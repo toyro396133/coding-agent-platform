@@ -1,0 +1,19 @@
+{
+  "name": "visual-qa-mcp",
+  "version": "1.0.0",
+  "description": "Visual QA MCP Server for Vercel Sandbox",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.4.1",
+    "playwright-core": "^1.49.0",
+    "openai": "^4.77.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^20.0.0"
+  }
+}

@@ -47,6 +47,27 @@ export async function executeAgentInSandbox(
   }
 
   // For Copilot agent, get the GitHub token from the user's GitHub account
+
+  // Ensure we have an mcpServers array
+  let enhancedMcpServers = mcpServers ? [...mcpServers] : []
+
+  // Inject the Visual QA MCP Server dynamically
+  enhancedMcpServers.push({
+    id: 'visual-qa-mcp-internal',
+    userId: 'system',
+    name: 'Visual QA',
+    description: 'Visual QA Tool',
+    type: 'local',
+    command: 'node /vercel/sandbox/mcp/visual-qa/index.js',
+    baseUrl: null,
+    oauthClientId: null,
+    oauthClientSecret: null,
+    env: null,
+    status: 'connected',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })
+
   let githubToken: string | undefined
   if (agentType === 'copilot') {
     const { getUserGitHubToken } = await import('@/lib/github/user-token')
@@ -82,7 +103,7 @@ export async function executeAgentInSandbox(
           instruction,
           logger,
           selectedModel,
-          mcpServers,
+          enhancedMcpServers,
           isResumed,
           sessionId,
           taskId,
@@ -95,7 +116,7 @@ export async function executeAgentInSandbox(
           instruction,
           logger,
           selectedModel,
-          mcpServers,
+          enhancedMcpServers,
           isResumed,
           sessionId,
         )
@@ -106,7 +127,7 @@ export async function executeAgentInSandbox(
           instruction,
           logger,
           selectedModel,
-          mcpServers,
+          enhancedMcpServers,
           isResumed,
           sessionId,
           taskId,
@@ -118,14 +139,14 @@ export async function executeAgentInSandbox(
           instruction,
           logger,
           selectedModel,
-          mcpServers,
+          enhancedMcpServers,
           isResumed,
           sessionId,
           taskId,
         )
 
       case 'gemini':
-        return await executeGeminiInSandbox(sandbox, instruction, logger, selectedModel, mcpServers)
+        return await executeGeminiInSandbox(sandbox, instruction, logger, selectedModel, enhancedMcpServers)
 
       case 'opencode':
         return await executeOpenCodeInSandbox(
@@ -133,7 +154,7 @@ export async function executeAgentInSandbox(
           instruction,
           logger,
           selectedModel,
-          mcpServers,
+          enhancedMcpServers,
           isResumed,
           sessionId,
         )

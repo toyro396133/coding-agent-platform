@@ -32,6 +32,13 @@ async function sendFinalMessages(jobId: string, sendEvent: (data: any) => void) 
   sendEvent({ done: true })
 }
 
+/**
+ * Streams authenticated job status updates and completion messages over Server-Sent Events.
+ *
+ * @param req - The incoming request containing the authorization credentials and abort signal.
+ * @param context - The route context containing the job identifier.
+ * @returns An SSE response with job updates, or a JSON error response when authentication, authorization, or processing fails.
+ */
 export async function GET(req: NextRequest, context: { params: Promise<{ jobId: string }> }) {
   try {
     // 1. Authenticate Request

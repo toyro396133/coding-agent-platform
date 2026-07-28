@@ -23,6 +23,9 @@ type PlatformApiKey = {
   createdAt: string
 }
 
+/**
+ * Manages platform API key creation, listing, revocation, and one-time secret-key access.
+ */
 export function PlatformApiKeys() {
   const [keys, setKeys] = useState<PlatformApiKey[]>([])
   const [loading, setLoading] = useState(true)

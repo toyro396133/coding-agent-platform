@@ -11,7 +11,7 @@ export interface RoutingDecision {
 }
 
 const complexitySchema = z.object({
-  complexity: z.number().min(1).max(5).describe('The complexity of the task on a scale from 1 to 5.'),
+  complexity: z.number().int().min(1).max(5).describe('The complexity of the task on a scale from 1 to 5.'),
   reasoning: z.string().describe('A brief explanation for the assigned complexity score.'),
 })
 
@@ -45,7 +45,7 @@ export async function analyzePromptComplexity(
       reasoning: object.reasoning,
     }
   } catch (error) {
-    console.error('Failed to analyze prompt complexity, defaulting to level 3:', error)
+    console.error('Failed to analyze prompt complexity, defaulting to level 3')
     return {
       complexity: 3,
       reasoning: 'Fallback complexity due to analysis failure.',
@@ -55,19 +55,42 @@ export async function analyzePromptComplexity(
 
 /**
  * Routes the prompt to the most appropriate model based on its complexity.
+ * Optionally respects agent type to ensure model compatibility.
  */
-export async function routePrompt(prompt: string): Promise<RoutingDecision> {
+export async function routePrompt(prompt: string, agentType?: string): Promise<RoutingDecision> {
   const analysis = await analyzePromptComplexity(prompt)
 
   let recommendedModel = 'gpt-4o-mini' // Default to cheap model
 
-  if (analysis.complexity >= 4) {
-    recommendedModel = 'claude-3-5-sonnet-20241022' // Assuming this is the elite model we want to use for 4-5
-  } else if (analysis.complexity === 3) {
-    recommendedModel = 'gpt-4o' // Middle ground
+  // Provider-aware model selection
+  if (agentType === 'claude') {
+    // Claude agent should only use Claude models
+    if (analysis.complexity >= 4) {
+      recommendedModel = 'claude-3-5-sonnet-20241022'
+    } else if (analysis.complexity === 3) {
+      recommendedModel = 'claude-3-5-sonnet-20241022'
+    } else {
+      recommendedModel = 'claude-3-5-haiku'
+    }
+  } else if (agentType === 'gemini') {
+    // Gemini agent should only use Gemini models
+    if (analysis.complexity >= 4) {
+      recommendedModel = 'gemini-2.5-pro'
+    } else if (analysis.complexity === 3) {
+      recommendedModel = 'gemini-2.5-flash'
+    } else {
+      recommendedModel = 'gemini-2.5-flash'
+    }
   } else {
-    // 1-2
-    recommendedModel = 'gpt-4o-mini'
+    // For other agents (codex, copilot, cursor, opencode) or when agentType is not specified,
+    // use OpenAI models as they are widely compatible
+    if (analysis.complexity >= 4) {
+      recommendedModel = 'claude-3-5-sonnet-20241022' // Elite model for high complexity
+    } else if (analysis.complexity === 3) {
+      recommendedModel = 'gpt-4o' // Middle ground
+    } else {
+      recommendedModel = 'gpt-4o-mini'
+    }
   }
 
   return {

@@ -644,11 +644,11 @@ async function processTask(
     if (!selectedModel || selectedModel === 'auto') {
       try {
         await logger.info('Analyzing prompt complexity for smart routing...')
-        const routingDecision = await routePrompt(prompt)
+        const routingDecision = await routePrompt(prompt, selectedAgent)
         finalModel = routingDecision.model
-        await logger.info(`Routing decision: Complexity ${routingDecision.complexity}/5 -> Model ${finalModel}`)
+        await logger.info('Routing decision completed')
       } catch (error) {
-        console.error('Smart routing failed, defaulting to gpt-4o:', error)
+        console.error('Smart routing failed, defaulting to gpt-4o')
         finalModel = 'gpt-4o'
       }
     } else {

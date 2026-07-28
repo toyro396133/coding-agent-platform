@@ -39,9 +39,12 @@ Analyze for:
 
 Output a JSON with "summary" (string) and "issues" (array of {severity, file, line?, message})`
 
+    // Safely write the prompt to file using base64 encoding to avoid shell injection
+    const promptTruncated = reviewPrompt.slice(0, 10000)
+    const base64Prompt = Buffer.from(promptTruncated).toString('base64')
     const result = await runInProject(sandbox, 'sh', [
       '-c',
-      `echo "${reviewPrompt}" | head -c 10000 > /tmp/review-prompt.txt`,
+      `echo "${base64Prompt}" | base64 -d > /tmp/review-prompt.txt`,
     ])
     if (!result.success) return defaultIssues
 

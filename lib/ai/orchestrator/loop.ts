@@ -1,4 +1,8 @@
 import { generateText, stepCountIs } from 'ai'
+import { db } from '@/lib/db/client'
+import { getProjectRules } from './rules'
+import { tasks } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { getModelClient } from '@/lib/ai/models'
 import { OrchestratorState, type OrchestratorResult } from './state'
 import { createOrchestratorTools } from './tools'
@@ -9,6 +13,7 @@ import type { CapabilityLevel } from './capabilities/types'
 interface RunOrchestratorOptions {
   taskId: string
   userId?: string
+  repoUrl?: string
   selectedModel?: string
   systemPrompt?: string
   maxSteps?: number
@@ -36,12 +41,24 @@ export async function runOrchestrator(prompt: string, options: RunOrchestratorOp
       '\nYou are in auto mode. You start with session and background tools, and can escalate to additional capabilities as needed based on task complexity.'
   }
 
+  const rulesText = await getProjectRules(options.userId || '', options.repoUrl || '')
+
   const systemPrompt =
     (options.systemPrompt ||
       'You are the Orchestrator Agent. Analyze the task below. If it is complex, spawn sub-agents using the available tools. Once you have all necessary results, call `finalize` with your synthesized answer or refined prompt. Keep your answer concise and actionable.') +
-    modeInstructions
+    modeInstructions +
+    rulesText
 
   while (state.steps < state.maxSteps && !state.completed) {
+    // Check if task is paused for planning approval
+    const [currentTask] = await db.select({ status: tasks.status }).from(tasks).where(eq(tasks.id, options.taskId))
+    if (currentTask && currentTask.status === 'PLANNING_PENDING_APPROVAL') {
+      state.completed = true
+      state.paused = true
+      state.appendContext('Task paused waiting for user approval of the plan.')
+      break
+    }
+
     const legacyTools = createOrchestratorTools(state)
     let allTools = { ...legacyTools }
 

@@ -1,3 +1,4 @@
+import { semanticCodeSearchTool } from './semantic-code-search'
 import { tool } from 'ai'
 import { z } from 'zod'
 import type { ToolContext, ResearchResult } from './types'
@@ -6,6 +7,7 @@ export function createResearchTools(ctx: ToolContext) {
   const results: ResearchResult[] = []
 
   return {
+    semanticCodeSearch: semanticCodeSearchTool(ctx.userId, ctx.repoUrl || ''),
     exploreRepository: tool({
       description:
         'Analyze project structure, identify key files, dependencies, and configuration. Use when starting work on an unfamiliar codebase.',

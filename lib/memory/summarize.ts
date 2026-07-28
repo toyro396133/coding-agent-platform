@@ -1,6 +1,9 @@
 import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { saveMemory } from './engine'
+import { db } from '@/lib/db/client'
+import { projectRules } from '@/lib/db/schema'
+import { normalizeRepoUrl } from '@/lib/utils/repo-url'
 
 function redactSensitiveData(text: string): string {
   let redacted = text
@@ -73,5 +76,72 @@ Create a concise summary (1-3 sentences) that will be useful for future tasks. I
     }
   } catch (error) {
     console.error(`[Memory] Error summarizing task ${taskId}:`, error)
+  }
+}
+
+export async function extractAndStoreProjectRules(
+  userId: string,
+  repoUrl: string,
+  taskId: string,
+  prompt: string,
+  agentResponse: string | null,
+) {
+  try {
+    if (!process.env.OPENAI_API_KEY || !repoUrl) {
+      return
+    }
+
+    const normalizedRepoUrl = normalizeRepoUrl(repoUrl)
+
+    const sanitizedPrompt = redactSensitiveData(prompt)
+    const sanitizedResponse = agentResponse ? redactSensitiveData(agentResponse) : ''
+    const contextText = `User Request: ${sanitizedPrompt}\n\nAgent Output: ${sanitizedResponse}`
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+    try {
+      const { text } = await generateText({
+        model: openai('gpt-4o-mini') as any,
+        system: `You are an expert system designed to extract project rules (like Cursor Rules) for an AI coding agent.
+Your goal is to read the completion of a task and extract any new coding standards, stylistic preferences, architectural rules, or constraints that should be applied globally to this repository.
+Extract rules as a bulleted list. Each bullet must be a clear, standalone rule. Do not include introductory or concluding text. If there are no global rules to extract, respond with 'NO_RULES'.`,
+        prompt: contextText,
+        abortSignal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (text !== 'NO_RULES' && text.trim().length > 0) {
+        const rules = text
+          .split('\n')
+          .filter((r) => r.trim().match(/^-\s+/))
+          .map((r) => redactSensitiveData(r.replace(/^-\s*/, '').trim()))
+          .filter((r) => r.length > 0)
+          .slice(0, 50)
+
+        if (rules.length > 0) {
+          const ruleRows = rules.map((rule) => ({
+            userId,
+            repoUrl: normalizedRepoUrl,
+            ruleContent: rule,
+            isApproved: false,
+            sourceTaskId: taskId,
+          }))
+
+          await db.insert(projectRules).values(ruleRows)
+          console.log('[Rules] Successfully extracted rules for task')
+        }
+      }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('[Rules] Rule extraction timed out')
+      } else {
+        console.error('[Rules] Error extracting rules')
+      }
+    }
+  } catch (error) {
+    console.error('[Rules] Error extracting rules')
   }
 }

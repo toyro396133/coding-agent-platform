@@ -1,4 +1,6 @@
-# מחקר מקיף: סוכני קוד, פלטפורמות פיתוח מבוססות AI והשוואה למערכת שלנו
+# -*- coding: utf-8 -*-
+
+content = """# מחקר מקיף: סוכני קוד, פלטפורמות פיתוח מבוססות AI והשוואה למערכת שלנו
 
 מחקר זה סוקר עשרות סוכני קוד, סביבות פיתוח מבוססות AI (Agentic IDEs), ופלטפורמות אוטונומיות מובילות נכון להיום, ומפרט את סט היכולות שלהן בהשוואה לפלטפורמה שלנו. המטרה היא להבין אילו יכולות נדרשות כדי להפוך את המערכת שלנו ל**סוכן עצמאי (Standalone Agent)**, **מפעיל סוכנים (Orchestrator)** ו**נתב API (API Router)**.
 
@@ -94,3 +96,9 @@
 ### ד. חזיתות טכנולוגיות מתקדמות (Nice to have for Enterprise)
 * **Visual Web Testing (Browser Tool):** יכולת לפתוח דפדפן Headless בארגז החול, לצלם את הדף (`localhost:3000`) ולהעביר ל-Vision Model כדי שהסוכן "יראה" שגיאות UI ויתקן אותן בעצמו - בדומה ליכולות דגל של Devin או Bolt.new.
 * **GitHub App Integration:** מעבר מ-Push רגיל ל-GitHub App אמיתי שמקבל Webhooks ויכול להאזין לתגובות ב-Pull Requests ולבצע תיקונים באופן אוטומטי (CI/CD Bot).
+"""
+
+with open("AGENT_RESEARCH.md", "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("Updated AGENT_RESEARCH.md successfully.")

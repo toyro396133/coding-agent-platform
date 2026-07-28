@@ -20,9 +20,4 @@ export interface PluginApi {
 }
 
 export type PluginHookName =
-  | 'onTaskStart'
-  | 'onTaskComplete'
-  | 'onMessage'
-  | 'onFileChange'
-  | 'onGitPush'
-  | 'onCodeReview'
+  'onTaskStart' | 'onTaskComplete' | 'onMessage' | 'onFileChange' | 'onGitPush' | 'onCodeReview'

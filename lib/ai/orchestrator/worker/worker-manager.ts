@@ -2,6 +2,33 @@ import { Sandbox } from '@vercel/sandbox'
 import { runInProject, runCommandInSandbox, PROJECT_DIR } from '@/lib/sandbox/commands'
 import type { WorkerSpec, WorkerTeamSpec, WorkerResult, WorkerTeamResult } from './types'
 
+/**
+ * Run a list of promises with an overall timeout.
+ * Rejects if the timeout is reached before all promises settle.
+ */
+async function promiseWithTimeout<T>(promises: Promise<T>[], timeoutMs: number): Promise<T[]> {
+  if (timeoutMs <= 0) {
+    return Promise.all(promises)
+  }
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('Worker team deployment timed out'))
+    }, timeoutMs)
+  })
+
+  try {
+    const result = await Promise.race([Promise.all(promises), timeoutPromise])
+    return result
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────
 
 /**
@@ -15,11 +42,12 @@ import type { WorkerSpec, WorkerTeamSpec, WorkerResult, WorkerTeamResult } from 
  */
 export async function deployWorkerTeam(spec: WorkerTeamSpec, _taskId: string): Promise<WorkerTeamResult> {
   const startTime = Date.now()
+  const overallTimeout = spec.timeoutMs ?? 30 * 60 * 1000 // default 30 min
 
   // Spawn ALL workers in parallel — each gets its own sandbox
   const workerPromises = spec.workers.map(async (worker) => deploySingleWorker(worker, spec))
 
-  const results = await Promise.all(workerPromises)
+  const results = await promiseWithTimeout(workerPromises, overallTimeout)
 
   const successCount = results.filter((r) => r.success).length
   const failCount = results.filter((r) => !r.success).length
@@ -216,20 +244,18 @@ async function runClaudeWorker(sandbox: Sandbox, worker: WorkerSpec, spec: Worke
   const baseUrl = 'https://ai-gateway.vercel.sh'
   const model = worker.model || 'claude-sonnet-4-5'
 
-  // Use --resume-latest for continuation context when available
-  const escapedInstructions = worker.instructions
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/`/g, "'")
-    .replace(/\$/g, '')
+  // Write instructions to a temp file to avoid shell escaping issues
+  const instructionsFile = await writeInstructionsFile(sandbox, worker)
 
+  // Use file-based instruction passing — cat output in $() is safe
+  // because the result is not re-interpreted within double quotes
   const fullCommand = [
     `cd "${PROJECT_DIR}"`,
     `ANTHROPIC_API_KEY="${apiKey}"`,
     `ANTHROPIC_BASE_URL="${baseUrl}"`,
     `claude --model "${model}"`,
     '--dangerously-skip-permissions',
-    `"${escapedInstructions}"`,
+    `"$(cat '${instructionsFile}')"`,
   ].join(' ')
 
   const result = await runCommandInSandbox(sandbox, 'sh', ['-c', fullCommand])
@@ -258,20 +284,18 @@ async function runCursorWorker(sandbox: Sandbox, worker: WorkerSpec, spec: Worke
   }
 
   const modelFlag = worker.model ? `--model ${worker.model}` : ''
-  const escapedInstructions = worker.instructions
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/`/g, "'")
-    .replace(/\$/g, '')
 
+  // Write instructions to a temp file to avoid shell escaping issues
+  const instructionsFile = await writeInstructionsFile(sandbox, worker)
+
+  // Use absolute path for reliability; CURSOR_API_KEY must be on the SAME command as cursor-agent
   const fullCommand = [
     `cd "${PROJECT_DIR}"`,
+    '&&',
     `CURSOR_API_KEY="${apiKey}"`,
-    '/home/vercel-sandbox/.local/bin/cursor-agent',
-    '-p',
-    '--force',
+    '/home/vercel-sandbox/.local/bin/cursor-agent -p --force',
     modelFlag,
-    `"${escapedInstructions}"`,
+    `"$(cat '${instructionsFile}')"`,
   ]
     .filter(Boolean)
     .join(' ')
@@ -301,18 +325,55 @@ async function runCodexWorker(sandbox: Sandbox, worker: WorkerSpec, spec: Worker
   }
 
   const model = worker.model || 'openai/gpt-4o'
-  const escapedInstructions = worker.instructions
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/`/g, "'")
-    .replace(/\$/g, '')
+
+  // Determine API key type and configure accordingly (mirrors codex.ts)
+  const isVercelKey = apiKey.startsWith('vck_')
+  // For Vercel AI Gateway keys, set base_url to the gateway; for OpenAI keys, use direct API
+
+  // Create config.toml with model_provider + base_url (same as original codex.ts)
+  let configToml: string
+  if (isVercelKey) {
+    configToml = `model = "${model}"
+model_provider = "vercel-ai-gateway"
+
+[model_providers.vercel-ai-gateway]
+name = "Vercel AI Gateway"
+base_url = "https://ai-gateway.vercel.sh/v1"
+env_key = "AI_GATEWAY_API_KEY"
+wire_api = "responses"
+
+[debug]
+log_requests = true
+`
+  } else {
+    configToml = `model = "${model}"
+model_provider = "openai"
+
+[model_providers.openai]
+name = "OpenAI"
+base_url = "https://api.openai.com/v1"
+env_key = "AI_GATEWAY_API_KEY"
+wire_api = "responses"
+
+[debug]
+log_requests = true
+`
+  }
+
+  // Write config.toml to ~/.codex/
+  const writeConfigCmd = `mkdir -p ~/.codex && cat > ~/.codex/config.toml << 'CODEX_EOF'
+${configToml}CODEX_EOF`
+  await runCommandInSandbox(sandbox, 'sh', ['-c', writeConfigCmd])
+
+  // Write instructions to a temp file to avoid shell escaping issues
+  const instructionsFile = await writeInstructionsFile(sandbox, worker)
 
   const fullCommand = [
     `cd "${PROJECT_DIR}"`,
     `AI_GATEWAY_API_KEY="${apiKey}"`,
     `HOME="/home/vercel-sandbox"`,
     'codex exec --dangerously-bypass-approvals-and-sandbox',
-    `"${escapedInstructions}"`,
+    `"$(cat '${instructionsFile}')"`,
   ].join(' ')
 
   const result = await runCommandInSandbox(sandbox, 'sh', ['-c', fullCommand])
@@ -330,33 +391,68 @@ async function runGeminiWorker(sandbox: Sandbox, worker: WorkerSpec, spec: Worke
     return { success: false, error: 'Gemini worker requires GEMINI_API_KEY' }
   }
 
-  // Install Gemini CLI if not already present
-  const whichResult = await runCommandInSandbox(sandbox, 'which', ['gemini'])
-  if (!whichResult.success) {
-    const installResult = await runCommandInSandbox(sandbox, 'npm', ['install', '-g', '@google/gemini-cli'])
-    if (!installResult.success) {
-      return { success: false, error: 'Failed to install Gemini CLI in worker' }
+  // Write instructions to a temp file to avoid shell escaping issues
+  const instructionsFile = await writeInstructionsFile(sandbox, worker)
+
+  // Use npx @google/gemini-cli instead of global install — avoids PATH issues
+  // and ensures the latest version is always used
+
+  // 3-tier fallback matching original gemini.ts:
+  // 1) Try with --yolo (auto-approve all tools)
+  // 2) Failover to --approval-mode auto_edit with text output
+  // 3) Minimal flags as last resort
+  const tryCommands = [
+    // Tier 1: yolo mode
+    [
+      `cd "${PROJECT_DIR}"`,
+      `GEMINI_API_KEY="${apiKey}"`,
+      'npx --yes @google/gemini-cli --yolo',
+      `"$(cat '${instructionsFile}')"`,
+    ].join(' '),
+    // Tier 2: approval-mode auto_edit with text output
+    [
+      `cd "${PROJECT_DIR}"`,
+      `GEMINI_API_KEY="${apiKey}"`,
+      'npx --yes @google/gemini-cli --approval-mode auto_edit -o text',
+      `"$(cat '${instructionsFile}')"`,
+    ].join(' '),
+    // Tier 3: minimal flags (just model if specified)
+    [
+      `cd "${PROJECT_DIR}"`,
+      `GEMINI_API_KEY="${apiKey}"`,
+      worker.model ? `npx --yes @google/gemini-cli -m ${worker.model}` : 'npx --yes @google/gemini-cli',
+      `"$(cat '${instructionsFile}')"`,
+    ].join(' '),
+  ]
+
+  let lastResult: { success: boolean; error?: string; output?: string } | null = null
+  for (const cmd of tryCommands) {
+    const result = await runCommandInSandbox(sandbox, 'sh', ['-c', cmd])
+    lastResult = result
+
+    // Success — return immediately
+    if (result.success) {
+      return {
+        success: true,
+        error: undefined,
+        response: result.output,
+      }
     }
+
+    // Tool registry errors are common in sandboxes — try next tier
+    if (result.error?.includes('Tool') && result.error?.includes('not found in registry')) {
+      continue // try next fallback
+    }
+
+    // Other errors are terminal for the worker (auth failure, etc.)
+    // But still try the next tier as a best-effort
   }
 
-  const escapedInstructions = worker.instructions
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/`/g, "'")
-    .replace(/\$/g, '')
-
-  const fullCommand = [
-    `cd "${PROJECT_DIR}"`,
-    `GEMINI_API_KEY="${apiKey}"`,
-    `gemini --dangerously-skip-permissions "${escapedInstructions}"`,
-  ].join(' ')
-
-  const result = await runCommandInSandbox(sandbox, 'sh', ['-c', fullCommand])
-
+  // All tiers failed — return the last error
   return {
-    success: result.success,
-    error: result.error,
-    response: result.output,
+    success: false,
+    error: lastResult?.error || 'Gemini worker failed after all fallbacks',
+    response: lastResult?.output,
   }
 }
 
@@ -390,8 +486,28 @@ async function runGenericWorker(
   }
 }
 
+// ─── Safe instruction passing via temp files ────────────────────────────
+
+/**
+ * Write worker instructions to a temp file using base64 encoding,
+ * completely avoiding shell escaping issues.
+ */
+async function writeInstructionsFile(sandbox: Sandbox, worker: WorkerSpec): Promise<string> {
+  // Sanitize worker ID for use as a filename
+  const safeId = worker.id.replace(/[^a-zA-Z0-9_-]/g, '_')
+  const filePath = `/tmp/worker-instructions-${safeId}.txt`
+
+  // Base64 is safe in single quotes (no ' char in its alphabet)
+  const b64 = Buffer.from(worker.instructions, 'utf-8').toString('base64')
+  const writeCmd = `printf '%s' '${b64}' | base64 -d > '${filePath}'`
+  await runCommandInSandbox(sandbox, 'sh', ['-c', writeCmd])
+
+  return filePath
+}
+
 // ─── Utilities ───────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createSilentLogger(): any {
   return {
     info: async () => {},
@@ -400,7 +516,6 @@ function createSilentLogger(): any {
     success: async () => {},
     updateProgress: async () => {},
     updateStatus: async () => {},
-    warn: async () => {},
   }
 }
 

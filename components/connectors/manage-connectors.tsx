@@ -50,10 +50,13 @@ import {
   addCustomServerAtom,
   goBackFromFormAtom,
   goBackFromPresetsAtom,
+  openMarketplaceAtom,
+  goBackFromMarketplaceAtom,
   onSuccessActionAtom,
   clearPresetActionAtom,
   type PresetConfig,
 } from '@/lib/atoms/connector-dialog'
+import { McpMarketplace } from '@/components/mcp-marketplace'
 
 interface ConnectorDialogProps {
   open: boolean
@@ -140,6 +143,8 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
   const addCustomServer = useSetAtom(addCustomServerAtom)
   const goBackFromForm = useSetAtom(goBackFromFormAtom)
   const goBackFromPresets = useSetAtom(goBackFromPresetsAtom)
+  const openMarketplace = useSetAtom(openMarketplaceAtom)
+  const goBackFromMarketplace = useSetAtom(goBackFromMarketplaceAtom)
   const onSuccessAction = useSetAtom(onSuccessActionAtom)
   const clearPreset = useSetAtom(clearPresetActionAtom)
 
@@ -316,11 +321,15 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
         <DialogContent className="w-[800px] max-w-[90vw] max-h-[80vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center">
-              {(view === 'form' || view === 'presets') && (
+              {(view === 'form' || view === 'presets' || view === 'marketplace') && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => (view === 'form' ? goBackFromForm() : goBackFromPresets())}
+                  onClick={() => {
+                    if (view === 'form') goBackFromForm()
+                    else if (view === 'marketplace') goBackFromMarketplace()
+                    else goBackFromPresets()
+                  }}
                   className="mr-2 -ml-2"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -328,11 +337,13 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
               )}
               {view === 'list' && 'MCP Servers'}
               {view === 'presets' && 'Add MCP Server'}
+              {view === 'marketplace' && 'MCP Marketplace'}
               {view === 'form' && (isEditing ? 'Edit MCP Server' : 'MCP Servers')}
             </DialogTitle>
             <DialogDescription>
               {view === 'list' && 'Manage your Model Context Protocol servers.'}
               {view === 'presets' && 'Choose a preset or add a custom server.'}
+              {view === 'marketplace' && 'Browse and install built-in MCP servers with one click.'}
               {view === 'form' && 'Allow agents to reference other apps and services for more context.'}
             </DialogDescription>
           </DialogHeader>
@@ -394,6 +405,13 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                 </Button>
               </div>
             </div>
+          ) : view === 'marketplace' ? (
+            <div className="py-4 overflow-y-auto max-h-[60vh]">
+              <McpMarketplace
+                installedConnectorNames={connectors.map((c) => c.name)}
+                onInstalled={() => refreshConnectors()}
+              />
+            </div>
           ) : view === 'presets' ? (
             <div className="space-y-4 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-3 gap-6">
@@ -427,9 +445,14 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                   </button>
                 ))}
               </div>
-              <Button variant="outline" className="w-full" onClick={() => addCustomServer()}>
-                Add Custom MCP Server
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => addCustomServer()}>
+                  Add Custom MCP Server
+                </Button>
+                <Button variant="default" className="flex-1" onClick={() => openMarketplace()}>
+                  Browse Marketplace
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4 overflow-y-auto max-h-[60vh]">

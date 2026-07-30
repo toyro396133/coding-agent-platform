@@ -27,7 +27,14 @@ function getPricing(model) {
 }
 
 function estimateAgentCost(params) {
-  const { systemPrompt, userPrompt, model, contextFiles = [], estimatedTurns = 5, estimatedOutputTokens = 2000 } = params
+  const {
+    systemPrompt,
+    userPrompt,
+    model,
+    contextFiles = [],
+    estimatedTurns = 5,
+    estimatedOutputTokens = 2000,
+  } = params
   const pricing = getPricing(model)
   const systemTokens = estimateTokens(systemPrompt || '')
   const userTokens = estimateTokens(userPrompt || '')
@@ -46,7 +53,11 @@ function estimateAgentCost(params) {
   const cacheWriteCost = (cacheWriteTokens / 1_000_000) * pricing.cacheWrite
   const totalCost = inputCost + outputCost + cacheReadCost + cacheWriteCost
   const breakdown = `Model: ${model}\nTotal: ~$${totalCost.toFixed(4)}`
-  return { estimatedCost: totalCost, estimatedTokens: { input: totalInputTokens, output: totalOutputTokens }, breakdown }
+  return {
+    estimatedCost: totalCost,
+    estimatedTokens: { input: totalInputTokens, output: totalOutputTokens },
+    breakdown,
+  }
 }
 
 function quickCostEstimate(prompt, model) {
@@ -97,7 +108,8 @@ function formatAutoFixSummary(result) {
 function extractPaths(errorOutput) {
   const projectPrefix = 'project'
   // NB: longer extensions FIRST so .tsx is not captured as .ts
-  const regex = /(?:\/vercel\/sandbox\/project\/)?([a-zA-Z0-9_\-./@#~]+\.(?:tsx|ts|jsx|js|mjs|cjs|css|json))(?::\d+|\(\d+[,:]\d+\))?/g
+  const regex =
+    /(?:\/vercel\/sandbox\/project\/)?([a-zA-Z0-9_\-./@#~]+\.(?:tsx|ts|jsx|js|mjs|cjs|css|json))(?::\d+|\(\d+[,:]\d+\))?/g
   const matchedPaths = new Set()
   let match
   while ((match = regex.exec(errorOutput)) !== null) {
@@ -132,16 +144,26 @@ let failed = 0
 const errors = []
 
 function assert(condition, label) {
-  if (condition) { passed++ }
-  else { failed++; errors.push(`❌ FAIL: ${label}`) }
+  if (condition) {
+    passed++
+  } else {
+    failed++
+    errors.push(`❌ FAIL: ${label}`)
+  }
 }
 
 function assertIncludes(str, needle, label) {
-  if (str.includes(needle)) { passed++ }
-  else { failed++; errors.push(`❌ FAIL: ${label} — expected "${needle}" in "${str.slice(0, 80)}"`) }
+  if (str.includes(needle)) {
+    passed++
+  } else {
+    failed++
+    errors.push(`❌ FAIL: ${label} — expected "${needle}" in "${str.slice(0, 80)}"`)
+  }
 }
 
-function header(label) { console.log(`\n═══ ${label} ═══`) }
+function header(label) {
+  console.log(`\n═══ ${label} ═══`)
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 //  1. COST ESTIMATOR
@@ -172,7 +194,12 @@ const exp = quickCostEstimate('Build a distributed system with microservices and
 assert(exp.costLevel === 'expensive', 'claude-opus-4-5 is expensive')
 
 // 1g. estimateAgentCost full
-const est = estimateAgentCost({ systemPrompt: 'You are a bot', userPrompt: 'Write code', model: 'gpt-4o-mini', estimatedTurns: 3 })
+const est = estimateAgentCost({
+  systemPrompt: 'You are a bot',
+  userPrompt: 'Write code',
+  model: 'gpt-4o-mini',
+  estimatedTurns: 3,
+})
 assert(est.estimatedCost >= 0, 'estimateAgentCost cost >= 0')
 assert(est.estimatedTokens.input >= 10, 'estimateAgentCost input tokens >= 10')
 assert(est.estimatedTokens.output > 0, 'estimateAgentCost output tokens > 0')
@@ -194,7 +221,12 @@ assert(neg.estimatedCost > 0, 'negative turns clamped to 1 turn (cost > 0)')
 assert(neg.estimatedTokens.output === 2000, 'negative turns → 1 turn, 2000 output tokens')
 
 // 1k. null/undefined prompts
-const nullPrompt = estimateAgentCost({ systemPrompt: null, userPrompt: undefined, model: 'gpt-4o-mini', estimatedTurns: 1 })
+const nullPrompt = estimateAgentCost({
+  systemPrompt: null,
+  userPrompt: undefined,
+  model: 'gpt-4o-mini',
+  estimatedTurns: 1,
+})
 assert(nullPrompt.estimatedCost >= 0, 'null/undefined prompts handled')
 
 // 1l. getCostLevelInfo all levels
@@ -216,7 +248,14 @@ header('Auto-Fix Summary')
 // 2a. Successful
 const s1 = formatAutoFixSummary({
   success: true,
-  attempts: [{ attemptNumber: 1, success: true, appliedFix: { explanation: 'Fixed ButtonProps', fileEdits: [{ filePath: 'a.ts', newContent: '' }] }, durationMs: 2500 }],
+  attempts: [
+    {
+      attemptNumber: 1,
+      success: true,
+      appliedFix: { explanation: 'Fixed ButtonProps', fileEdits: [{ filePath: 'a.ts', newContent: '' }] },
+      durationMs: 2500,
+    },
+  ],
   totalDurationMs: 2500,
 })
 assertIncludes(s1, 'succeeded', 'summary success')
@@ -248,8 +287,19 @@ assertIncludes(s3, '0 attempt(s)', 'summary zero attempts')
 const s4 = formatAutoFixSummary({
   success: true,
   attempts: [
-    { attemptNumber: 1, success: false, durationMs: 800, error: 'Syntax error', appliedFix: { explanation: 'Tried', fileEdits: [{ filePath: 'a.ts', newContent: '' }] } },
-    { attemptNumber: 2, success: true, durationMs: 1200, appliedFix: { explanation: 'Fixed', fileEdits: [{ filePath: 'a.ts', newContent: '' }] } },
+    {
+      attemptNumber: 1,
+      success: false,
+      durationMs: 800,
+      error: 'Syntax error',
+      appliedFix: { explanation: 'Tried', fileEdits: [{ filePath: 'a.ts', newContent: '' }] },
+    },
+    {
+      attemptNumber: 2,
+      success: true,
+      durationMs: 1200,
+      appliedFix: { explanation: 'Fixed', fileEdits: [{ filePath: 'a.ts', newContent: '' }] },
+    },
   ],
   totalDurationMs: 2000,
 })
@@ -285,19 +335,19 @@ header('Path Traversal Guards')
 
 // 3a. Simple traversal: ../etc/passwd
 const t1 = extractPaths('Error in ../../etc/passwd:12:5')
-assert(!t1.some(p => p.includes('..')), 'simple ../etc/passwd rejected')
+assert(!t1.some((p) => p.includes('..')), 'simple ../etc/passwd rejected')
 
 // 3b. Deep traversal
 const t2 = extractPaths('Error in ../../../../etc/hosts.ts:1:1')
-assert(!t2.some(p => p.includes('..')), 'deep ../../../../etc/hosts.ts rejected')
+assert(!t2.some((p) => p.includes('..')), 'deep ../../../../etc/hosts.ts rejected')
 
 // 3c. Middle traversal: src/../foo.ts
 const t3 = extractPaths('Error in src/../foo.ts:1:1')
-assert(!t3.some(p => p.includes('..')), 'src/../foo.ts rejected')
+assert(!t3.some((p) => p.includes('..')), 'src/../foo.ts rejected')
 
 // 3d. Traversal in scoped name (should reject even though unlikely)
 const t4 = extractPaths('Error in @foo/..test.ts')
-assert(!t4.some(p => p.includes('..')), 'scoped with .. rejected')
+assert(!t4.some((p) => p.includes('..')), 'scoped with .. rejected')
 
 // 3e. Normal paths accepted
 const t5 = extractPaths('Error in src/foo.ts:12:5')
@@ -313,15 +363,13 @@ assert(t7.includes('@/components/Button.tsx'), '@ alias resolved — @ prefix is
 
 // 3h. node_modules excluded
 const t8 = extractPaths('Error in node_modules/foo/index.ts:12:5')
-assert(!t8.some(p => p.includes('node_modules')), 'node_modules excluded')
+assert(!t8.some((p) => p.includes('node_modules')), 'node_modules excluded')
 
 // 3i. Mixed: prefixed + unprefixed + node_modules
-const t9 = extractPaths(
-  '/vercel/sandbox/project/src/App.tsx:10:2\nsrc/utils.ts:5:1\nnode_modules/bar.ts:1:1'
-)
+const t9 = extractPaths('/vercel/sandbox/project/src/App.tsx:10:2\nsrc/utils.ts:5:1\nnode_modules/bar.ts:1:1')
 assert(t9.includes('src/App.tsx'), 'prefixed resolved — /vercel/sandbox/project/ prefix stripped')
 assert(t9.includes('src/utils.ts'), 'unprefixed accepted')
-assert(!t9.some(p => p.includes('node_modules')), 'node_modules excluded mixed')
+assert(!t9.some((p) => p.includes('node_modules')), 'node_modules excluded mixed')
 
 // 3j. Empty error output
 const t10 = extractPaths('')
@@ -434,7 +482,7 @@ assert(emptyCount === 0, 'empty output = 0 failures')
 
 // 5h. Dependency audit check (should NOT match "found 0 vulnerabilities")
 const cleanAudit = 'found 0 vulnerabilities'
-const hasVulnerabilities = !true  // The fix: only check exit code, not string includes
+const hasVulnerabilities = !true // The fix: only check exit code, not string includes
 assert(!hasVulnerabilities, 'clean audit with 0 vulnerabilities is not flagged')
 
 // 5i. Test "failed" word in different casing
@@ -459,15 +507,32 @@ const manyTurns = estimateAgentCost({ systemPrompt: 'A', userPrompt: 'B', model:
 assert(manyTurns.estimatedTokens.output === 2000 * 20, '100 turns capped at 20')
 
 // 6c. estimateAgentCost with contextFiles
-const withFiles = estimateAgentCost({ systemPrompt: 'A', userPrompt: 'B', model: 'gpt-4o-mini', contextFiles: ['x'.repeat(1000), 'y'.repeat(1000)], estimatedTurns: 1 })
+const withFiles = estimateAgentCost({
+  systemPrompt: 'A',
+  userPrompt: 'B',
+  model: 'gpt-4o-mini',
+  contextFiles: ['x'.repeat(1000), 'y'.repeat(1000)],
+  estimatedTurns: 1,
+})
 assert(withFiles.estimatedTokens.input > estimateTokens('A') + estimateTokens('B'), 'context files add input tokens')
 
 // 6d. many context files
-const manyFiles = estimateAgentCost({ systemPrompt: 'A', userPrompt: 'B', model: 'gpt-4o-mini', contextFiles: Array(50).fill('content'), estimatedTurns: 2 })
+const manyFiles = estimateAgentCost({
+  systemPrompt: 'A',
+  userPrompt: 'B',
+  model: 'gpt-4o-mini',
+  contextFiles: Array(50).fill('content'),
+  estimatedTurns: 2,
+})
 assert(manyFiles.estimatedTokens.input > 0, '50 context files handled')
 
 // 6e. Extremely long prompt
-const longPrompt = estimateAgentCost({ systemPrompt: 'x'.repeat(50000), userPrompt: 'y'.repeat(50000), model: 'gpt-4o-mini', estimatedTurns: 5 })
+const longPrompt = estimateAgentCost({
+  systemPrompt: 'x'.repeat(50000),
+  userPrompt: 'y'.repeat(50000),
+  model: 'gpt-4o-mini',
+  estimatedTurns: 5,
+})
 assert(longPrompt.estimatedCost > 0, '100k char prompts handled')
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -481,6 +546,8 @@ if (failed > 0) {
   for (const err of errors) console.error(err)
   process.exit(1)
 } else {
-  console.log('✅ All checks passed!  (Tested actual code paths: cost estimation, auto-fix summaries, path traversal guards, worker auth URLs, pipeline regex patterns, and boundary conditions)')
+  console.log(
+    '✅ All checks passed!  (Tested actual code paths: cost estimation, auto-fix summaries, path traversal guards, worker auth URLs, pipeline regex patterns, and boundary conditions)',
+  )
   process.exit(0)
 }

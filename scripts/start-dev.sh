@@ -6,4 +6,4 @@
 
 set -e
 
-exec /usr/bin/node /home/daytona/codebase/node_modules/next/dist/bin/next dev --webpack --hostname 0.0.0.0 --port "${PORT:-3000}"
+exec /usr/bin/node /home/daytona/codebase/node_modules/next/dist/bin/next dev --webpack --hostname 0.0.0.0 --port "${PORT:-3256}"

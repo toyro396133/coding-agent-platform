@@ -15,9 +15,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Loader2, ArrowUp, Settings, X, Cable, Users, Globe } from 'lucide-react'
+import { Loader2, ArrowUp, Settings, X, Cable, Users, Globe, Workflow } from 'lucide-react'
+import { CostEstimation } from '@/components/cost-estimation'
 import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
 import { setInstallDependencies, setMaxDuration, setKeepAlive, setEnableBrowser } from '@/lib/utils/cookies'
+import { WorkerTeamBuilder, type WorkerTeamConfig, type WorkerConfig } from '@/components/worker-team-builder'
 import { useConnectors } from '@/components/connectors-provider'
 import { ConnectorDialog } from '@/components/connectors/manage-connectors'
 import { toast } from 'sonner'
@@ -27,6 +29,7 @@ import { taskPromptAtom } from '@/lib/atoms/task'
 import { lastSelectedAgentAtom, lastSelectedModelAtomFamily } from '@/lib/atoms/agent-selection'
 import { githubReposAtomFamily } from '@/lib/atoms/github-cache'
 import { useSearchParams } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 interface GitHubRepo {
   name: string
@@ -49,6 +52,7 @@ interface TaskFormProps {
     keepAlive: boolean
     enableBrowser: boolean
     executionLevel?: string
+    workerTeam?: WorkerTeamConfig
   }) => void
   isSubmitting: boolean
   selectedOwner: string
@@ -126,6 +130,11 @@ export function TaskForm({
   const [enableBrowser, setEnableBrowserState] = useState(initialEnableBrowser)
   const [executionLevel, setExecutionLevel] = useState<string>('basic')
   const [showMcpServersDialog, setShowMcpServersDialog] = useState(false)
+  const [showWorkerTeam, setShowWorkerTeam] = useState(false)
+  const [workerTeamConfig, setWorkerTeamConfig] = useState<WorkerTeamConfig>({
+    workers: [],
+    timeoutMinutes: maxDuration,
+  })
 
   // Connectors state
   const { connectors } = useConnectors()
@@ -293,6 +302,7 @@ export function TaskForm({
         keepAlive,
         enableBrowser,
         executionLevel,
+        workerTeam: showWorkerTeam && workerTeamConfig.workers.length > 0 ? workerTeamConfig : undefined,
       })
       return
     }
@@ -341,6 +351,7 @@ export function TaskForm({
       keepAlive,
       enableBrowser,
       executionLevel,
+      workerTeam: showWorkerTeam && workerTeamConfig.workers.length > 0 ? workerTeamConfig : undefined,
     })
   }
 
@@ -571,6 +582,34 @@ export function TaskForm({
                           type="button"
                           variant="ghost"
                           size="sm"
+                          className={cn(
+                            'rounded-full h-8 w-8 p-0 relative',
+                            showWorkerTeam && 'bg-primary/10 text-primary',
+                          )}
+                          onClick={() => setShowWorkerTeam(!showWorkerTeam)}
+                        >
+                          <Workflow className="h-4 w-4" />
+                          {workerTeamConfig.workers.length > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full"
+                            >
+                              {workerTeamConfig.workers.length}
+                            </Badge>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Worker Team — parallel agents</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
                           className="rounded-full h-8 w-8 p-0 relative"
                           onClick={() => updateEnableBrowser(!enableBrowser)}
                         >
@@ -743,6 +782,37 @@ export function TaskForm({
           <div className="mt-2 text-xs text-muted-foreground text-center">
             This will create {selectedModels.length} separate task{selectedModels.length > 1 ? 's' : ''} (one for each
             selected model)
+          </div>
+        )}
+
+        {/* Cost Estimation */}
+        {prompt.trim() && selectedAgent !== 'multi-agent' && !showWorkerTeam && (
+          <div className="mt-2">
+            <CostEstimation prompt={prompt} selectedModel={selectedModel} />
+          </div>
+        )}
+
+        {/* Worker Team Builder */}
+        {showWorkerTeam && (
+          <div className="mt-3 border rounded-xl p-4 bg-muted/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Workflow className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Worker Team</span>
+              </div>
+              <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                {workerTeamConfig.workers.length === 0
+                  ? 'No workers'
+                  : `${workerTeamConfig.workers.length} worker${workerTeamConfig.workers.length > 1 ? 's' : ''}`}
+              </Badge>
+            </div>
+            <WorkerTeamBuilder value={workerTeamConfig} onChange={setWorkerTeamConfig} />
+            {workerTeamConfig.workers.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Add workers to run multiple agents in parallel, each in its own sandbox. Use presets above to quickly
+                create a balanced team.
+              </p>
+            )}
           </div>
         )}
       </form>

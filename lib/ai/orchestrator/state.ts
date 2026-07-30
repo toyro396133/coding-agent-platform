@@ -14,6 +14,12 @@ export interface OrchestratorResult {
   paused?: boolean
 }
 
+export interface AgentTeamMember {
+  role: string
+  specialty: string
+  model: string
+}
+
 export class OrchestratorState {
   public steps = 0
   public maxSteps: number
@@ -23,8 +29,10 @@ export class OrchestratorState {
   public paused = false
   public subAgentResults: SubAgentResult[] = []
   public taskId: string
+  public userId: string = ''
   public capabilityLevel: CapabilityLevel = 'basic'
   public toolContext: ToolContext | null = null
+  public agentTeam: AgentTeamMember[] = []
   private checkpointFrequency: number
   private task: Task | null = null
   private logs: LogEntry[] = []

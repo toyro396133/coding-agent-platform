@@ -1,87 +1,43 @@
 'use client'
 
-import { InteractiveTaskPanel } from '@/components/tasks/interactive-task-panel'
-import { useLocale } from '@/components/providers/locale-provider'
-
-import { Task, Connector } from '@/lib/db/schema'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
-  GitBranch,
-  CheckCircle,
   AlertCircle,
-  Loader2,
-  Server,
   Cable,
-  Square,
-  GitPullRequest,
-  RotateCcw,
-  Trash2,
+  CheckCircle,
   ChevronDown,
-  XCircle,
   Code,
-  MessageSquare,
-  FileText,
-  Monitor,
+  ExternalLink,
   Eye,
   EyeOff,
-  RefreshCw,
-  Play,
-  StopCircle,
-  MoreVertical,
-  X,
-  ExternalLink,
-  Plus,
+  FileText,
+  GitBranch,
+  GitPullRequest,
+  Loader2,
   Maximize,
+  MessageSquare,
   Minimize,
+  Monitor,
+  MoreVertical,
+  Play,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Server,
+  Square,
+  StopCircle,
+  Trash2,
+  X,
+  XCircle,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
 import { useTasks } from '@/components/app-layout'
-import {
-  getShowFilesPane,
-  setShowFilesPane as saveShowFilesPane,
-  getShowCodePane,
-  setShowCodePane as saveShowCodePane,
-  getShowPreviewPane,
-  setShowPreviewPane as saveShowPreviewPane,
-  getShowChatPane,
-  setShowChatPane as saveShowChatPane,
-  getFilesPaneWidth,
-  setFilesPaneWidth as saveFilesPaneWidth,
-  getChatPaneWidth,
-  setChatPaneWidth as saveChatPaneWidth,
-} from '@/lib/utils/cookies'
+import { CheckpointBadge } from '@/components/checkpoint-viewer'
+import { CreatePRDialog } from '@/components/create-pr-dialog'
 import { FileBrowser } from '@/components/file-browser'
 import { FileDiffViewer } from '@/components/file-diff-viewer'
-import { CreatePRDialog } from '@/components/create-pr-dialog'
-import { MergePRDialog } from '@/components/merge-pr-dialog'
-import { TaskChat } from '@/components/task-chat'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import BrowserbaseIcon from '@/components/icons/browserbase-icon'
 import Context7Icon from '@/components/icons/context7-icon'
 import ConvexIcon from '@/components/icons/convex-icon'
@@ -92,7 +48,54 @@ import NotionIcon from '@/components/icons/notion-icon'
 import PlaywrightIcon from '@/components/icons/playwright-icon'
 import SupabaseIcon from '@/components/icons/supabase-icon'
 import VercelIcon from '@/components/icons/vercel-icon'
+import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { MergePRDialog } from '@/components/merge-pr-dialog'
+import { PipelineBadge } from '@/components/pipeline-status'
 import { PRStatusIcon } from '@/components/pr-status-icon'
+import { useLocale } from '@/components/providers/locale-provider'
+import { SandboxVisualizer, type SandboxVisualizerData } from '@/components/sandbox-visualizer'
+import { TaskChat } from '@/components/task-chat'
+import { InteractiveTaskPanel } from '@/components/tasks/interactive-task-panel'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { WorkerLogTabs } from '@/components/worker-log-tabs'
+import type { Connector, Task } from '@/lib/db/schema'
+import { cn } from '@/lib/utils'
+import {
+  getChatPaneWidth,
+  getFilesPaneWidth,
+  getShowChatPane,
+  getShowCodePane,
+  getShowFilesPane,
+  getShowPreviewPane,
+  setChatPaneWidth as saveChatPaneWidth,
+  setFilesPaneWidth as saveFilesPaneWidth,
+  setShowChatPane as saveShowChatPane,
+  setShowCodePane as saveShowCodePane,
+  setShowFilesPane as saveShowFilesPane,
+  setShowPreviewPane as saveShowPreviewPane,
+} from '@/lib/utils/cookies'
 
 interface TaskDetailsProps {
   task: Task
@@ -1532,6 +1535,58 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
               )}
             </div>
           )}
+
+          {/* Pipeline Badge */}
+          {currentStatus === 'completed' && task.branchName && <PipelineBadge stages={[]} className="flex-shrink-0" />}
+
+          {/* Checkpoint Badge */}
+          {currentStatus === 'completed' && task.branchName && (
+            <CheckpointBadge checkpoints={[]} className="flex-shrink-0" />
+          )}
+
+          {/* Worker Team Status — shown when task has worker team config */}
+          {(() => {
+            const wc = task.workerTeamConfig
+            if (!wc || !wc.workers || wc.workers.length === 0) return null
+            return (
+              <div className="w-full mt-2 border-t pt-2 space-y-3">
+                <SandboxVisualizer
+                  data={{
+                    workers: wc.workers.map((w) => ({
+                      id: w.id,
+                      role: w.role || w.agentType + ' worker',
+                      agentType: w.agentType,
+                      model: w.model,
+                      status: (currentStatus === 'processing'
+                        ? 'running'
+                        : currentStatus === 'completed'
+                          ? 'completed'
+                          : currentStatus === 'error'
+                            ? 'failed'
+                            : 'pending') as 'running' | 'completed' | 'failed' | 'pending',
+                      durationMs: task.updatedAt
+                        ? new Date(task.updatedAt).getTime() - new Date(task.createdAt!).getTime()
+                        : undefined,
+                      startedAt: task.createdAt ? new Date(task.createdAt).getTime() : undefined,
+                    })),
+                    overallStatus: (currentStatus === 'processing'
+                      ? 'running'
+                      : currentStatus === 'completed'
+                        ? 'completed'
+                        : currentStatus === 'error'
+                          ? 'failed'
+                          : 'idle') as 'running' | 'completed' | 'failed' | 'idle',
+                  }}
+                  pollUrl={`/api/tasks/${task.id}/worker-status`}
+                  pollInterval={3000}
+                  compact
+                />
+
+                {/* Worker Log Tabs — detailed per-worker logs */}
+                <WorkerLogTabs task={task} currentStatus={currentStatus} />
+              </div>
+            )
+          })()}
 
           {/* MCP Servers */}
           {!loadingMcpServers && mcpServers.length > 0 && (

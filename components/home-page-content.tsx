@@ -31,6 +31,7 @@ import { sessionAtom } from '@/lib/atoms/session'
 import { githubConnectionAtom, githubConnectionInitializedAtom } from '@/lib/atoms/github-connection'
 import { OpenRepoUrlDialog } from '@/components/open-repo-url-dialog'
 import { MultiRepoDialog } from '@/components/multi-repo-dialog'
+import { VERCEL_DEPLOY_URL } from '@/lib/constants'
 
 interface HomePageContentProps {
   initialSelectedOwner?: string
@@ -339,6 +340,10 @@ export function HomePageContent({
     keepAlive: boolean
     enableBrowser: boolean
     executionLevel?: string
+    workerTeam?: {
+      workers: { id: string; role: string; agentType: string; model: string; instructions: string; priority: number }[]
+      timeoutMinutes: number
+    }
   }) => {
     // Check if user is authenticated
     if (!user) {
@@ -522,7 +527,7 @@ export function HomePageContent({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ ...data, id }), // Include the pre-generated ID
+          body: JSON.stringify({ ...data, workerTeamConfig: data.workerTeam, id }), // Include the pre-generated ID
         })
 
         if (response.ok) {
@@ -563,19 +568,70 @@ export function HomePageContent({
         <SharedHeader leftActions={headerLeftActions} initialStars={initialStars} />
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 pb-20 md:pb-4">
-        <TaskForm
-          onSubmit={handleTaskSubmit}
-          isSubmitting={isSubmitting}
-          selectedOwner={selectedOwner}
-          selectedRepo={selectedRepo}
-          initialInstallDependencies={initialInstallDependencies}
-          initialMaxDuration={initialMaxDuration}
-          initialKeepAlive={initialKeepAlive}
-          initialEnableBrowser={initialEnableBrowser}
-          maxSandboxDuration={maxSandboxDuration}
-        />
-      </div>
+      {user ? (
+        <div className="flex-1 flex items-center justify-center px-4 pb-20 md:pb-4">
+          <TaskForm
+            onSubmit={handleTaskSubmit}
+            isSubmitting={isSubmitting}
+            selectedOwner={selectedOwner}
+            selectedRepo={selectedRepo}
+            initialInstallDependencies={initialInstallDependencies}
+            initialMaxDuration={initialMaxDuration}
+            initialKeepAlive={initialKeepAlive}
+            initialEnableBrowser={initialEnableBrowser}
+            maxSandboxDuration={maxSandboxDuration}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center px-4 pb-20 md:pb-4">
+          <div className="max-w-2xl text-center space-y-6">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-xs font-medium text-muted-foreground mb-2 opacity-0"
+              style={{ animation: 'fadeIn 0.5s ease-out forwards' }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Multi-Agent AI Platform
+            </div>
+            <h1
+              className="text-4xl md:text-5xl font-bold tracking-tight text-balance opacity-0"
+              style={{ animation: 'fadeIn 0.5s ease-out 0.15s forwards' }}
+            >
+              {t.home.title}
+            </h1>
+            <p
+              className="text-lg text-muted-foreground max-w-xl mx-auto text-balance text-pretty opacity-0"
+              style={{ animation: 'fadeIn 0.5s ease-out 0.3s forwards' }}
+            >
+              {t.home.subtitle}
+            </p>
+            <div
+              className="flex items-center justify-center gap-3 pt-2 opacity-0"
+              style={{ animation: 'fadeIn 0.5s ease-out 0.45s forwards' }}
+            >
+              <Button
+                onClick={() => setShowSignInDialog(true)}
+                size="lg"
+                className="h-11 px-6 text-base transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {t.auth.signIn}
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-11 px-6 text-base transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                asChild
+              >
+                <a href={VERCEL_DEPLOY_URL} target="_blank" rel="noopener noreferrer">
+                  <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
+                    <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
+                  </svg>
+                  {t.home.deployYourOwn}
+                </a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Footer with Stars and Deploy Button - Show when logged in OR when owner/repo are selected */}
       {(user || selectedOwner || selectedRepo) && <HomePageMobileFooter initialStars={initialStars} />}

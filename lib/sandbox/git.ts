@@ -1,20 +1,66 @@
 import { Sandbox } from '@vercel/sandbox'
 import { runCommandInSandbox, runInProject } from './commands'
 import { TaskLogger } from '@/lib/utils/task-logger'
+import { runVerificationPipeline, formatPipelineSummary, type PipelineResult } from './pipeline'
+
+/**
+ * Check if the pipeline applies to this task.
+ * For now, run it always unless explicitly disabled.
+ */
+function shouldRunPipeline(): boolean {
+  return process.env.DISABLE_AUTO_PIPELINE !== 'true'
+}
 
 export async function pushChangesToBranch(
   sandbox: Sandbox,
   branchName: string,
   commitMessage: string,
   logger: TaskLogger,
-): Promise<{ success: boolean; pushFailed?: boolean }> {
+  options?: {
+    taskId?: string
+    repoUrl?: string
+    selectedAgent?: string
+    selectedModel?: string
+    prompt?: string
+    enableBrowser?: boolean
+    skipPipeline?: boolean
+  },
+): Promise<{ success: boolean; pushFailed?: boolean; pipeline?: PipelineResult }> {
   try {
-    // Check if there are any changes to commit
+    // ── Run the verification pipeline before committing ──
+    let pipeline: PipelineResult | undefined
+
+    if (shouldRunPipeline() && !options?.skipPipeline && options?.taskId && sandbox) {
+      await logger.info('🚀 Running verification pipeline...')
+
+      pipeline = await runVerificationPipeline({
+        sandbox,
+        taskId: options.taskId,
+        branchName,
+        repoUrl: options.repoUrl || '',
+        selectedAgent: options.selectedAgent,
+        selectedModel: options.selectedModel,
+        prompt: options.prompt || commitMessage,
+        enableBrowser: options.enableBrowser,
+        logger,
+      })
+
+      // Log pipeline summary
+      const summary = formatPipelineSummary(pipeline)
+      await logger.info(summary)
+
+      // Use pipeline-generated commit message with provenance
+      if (pipeline.commitMessage) {
+        commitMessage = pipeline.commitMessage
+      }
+    }
+
+    // ── Check if there are any changes to commit ──
     const statusResult = await runInProject(sandbox, 'git', ['status', '--porcelain'])
 
     if (!statusResult.output?.trim()) {
       await logger.info('No changes to commit')
-      return { success: true }
+      return { success: true, pipeline }
     }
 
     await logger.info('Changes detected, committing...')
@@ -27,7 +73,7 @@ export async function pushChangesToBranch(
         console.error('Git add error details:', addResult.error)
         await logger.error('Action logged')
       }
-      return { success: false }
+      return { success: false, pipeline }
     }
 
     // Commit changes
@@ -39,7 +85,7 @@ export async function pushChangesToBranch(
         console.error('Commit error details:', commitResult.error)
         await logger.error('Action logged')
       }
-      return { success: false }
+      return { success: false, pipeline }
     }
 
     await logger.info('Changes committed successfully')
@@ -49,7 +95,7 @@ export async function pushChangesToBranch(
 
     if (pushResult.success) {
       await logger.info('Successfully pushed changes to branch')
-      return { success: true }
+      return { success: true, pipeline }
     } else {
       const errorMsg = pushResult.error || 'Unknown error'
       await logger.info('Failed to push to branch')
@@ -63,7 +109,7 @@ export async function pushChangesToBranch(
       }
 
       // Still return success since the work was completed, just couldn't push
-      return { success: true, pushFailed: true }
+      return { success: true, pushFailed: true, pipeline }
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'

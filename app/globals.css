@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @source "../node_modules/streamdown/dist/*.js";
 
@@ -55,15 +55,15 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.97 0.008 250);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: oklch(0.97 0.008 250);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.97 0.008 250);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.922 0.008 250);
+  --input: oklch(0.922 0.008 250);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -74,9 +74,9 @@
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.97 0.008 250);
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-border: oklch(0.922 0.008 250);
   --sidebar-ring: oklch(0.708 0 0);
 }
 
@@ -123,8 +123,37 @@
   }
 }
 
+@layer utilities {
+  /* Type scale */
+  .text-h1 {
+    @apply text-4xl md:text-5xl font-bold tracking-tight text-balance;
+  }
+  .text-h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  .text-h3 {
+    @apply text-xl font-medium;
+  }
+}
+
 button {
   cursor: pointer;
+}
+
+/* prefers-reduced-motion: block all animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
+    transition-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
+    scroll-behavior: auto !important;
+  }
 }
 
 @keyframes shimmer {
@@ -133,6 +162,17 @@ button {
   }
   100% {
     background-position: -200% 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -147,18 +187,18 @@ button {
   .git-diff-view-container {
     font-size: 11px;
   }
-  
+
   /* Ensure horizontal scrolling works on mobile */
   .git-diff-view-container > div {
     min-width: max-content;
   }
-  
+
   /* Adjust line numbers and content for mobile */
   .git-diff-view-container .diff-line-num {
     padding: 2px 4px;
     font-size: 10px;
   }
-  
+
   .git-diff-view-container .diff-line-content {
     padding: 2px 4px;
   }

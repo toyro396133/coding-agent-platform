@@ -475,7 +475,7 @@ fi
                   .split('\n')
                   .filter((line) => line.trim())
                 for (const line of lines) {
-                  logger.info('Action logged').catch(() => {})
+                  logger.info(line).catch(() => {})
                 }
                 callback()
               },
@@ -488,7 +488,7 @@ fi
                   .split('\n')
                   .filter((line) => line.trim())
                 for (const line of lines) {
-                  logger.info('Action logged').catch(() => {})
+                  logger.info(line).catch(() => {})
                 }
                 callback()
               },
@@ -510,9 +510,8 @@ fi
             await logger.info('Development server is running')
           }
         } catch (parseError) {
-          // If package.json parsing fails, log the error details and continue without starting dev server
-          const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown error'
-          console.error('Failed to parse package.json:', errorMessage)
+          // If package.json parsing fails, continue without starting dev server
+          console.error('Failed to parse repository package.json')
           await logger.info('Could not parse package.json, skipping auto-start of dev server')
         }
       }
@@ -1076,7 +1075,7 @@ MCP_EOF`
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-    console.error('Sandbox creation error:', error)
+    console.error('Sandbox creation error')
     await logger.error('Error occurred during sandbox creation')
 
     return {

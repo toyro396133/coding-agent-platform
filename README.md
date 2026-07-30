@@ -8,9 +8,10 @@ A template for building AI-powered coding agents that supports Claude Code, Open
 
 You can deploy your own version of the coding agent template to Vercel with one click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcoding-agent-template&env=SANDBOX_VERCEL_TEAM_ID,SANDBOX_VERCEL_PROJECT_ID,SANDBOX_VERCEL_TOKEN,JWE_SECRET,ENCRYPTION_KEY&envDescription=Required+environment+variables+for+the+coding+agent+template.+You+must+also+configure+at+least+one+OAuth+provider+(GitHub+or+Vercel)+after+deployment.+Optional+API+keys+can+be+added+later.&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D&project-name=coding-agent-template&repository-name=coding-agent-template)
+[![Deploy with Vercel](https://vercel.com/button)](<https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcoding-agent-template&env=SANDBOX_VERCEL_TEAM_ID,SANDBOX_VERCEL_PROJECT_ID,SANDBOX_VERCEL_TOKEN,JWE_SECRET,ENCRYPTION_KEY&envDescription=Required+environment+variables+for+the+coding+agent+template.+You+must+also+configure+at+least+one+OAuth+provider+(GitHub+or+Vercel)+after+deployment.+Optional+API+keys+can+be+added+later.&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D&project-name=coding-agent-template&repository-name=coding-agent-template>)
 
 **What happens during deployment:**
+
 - **Automatic Database Setup**: A Neon Postgres database is automatically created and connected to your project
 - **Environment Configuration**: You'll be prompted to provide required environment variables (Vercel credentials and encryption keys)
 - **OAuth Setup**: After deployment, you'll need to configure at least one OAuth provider (GitHub or Vercel) in your project settings for user authentication
@@ -34,11 +35,13 @@ You can deploy your own version of the coding agent template to Vercel with one 
 For detailed setup instructions, see the [Local Development Setup](#local-development-setup) section below.
 
 **TL;DR:**
+
 1. Click the "Deploy with Vercel" button above (automatic database setup!)
 2. Configure OAuth (GitHub or Vercel) in your project settings
 3. Users sign in and start creating tasks
 
 Or run locally:
+
 ```bash
 git clone https://github.com/vercel-labs/coding-agent-template.git
 cd coding-agent-template
@@ -76,6 +79,7 @@ The Keep Alive setting determines what happens to the sandbox after your task co
 When Keep Alive is disabled, the sandbox shuts down immediately after the task completes:
 
 **Timeline:**
+
 1. Task starts and sandbox is created (e.g., with 1 hour timeout)
 2. Agent executes your task
 3. Task completes successfully (e.g., after 10 minutes)
@@ -84,6 +88,7 @@ When Keep Alive is disabled, the sandbox shuts down immediately after the task c
 6. Task is marked as completed
 
 **Use Keep Alive OFF when:**
+
 - You're making one-time code changes that don't require iteration
 - You have simple tasks that work on the first try
 - You want to minimize resource usage and costs
@@ -94,6 +99,7 @@ When Keep Alive is disabled, the sandbox shuts down immediately after the task c
 When Keep Alive is enabled, the sandbox stays alive after task completion for the remaining duration:
 
 **Timeline:**
+
 1. Task starts and sandbox is created (e.g., with 1 hour timeout)
 2. Agent executes your task
 3. Task completes successfully (e.g., after 10 minutes)
@@ -104,6 +110,7 @@ When Keep Alive is enabled, the sandbox stays alive after task completion for th
 8. After the full timeout duration, the sandbox expires
 
 **Use Keep Alive ON when:**
+
 - You need to iterate on the code with follow-up messages
 - You want to test changes in the live sandbox environment
 - You anticipate needing to refine or fix issues
@@ -112,10 +119,10 @@ When Keep Alive is enabled, the sandbox stays alive after task completion for th
 
 #### Comparison
 
-| Setting | Task completes in 10 min | Remaining sandbox time | Can send follow-ups? | Dev server starts? |
-|---------|-------------------------|------------------------|---------------------|-------------------|
-| Keep Alive ON | Sandbox stays alive | 50 minutes (until timeout) | Yes | Yes (if available) |
-| Keep Alive OFF | Sandbox shuts down | 0 minutes | No | No |
+| Setting        | Task completes in 10 min | Remaining sandbox time     | Can send follow-ups? | Dev server starts? |
+| -------------- | ------------------------ | -------------------------- | -------------------- | ------------------ |
+| Keep Alive ON  | Sandbox stays alive      | 50 minutes (until timeout) | Yes                  | Yes (if available) |
+| Keep Alive OFF | Sandbox shuts down       | 0 minutes                  | No                   | No                 |
 
 **Note:** The maximum duration timeout always takes precedence. If you set a 1-hour timeout, the sandbox will expire after 1 hour regardless of the Keep Alive setting. Keep Alive only determines whether the sandbox shuts down early (after task completion) or stays alive until the timeout.
 
@@ -227,10 +234,12 @@ NEXT_PUBLIC_AUTH_PROVIDERS=github,vercel
 ##### Provider Configuration
 
 **Option 1: Sign in with Vercel** (if `vercel` is in `NEXT_PUBLIC_AUTH_PROVIDERS`)
+
 - `NEXT_PUBLIC_VERCEL_CLIENT_ID`: Your Vercel OAuth app client ID (exposed to client)
 - `VERCEL_CLIENT_SECRET`: Your Vercel OAuth app client secret
 
 **Option 2: Sign in with GitHub** (if `github` is in `NEXT_PUBLIC_AUTH_PROVIDERS`)
+
 - `NEXT_PUBLIC_GITHUB_CLIENT_ID`: Your GitHub OAuth app client ID (exposed to client)
 - `GITHUB_CLIENT_SECRET`: Your GitHub OAuth app client secret
 
@@ -255,6 +264,7 @@ These API keys can be set globally (fallback for all users) or left unset to req
   - Users who sign in with Vercel can connect their GitHub account from their profile to access repositories
 
 **How Authentication Works:**
+
 - **Sign in with GitHub**: Users get immediate repository access via their GitHub OAuth token
 - **Sign in with Vercel**: Users must connect a GitHub account from their profile to work with repositories
 - **Identity Merging**: If a user signs in with Vercel, connects GitHub, then later signs in directly with GitHub, they'll be recognized as the same user (no duplicate accounts)
@@ -275,8 +285,8 @@ Based on your `NEXT_PUBLIC_AUTH_PROVIDERS` configuration, you'll need to create 
 2. Click "New OAuth App"
 3. Fill in the details:
    - **Application name**: Your app name (e.g., "My Coding Agent")
-   - **Homepage URL**: `http://localhost:3000` (or your production URL)
-   - **Authorization callback URL**: `http://localhost:3000/api/auth/github/callback`
+   - **Homepage URL**: `http://localhost:3256` (or your production URL)
+   - **Authorization callback URL**: `http://localhost:3256/api/auth/github/callback`
 4. Click "Register application"
 5. Copy the **Client ID** → use for `NEXT_PUBLIC_GITHUB_CLIENT_ID`
 6. Click "Generate a new client secret" → copy and use for `GITHUB_CLIENT_SECRET`
@@ -288,7 +298,7 @@ Based on your `NEXT_PUBLIC_AUTH_PROVIDERS` configuration, you'll need to create 
 1. Go to your [Vercel Dashboard](https://vercel.com/dashboard)
 2. Navigate to Settings → Integrations → Create
 3. Configure the integration:
-   - **Redirect URL**: `http://localhost:3000/api/auth/callback/vercel`
+   - **Redirect URL**: `http://localhost:3256/api/auth/callback/vercel`
 4. Copy the **Client ID** → use for `NEXT_PUBLIC_VERCEL_CLIENT_ID`
 5. Copy the **Client Secret** → use for `VERCEL_CLIENT_SECRET`
 
@@ -309,7 +319,7 @@ pnpm db:push
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3256](http://localhost:3256) in your browser.
 
 ## Development
 
@@ -409,11 +419,11 @@ This release introduces **user authentication** and **major security improvement
      - `JWE_SECRET`: Base64-encoded secret for session encryption (generate: `openssl rand -base64 32`)
      - `ENCRYPTION_KEY`: 32-byte hex string for encrypting sensitive data (generate: `openssl rand -hex 32`)
      - `NEXT_PUBLIC_AUTH_PROVIDERS`: Configure which auth providers to enable (`github`, `vercel`, or both)
-   
+
    - **New OAuth Configuration (at least one required):**
      - GitHub: `NEXT_PUBLIC_GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
      - Vercel: `NEXT_PUBLIC_VERCEL_CLIENT_ID`, `VERCEL_CLIENT_SECRET`
-   
+
    - **Changed Authentication:**
      - `GITHUB_TOKEN` no longer used as fallback in API routes
      - Users must connect their own GitHub account for repository access
@@ -535,13 +545,14 @@ pnpm install
 ##### Step 6: Test Authentication
 
 1. Start the development server: `pnpm dev`
-2. Navigate to `http://localhost:3000`
+2. Navigate to `http://localhost:3256`
 3. Sign in with your configured OAuth provider
 4. Verify you can create and view tasks
 
 ##### Step 7: Verify Security Fix
 
 Confirm that:
+
 - Users can only see their own tasks
 - File diff/files endpoints require GitHub connection
 - Users without GitHub connection see "GitHub authentication required" errors
@@ -554,4 +565,3 @@ Confirm that:
 - **Users must connect GitHub** (if they signed in with Vercel) to access repositories
 - **API keys** can now be per-user - users can override global API keys in their profile
 - **Breaking API changes**: If you have external integrations calling your API, they'll need to be updated to include authentication
-

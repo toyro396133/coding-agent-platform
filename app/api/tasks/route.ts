@@ -12,6 +12,8 @@ import { createSandbox } from '@/lib/sandbox/creation'
 import { executeAgentInSandbox, AgentType } from '@/lib/sandbox/agents'
 import { pushChangesToBranch, shutdownSandbox } from '@/lib/sandbox/git'
 import { unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
+import { deployWorkerTeam, mergeWorkerPatches } from '@/lib/ai/orchestrator/worker/worker-manager'
+import type { WorkerSpec, WorkerTeamSpec } from '@/lib/ai/orchestrator/worker/types'
 import { detectPackageManager } from '@/lib/sandbox/package-manager'
 import { runCommandInSandbox, runInProject, PROJECT_DIR } from '@/lib/sandbox/commands'
 import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
@@ -33,6 +35,7 @@ import { suggestModelForPrompt } from '@/lib/ai/router'
 
 import { getUserGitHubToken } from '@/lib/github/user-token'
 import { getGitHubUser } from '@/lib/github/client'
+import { autoDeployWorkerTeam } from '@/lib/ai/orchestrator/worker/auto-deploy'
 import { getUserApiKeys } from '@/lib/api-keys/user-keys'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { getMaxSandboxDuration } from '@/lib/db/settings'
@@ -254,6 +257,7 @@ export async function POST(request: NextRequest) {
           validatedData.enableBrowser || false,
           validatedData.executionMode || 'orchestrator_external',
           validatedData.executionLevel || 'basic',
+          validatedData.workerTeamConfig || undefined,
           userApiKeys,
           userGithubToken,
           githubUser,
@@ -284,6 +288,10 @@ async function processTaskWithTimeout(
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
   executionLevel: string = 'basic',
+  workerTeamConfig?: {
+    workers: { id: string; role: string; agentType: string; model: string; instructions: string; priority: number }[]
+    timeoutMinutes: number
+  },
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -332,6 +340,7 @@ async function processTaskWithTimeout(
         enableBrowser,
         executionMode,
         executionLevel,
+        workerTeamConfig,
         apiKeys,
         githubToken,
         githubUser,
@@ -404,6 +413,10 @@ async function processTask(
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
   executionLevel: string = 'basic',
+  workerTeamConfig?: {
+    workers: { id: string; role: string; agentType: string; model: string; instructions: string; priority: number }[]
+    timeoutMinutes: number
+  },
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -562,6 +575,75 @@ async function processTask(
       return
     }
 
+    // === USER-CONFIGURED WORKER TEAM ===
+    // If the user explicitly configured a worker team via WorkerTeamBuilder,
+    // deploy those workers in parallel sandboxes instead of standard execution.
+    if (workerTeamConfig && workerTeamConfig.workers.length > 0 && sandbox) {
+      await logger.info('Deploying user-configured worker team')
+      await logger.updateProgress(50, `Deploying ${workerTeamConfig.workers.length} worker agents...`)
+
+      try {
+        // Convert UI WorkerConfig → WorkerTeamSpec
+        const workerSpecs: WorkerSpec[] = workerTeamConfig.workers.map((w, i) => ({
+          id: w.id || `user-worker-${i + 1}`,
+          role: w.role || `${w.agentType} worker`,
+          agentType: w.agentType as AgentType,
+          instructions: w.instructions,
+          model: w.model,
+          priority: w.priority ?? workerTeamConfig.workers.length - i,
+        }))
+
+        const teamSpec: WorkerTeamSpec = {
+          workers: workerSpecs,
+          repoUrl,
+          branchName: branchName || 'main',
+          githubToken,
+          apiKeys,
+          gitAuthorName: githubUser?.name || githubUser?.username || 'Coding Agent',
+          gitAuthorEmail: githubUser?.username
+            ? `${githubUser.username}@users.noreply.github.com`
+            : 'agent@example.com',
+          timeoutMs: (workerTeamConfig.timeoutMinutes || maxDuration) * 60 * 1000,
+        }
+
+        // Deploy all workers in parallel
+        const teamResult = await deployWorkerTeam(teamSpec, taskId)
+
+        // Merge patches into the main sandbox
+        if (teamResult.mergedPatch) {
+          await logger.info('Merging worker changes into main sandbox...')
+          await mergeWorkerPatches(sandbox, teamResult)
+        }
+
+        // Build summary for logging
+        const summary = [`Worker team: ${teamResult.successCount} succeeded, ${teamResult.failCount} failed`]
+        for (const r of teamResult.results) {
+          const status = r.success ? '✓' : '✗'
+          summary.push(`${status} ${r.role || r.agentType} — ${r.changedFiles?.length || 0} file(s)`)
+        }
+
+        await logger.success(summary.join(' | '))
+
+        // Push merged changes
+        const commitMessage = createFallbackCommitMessage('Worker team changes')
+        const pushResult = await pushChangesToBranch(sandbox, branchName!, commitMessage, logger)
+
+        if (pushResult.pushFailed) {
+          await logger.error('Failed to push worker team changes')
+          throw new Error('Failed to push worker team changes to repository')
+        }
+
+        await logger.updateStatus('completed')
+        await logger.updateProgress(100, 'Worker team completed successfully')
+        return // ✅ Workers handled everything
+      } catch (workerTeamError) {
+        console.error('Worker team execution failed, falling back:', workerTeamError)
+        await logger.info('Worker team failed, falling back to standard execution')
+        // Fall through to standard execution
+      }
+    }
+    // === END USER-CONFIGURED WORKER TEAM ===
+
     // Log agent execution start
     await logger.updateProgress(50, 'Installing and executing agent')
     console.log('Starting agent execution')
@@ -688,6 +770,51 @@ async function processTask(
       }
     }
     // === END ORCHESTRATOR ===
+
+    // === AUTO WORKER TEAM DEPLOYMENT ===
+    if (
+      sandbox &&
+      !orchestratorPaused &&
+      executionMode !== 'orchestrator_only' &&
+      process.env.SANDBOX_VERCEL_TOKEN &&
+      process.env.SANDBOX_VERCEL_TEAM_ID &&
+      process.env.SANDBOX_VERCEL_PROJECT_ID
+    ) {
+      try {
+        const autoDeployResult = await autoDeployWorkerTeam({
+          prompt: finalPrompt,
+          repoUrl,
+          branchName: branchName || 'main',
+          taskId,
+          apiKeys,
+          githubToken,
+          gitAuthorName: githubUser?.name || githubUser?.username || undefined,
+          gitAuthorEmail: githubUser?.username ? `${githubUser.username}@users.noreply.github.com` : undefined,
+          mainSandbox: sandbox,
+          logger,
+        })
+
+        if (autoDeployResult.deployed) {
+          await logger.success('Worker team completed')
+
+          // Push the merged worker changes
+          const commitMessage = createFallbackCommitMessage('Worker team changes')
+          const pushResult = await pushChangesToBranch(sandbox, branchName!, commitMessage, logger)
+
+          if (!pushResult.pushFailed) {
+            await logger.updateStatus('completed')
+            await logger.updateProgress(100, 'Worker team completed successfully')
+            return // ✅ Workers handled everything — skip standard execution
+          }
+
+          await logger.error('Failed to push worker team changes, falling back to standard execution')
+        }
+      } catch (workerError) {
+        console.error('Auto worker team deployment failed, falling back:', workerError)
+        await logger.info('Worker team not available, falling back to standard execution')
+      }
+    }
+    // === END AUTO WORKER TEAM DEPLOYMENT ===
 
     // Generate agent message ID for streaming updates
     const agentMessageId = generateId()

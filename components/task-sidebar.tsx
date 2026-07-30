@@ -338,6 +338,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                     ? 'text-foreground bg-accent'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
                 )}
+                {...(activeTab === 'tasks' ? { 'aria-current': 'page' } : {})}
               >
                 {t.sidebar.tasks}
               </button>
@@ -349,21 +350,12 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                     ? 'text-foreground bg-accent'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
                 )}
+                {...(activeTab === 'repos' ? { 'aria-current': 'page' } : {})}
               >
                 {t.sidebar.repos}
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={true}
-                title={t.sidebar.deleteTasks}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
               <Link href="/" onClick={handleLinkClick}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                   <Plus className="h-4 w-4" />
@@ -383,7 +375,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           {activeTab === 'repos' && (
             <Card>
               <CardContent className="p-3 text-center text-xs text-muted-foreground">
-                Sign in to view repositories
+                {t.sidebar.signInToViewRepos}
               </CardContent>
             </Card>
           )}
@@ -401,6 +393,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
         <div className="flex items-center justify-between mb-2">
           {/* Tabs */}
           <div className="flex items-center gap-1">
+            {' '}
             <button
               onClick={() => setActiveTab('tasks')}
               className={cn(
@@ -409,6 +402,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   ? 'text-foreground bg-accent'
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
               )}
+              {...(activeTab === 'tasks' ? { 'aria-current': 'page' } : {})}
             >
               {t.sidebar.tasks}
             </button>
@@ -420,6 +414,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   ? 'text-foreground bg-accent'
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
               )}
+              {...(activeTab === 'repos' ? { 'aria-current': 'page' } : {})}
             >
               {t.sidebar.repos}
             </button>

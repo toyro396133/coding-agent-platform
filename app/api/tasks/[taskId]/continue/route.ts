@@ -1,27 +1,30 @@
-import { NextRequest, NextResponse, after } from 'next/server'
-import { generateText, tool, stepCountIs } from 'ai'
-import { z } from 'zod'
-import { getSubAgentModel } from '@/lib/ai/router'
-import { getModelClient } from '@/lib/ai/models'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { db } from '@/lib/db/client'
-import { tasks, taskMessages, connectors } from '@/lib/db/schema'
-import { eq, and, asc, isNull } from 'drizzle-orm'
-import { generateId } from '@/lib/utils/id'
-import { createTaskLogger } from '@/lib/utils/task-logger'
 import { Sandbox } from '@vercel/sandbox'
-import { createSandbox } from '@/lib/sandbox/creation'
-import { executeAgentInSandbox, AgentType } from '@/lib/sandbox/agents'
-import { pushChangesToBranch, shutdownSandbox } from '@/lib/sandbox/git'
-import { unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
-import { decrypt } from '@/lib/crypto'
-import { getUserGitHubToken } from '@/lib/github/user-token'
-import { getGitHubUser } from '@/lib/github/client'
+import { generateText, stepCountIs, tool } from 'ai'
+import { and, asc, eq, isNull } from 'drizzle-orm'
+import { after, type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { getModelClient } from '@/lib/ai/models'
+import { autoDeployWorkerTeam } from '@/lib/ai/orchestrator/worker/auto-deploy'
+import type { WorkerSpec, WorkerTeamSpec } from '@/lib/ai/orchestrator/worker/types'
+import { deployWorkerTeam, mergeWorkerPatches } from '@/lib/ai/orchestrator/worker/worker-manager'
+import { getSubAgentModel } from '@/lib/ai/router'
 import { getUserApiKeys } from '@/lib/api-keys/user-keys'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { decrypt } from '@/lib/crypto'
+import { db } from '@/lib/db/client'
+import { connectors, taskMessages, tasks } from '@/lib/db/schema'
 import { getMaxSandboxDuration } from '@/lib/db/settings'
-import { generateCommitMessage, createFallbackCommitMessage } from '@/lib/utils/commit-message-generator'
+import { getGitHubUser } from '@/lib/github/client'
+import { getUserGitHubToken } from '@/lib/github/user-token'
+import { type AgentType, executeAgentInSandbox } from '@/lib/sandbox/agents'
+import { createSandbox } from '@/lib/sandbox/creation'
+import { pushChangesToBranch, shutdownSandbox } from '@/lib/sandbox/git'
 import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
+import { unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
+import { getServerSession } from '@/lib/session/get-server-session'
+import { createFallbackCommitMessage, generateCommitMessage } from '@/lib/utils/commit-message-generator'
+import { generateId } from '@/lib/utils/id'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { createTaskLogger } from '@/lib/utils/task-logger'
 
 export async function POST(req: NextRequest, context: { params: Promise<{ taskId: string }> }) {
   try {
@@ -322,6 +325,92 @@ async function continueTask(
       throw new Error('Sandbox is not available for agent execution')
     }
 
+    // === USER-CONFIGURED WORKER TEAM ===
+    // If the original task was created with a user-configured worker team,
+    // re-deploy those workers for this follow-up message.
+    if (
+      currentTask.workerTeamConfig &&
+      Array.isArray(currentTask.workerTeamConfig.workers) &&
+      currentTask.workerTeamConfig.workers.length > 0 &&
+      sandbox
+    ) {
+      await logger.info('Re-deploying user-configured worker team for continuation')
+      await logger.updateProgress(50, `Re-deploying ${currentTask.workerTeamConfig.workers.length} worker agents...`)
+
+      try {
+        const workerConfig = currentTask.workerTeamConfig as {
+          workers: {
+            id: string
+            role: string
+            agentType: string
+            model: string
+            instructions: string
+            priority: number
+          }[]
+          timeoutMinutes: number
+        }
+
+        // Convert UI WorkerConfig → WorkerTeamSpec
+        const workerSpecs: WorkerSpec[] = workerConfig.workers.map((w, i) => ({
+          id: w.id || `user-worker-${i + 1}`,
+          role: w.role || `${w.agentType} worker`,
+          agentType: w.agentType as AgentType,
+          instructions: `${w.instructions}\n\nCONTINUATION MESSAGE: ${prompt}`,
+          model: w.model,
+          priority: w.priority ?? workerConfig.workers.length - i,
+        }))
+
+        const teamSpec: WorkerTeamSpec = {
+          workers: workerSpecs,
+          repoUrl,
+          branchName,
+          githubToken,
+          apiKeys,
+          gitAuthorName: githubUser?.name || githubUser?.username || 'Coding Agent',
+          gitAuthorEmail: githubUser?.username
+            ? `${githubUser.username}@users.noreply.github.com`
+            : 'agent@example.com',
+          timeoutMs: (workerConfig.timeoutMinutes || maxDuration) * 60 * 1000,
+        }
+
+        // Deploy all workers in parallel
+        const teamResult = await deployWorkerTeam(teamSpec, taskId)
+
+        // Merge patches into the main sandbox
+        if (teamResult.mergedPatch) {
+          await logger.info('Merging worker changes into main sandbox...')
+          await mergeWorkerPatches(sandbox, teamResult)
+        }
+
+        // Build summary for logging
+        const summary = [`Worker team: ${teamResult.successCount} succeeded, ${teamResult.failCount} failed`]
+        for (const r of teamResult.results) {
+          const status = r.success ? '✓' : '✗'
+          summary.push(`${status} ${r.role || r.agentType} — ${r.changedFiles?.length || 0} file(s)`)
+        }
+
+        await logger.success(summary.join(' | '))
+
+        // Push merged changes
+        const commitMessage = createFallbackCommitMessage('Worker team continuation changes')
+        const pushResult = await pushChangesToBranch(sandbox, branchName, commitMessage, logger)
+
+        if (pushResult.pushFailed) {
+          await logger.error('Failed to push worker team changes')
+          throw new Error('Failed to push worker team changes to repository')
+        }
+
+        await logger.updateStatus('completed')
+        await logger.updateProgress(100, 'Worker team continuation completed successfully')
+        return // ✅ Workers handled everything
+      } catch (workerTeamError) {
+        console.error('Worker team execution failed, falling back:', workerTeamError)
+        await logger.info('Worker team failed, falling back to standard execution')
+        // Fall through to standard execution
+      }
+    }
+    // === END USER-CONFIGURED WORKER TEAM ===
+
     // === ORCHESTRATOR SUB-AGENT LOGIC ===
     let finalPrompt = promptWithContext
     try {
@@ -376,6 +465,52 @@ async function continueTask(
     }
     // === END ORCHESTRATOR ===
 
+    // === AUTO WORKER TEAM DEPLOYMENT ===
+    // For complex tasks, deploy parallel worker agents automatically
+    // If deployment succeeds, we return early — standard execution is the fallback.
+    if (
+      sandbox &&
+      process.env.SANDBOX_VERCEL_TOKEN &&
+      process.env.SANDBOX_VERCEL_TEAM_ID &&
+      process.env.SANDBOX_VERCEL_PROJECT_ID
+    ) {
+      try {
+        const autoDeployResult = await autoDeployWorkerTeam({
+          prompt: finalPrompt,
+          repoUrl,
+          branchName,
+          taskId,
+          apiKeys,
+          githubToken,
+          gitAuthorName: githubUser?.name || githubUser?.username || undefined,
+          gitAuthorEmail: githubUser?.username ? `${githubUser.username}@users.noreply.github.com` : undefined,
+          mainSandbox: sandbox,
+          logger,
+        })
+
+        if (autoDeployResult.deployed) {
+          await logger.success('Worker team completed')
+
+          // Push the merged worker changes
+          const commitMessage = createFallbackCommitMessage('Worker team changes')
+          const pushResult = await pushChangesToBranch(sandbox, branchName, commitMessage, logger)
+
+          if (!pushResult.pushFailed) {
+            await logger.updateStatus('completed')
+            await logger.updateProgress(100, 'Worker team completed successfully')
+            return // ✅ Workers handled everything — skip standard execution
+          }
+
+          await logger.error('Failed to push worker team changes, falling back to standard execution')
+        }
+      } catch (workerError) {
+        console.error('Auto worker team deployment failed, falling back:', workerError)
+        await logger.info('Worker team not available, falling back to standard execution')
+      }
+    }
+    // === END AUTO WORKER TEAM DEPLOYMENT ===
+
+    // Standard agent execution (fallback when auto-deploy didn't apply or failed)
     // Generate agent message ID for streaming updates
     const agentMessageId = generateId()
 
@@ -450,14 +585,22 @@ async function continueTask(
         commitMessage = createFallbackCommitMessage(prompt)
       }
 
-      // Push changes to branch
-      const pushResult = await pushChangesToBranch(sandbox, branchName, commitMessage, logger)
+      // Push changes to branch (with auto pipeline verification)
+      const taskEnableBrowser = currentTask.enableBrowser || false
+      const pushResult = await pushChangesToBranch(sandbox, branchName, commitMessage, logger, {
+        taskId,
+        repoUrl,
+        selectedAgent,
+        selectedModel,
+        prompt,
+        enableBrowser: taskEnableBrowser,
+      })
 
       // Conditionally shutdown sandbox based on task's keepAlive setting
       // Get the task to check keepAlive setting
-      const [currentTask] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
+      const [updatedTask] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
 
-      if (currentTask?.keepAlive) {
+      if (updatedTask?.keepAlive) {
         // Keep sandbox alive for future follow-up messages
         await logger.info('Sandbox kept alive for follow-up messages')
       } else {
@@ -500,9 +643,9 @@ async function continueTask(
     try {
       if (sandbox) {
         // Check keepAlive setting before shutting down sandbox on error
-        const [currentTask] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
+        const [errTask] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
 
-        if (currentTask?.keepAlive) {
+        if (errTask?.keepAlive) {
           // Keep sandbox alive even on error for potential retry
           await logger.info('Sandbox kept alive despite error')
         } else {

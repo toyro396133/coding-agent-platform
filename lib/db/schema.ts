@@ -14,6 +14,19 @@ import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { planContentSchema, type PlanContent } from '@/lib/ai/orchestrator/capabilities/plan-tools'
 
+// Worker team config type (stored as JSONB on tasks)
+export interface WorkerTeamConfigData {
+  workers: {
+    id: string
+    role: string
+    agentType: string
+    model: string
+    instructions: string
+    priority: number
+  }[]
+  timeoutMinutes: number
+}
+
 // Log entry types
 export const logEntrySchema = z.object({
   type: z.enum(['info', 'command', 'error', 'success']),
@@ -126,6 +139,7 @@ export const tasks = pgTable('tasks', {
   }),
   prMergeCommitSha: text('pr_merge_commit_sha'),
   mcpServerIds: jsonb('mcp_server_ids').$type<string[]>(),
+  workerTeamConfig: jsonb('worker_team_config').$type<WorkerTeamConfigData>(),
   executionMode: text('execution_mode', {
     enum: ['orchestrator_external', 'orchestrator_only', 'external_only'],
   })
@@ -171,6 +185,21 @@ export const insertTaskSchema = z.object({
   prStatus: z.enum(['open', 'closed', 'merged']).optional(),
   prMergeCommitSha: z.string().optional(),
   mcpServerIds: z.array(z.string()).optional(),
+  workerTeamConfig: z
+    .object({
+      workers: z.array(
+        z.object({
+          id: z.string(),
+          role: z.string(),
+          agentType: z.string(),
+          model: z.string(),
+          instructions: z.string(),
+          priority: z.number(),
+        }),
+      ),
+      timeoutMinutes: z.number(),
+    })
+    .optional(),
   executionMode: z
     .enum(['orchestrator_external', 'orchestrator_only', 'external_only'])
     .default('orchestrator_external'),
@@ -189,7 +218,7 @@ export const selectTaskSchema = z.object({
   maxDuration: z.number().nullable(),
   keepAlive: z.boolean().nullable(),
   enableBrowser: z.boolean().nullable(),
-  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped']),
+  status: z.enum(['pending', 'processing', 'completed', 'error', 'stopped', 'PLANNING_PENDING_APPROVAL']),
   progress: z.number().nullable(),
   logs: z.array(logEntrySchema).nullable(),
   error: z.string().nullable(),
@@ -203,6 +232,21 @@ export const selectTaskSchema = z.object({
   prStatus: z.enum(['open', 'closed', 'merged']).nullable(),
   prMergeCommitSha: z.string().nullable(),
   mcpServerIds: z.array(z.string()).nullable(),
+  workerTeamConfig: z
+    .object({
+      workers: z.array(
+        z.object({
+          id: z.string(),
+          role: z.string(),
+          agentType: z.string(),
+          model: z.string(),
+          instructions: z.string(),
+          priority: z.number(),
+        }),
+      ),
+      timeoutMinutes: z.number(),
+    })
+    .nullable(),
   executionMode: z.enum(['orchestrator_external', 'orchestrator_only', 'external_only']),
   executionLevel: z.enum(['basic', 'enhanced', 'auto']).nullable(),
   createdAt: z.date(),
@@ -798,3 +842,53 @@ export const selectProjectRuleSchema = z.object({
 
 export type ProjectRule = z.infer<typeof selectProjectRuleSchema>
 export type InsertProjectRule = z.infer<typeof insertProjectRuleSchema>
+
+// Checkpoints table - tracks codebase state snapshots at key milestones
+// Used by the checkpoint system for review/rollback functionality
+export const checkpoints = pgTable(
+  'checkpoints',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    description: text('description'),
+    fileStates: jsonb('file_states').$type<Record<string, string>>().notNull(),
+    metadata: jsonb('metadata').$type<Record<string, string>>(),
+    status: text('status', {
+      enum: ['active', 'accepted', 'rejected', 'rolled_back'],
+    })
+      .notNull()
+      .default('active'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    taskIdIdx: index('checkpoints_task_id_idx').on(table.taskId),
+  }),
+)
+
+export const insertCheckpointSchema = z.object({
+  id: z.string(),
+  taskId: z.string().min(1, 'Task ID is required'),
+  label: z.string().min(1, 'Label is required'),
+  description: z.string().optional(),
+  fileStates: z.record(z.string(), z.string()),
+  metadata: z.record(z.string(), z.string()).optional(),
+  status: z.enum(['active', 'accepted', 'rejected', 'rolled_back']).optional(),
+  createdAt: z.date().optional(),
+})
+
+export const selectCheckpointSchema = z.object({
+  id: z.string(),
+  taskId: z.string(),
+  label: z.string(),
+  description: z.string().nullable(),
+  fileStates: z.record(z.string(), z.string()),
+  metadata: z.record(z.string(), z.string()).nullable(),
+  status: z.enum(['active', 'accepted', 'rejected', 'rolled_back']),
+  createdAt: z.date(),
+})
+
+export type Checkpoint = z.infer<typeof selectCheckpointSchema>
+export type InsertCheckpoint = z.infer<typeof insertCheckpointSchema>

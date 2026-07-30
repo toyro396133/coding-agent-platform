@@ -5,7 +5,7 @@ import { TaskSidebar } from '@/components/task-sidebar'
 import { Task } from '@/lib/db/schema'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { getSidebarWidth, setSidebarWidth, getSidebarOpen, setSidebarOpen } from '@/lib/utils/cookies'
 import { nanoid } from 'nanoid'
@@ -70,9 +70,6 @@ function SidebarLoader({ width }: { width: number }) {
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={true} title={t.sidebar.deleteTasks}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
             <Link href="/">
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                 <Plus className="h-4 w-4" />
@@ -85,9 +82,11 @@ function SidebarLoader({ width }: { width: number }) {
       <div className="space-y-1">
         {/* Loading skeleton for tasks */}
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="animate-pulse h-[70px] rounded-lg">
-            <CardContent className="px-3 py-2">{/* Empty skeleton - just the card shape */}</CardContent>
-          </Card>
+          <div key={i} className="flex flex-col gap-2 p-3 rounded-lg bg-accent/50 animate-pulse">
+            <div className="h-3 bg-muted-foreground/20 rounded w-3/4" />
+            <div className="h-2 bg-muted-foreground/15 rounded w-1/2" />
+            <div className="h-2 bg-muted-foreground/15 rounded w-2/3" />
+          </div>
         ))}
       </div>
     </div>
@@ -242,6 +241,7 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
       sandboxUrl: null,
       previewUrl: null,
       mcpServerIds: null,
+      workerTeamConfig: null,
       prUrl: null,
       prNumber: null,
       prStatus: null,
@@ -329,9 +329,9 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
           <div
             className={`
             fixed inset-y-0 left-0 z-40
-            ${isResizing || !hasMounted ? '' : 'transition-all duration-300 ease-in-out'}
+            ${isResizing || !hasMounted ? '' : 'transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]'}
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            ${isSidebarOpen ? 'pointer-events-auto' : 'pointer-events-none'}
+            ${isSidebarOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'}
           `}
             style={{
               width: `${sidebarWidth}px`,

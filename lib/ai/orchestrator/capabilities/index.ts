@@ -9,6 +9,7 @@ import { createFileTools } from './file-tools'
 import { createShellTools } from './shell-tools'
 import { createLspTools } from './lsp-tools'
 import { createBrowserTools } from './browser-tools'
+import { createRepoMapTools } from './repo-map'
 import { registerPack, loadPackTools } from '../runtime/plugin-registry'
 
 type ToolRegistry = Record<string, any>
@@ -23,6 +24,7 @@ const builtInLoaders: Record<string, (ctx: ToolContext) => ToolRegistry> = {
   shell: (ctx) => createShellTools(ctx),
   lsp: (ctx) => createLspTools(ctx),
   browser: (ctx) => createBrowserTools(ctx),
+  'repo-map': (ctx) => createRepoMapTools(ctx),
 }
 
 for (const [name, loader] of Object.entries(builtInLoaders)) {

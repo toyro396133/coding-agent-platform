@@ -110,8 +110,8 @@ export async function autoDeployWorkerTeam(params: AutoDeployParams): Promise<Au
 
     const workersToDeploy = Math.min(team.length, maxWorkers)
     if (logger) {
-      await logger.info(`Auto-deploying ${workersToDeploy} worker agents for complex task`)
-      await logger.updateProgress(55, `Deploying ${workersToDeploy} parallel worker agents...`)
+      await logger.info('Auto-deploying worker agents for complex task')
+      await logger.updateProgress(55, 'Deploying parallel worker agents...')
     }
 
     // Step 3: Build WorkerSpecs from composed team

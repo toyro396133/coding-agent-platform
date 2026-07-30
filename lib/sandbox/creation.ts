@@ -155,7 +155,7 @@ MCP_EOF`
 
         await logger.info('Visual QA MCP Server setup completed successfully')
       } catch (err: any) {
-        await logger.error(`Failed to setup MCP server in sandbox: ${err.message}`)
+        await logger.error('Failed to setup MCP server in sandbox')
         // Continue execution even if MCP setup fails, as it's an optional enhancement
       }
 
@@ -198,7 +198,7 @@ MCP_EOF`
 
       // Check if this is a timeout error
       if (errorMessage?.includes('timeout') || errorCode === 'ETIMEDOUT' || errorName === 'TimeoutError') {
-        await logger.error(`Timeout error: ${errorName} - ${errorMessage}${errorCode ? ` (code: ${errorCode})` : ''}`)
+        await logger.error('Sandbox creation timed out during initialization')
         await logger.error('Sandbox creation timed out during initialization')
         throw new Error('Sandbox creation timed out. Try with a smaller repository or fewer dependencies.')
       }
@@ -913,7 +913,7 @@ MCP_EOF`
 
         await logger.info('Visual QA MCP Server setup completed successfully')
       } catch (err: any) {
-        await logger.error(`Failed to setup MCP server in sandbox: ${err.message}`)
+        await logger.error('Failed to setup MCP server in sandbox')
         // Continue execution even if MCP setup fails, as it's an optional enhancement
       }
 

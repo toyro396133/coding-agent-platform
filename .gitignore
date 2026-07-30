@@ -66,3 +66,9 @@ opensrc/
 .env*
 lib/sandbox/tools/mcp/visual-qa/node_modules/
 lib/sandbox/tools/mcp/visual-qa/dist/
+
+# agent config directories
+.agents/
+.claude/
+.freebuff/
+

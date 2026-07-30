@@ -232,6 +232,13 @@
       "when": 1785229607945,
       "tag": "0032_parallel_shiver_man",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1785407253729,
+      "tag": "0033_worker_team_config",
+      "breakpoints": true
     }
   ]
 }

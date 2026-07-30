@@ -1,7 +1,7 @@
 import { atom } from 'jotai'
 import type { Connector } from '@/lib/db/schema'
 
-export type DialogView = 'list' | 'presets' | 'form'
+export type DialogView = 'list' | 'presets' | 'form' | 'marketplace'
 
 export type PresetConfig = {
   name: string
@@ -107,6 +107,14 @@ export const goBackFromFormAtom = atom(null, (get, set) => {
 
 export const goBackFromPresetsAtom = atom(null, (get, set) => {
   set(connectorDialogViewAtom, 'list')
+})
+
+export const openMarketplaceAtom = atom(null, (get, set) => {
+  set(connectorDialogViewAtom, 'marketplace')
+})
+
+export const goBackFromMarketplaceAtom = atom(null, (get, set) => {
+  set(connectorDialogViewAtom, 'presets')
 })
 
 export const onSuccessActionAtom = atom(null, (get, set) => {

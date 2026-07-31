@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { getSidebarWidth, setSidebarWidth, getSidebarOpen, setSidebarOpen } from '@/lib/utils/cookies'
 import { nanoid } from 'nanoid'
 import { ConnectorsProvider } from '@/components/connectors-provider'
+import { MergeAccountsDialog } from '@/components/merge-accounts-dialog'
 import { useLocale } from '@/components/providers/locale-provider'
 
 interface AppLayoutProps {
@@ -312,6 +313,7 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
       }}
     >
       <ConnectorsProvider>
+        <MergeAccountsDialog />
         <div
           className="h-dvh flex relative"
           style={

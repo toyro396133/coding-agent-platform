@@ -3,7 +3,8 @@ import 'server-only'
 import type { Session } from './types'
 import { SESSION_COOKIE_NAME } from './constants'
 import { encryptJWE } from '@/lib/jwe/encrypt'
-import { upsertUser, getUserById } from '@/lib/db/users'
+import { upsertUser, getUserById, getUserByEmail } from '@/lib/db/users'
+import { requestMerge } from '@/lib/db/merge-identity'
 import { encrypt } from '@/lib/crypto'
 import ms from 'ms'
 
@@ -51,11 +52,13 @@ export async function createGitHubSession(accessToken: string, scope?: string): 
     }
   }
 
+  const encryptedAccessToken = encrypt(accessToken)
+
   // Create or update user in database
   const userId = await upsertUser({
     provider: 'github',
     externalId: `${githubUser.id}`, // GitHub numeric ID
-    accessToken: encrypt(accessToken), // Encrypt before storing
+    accessToken: encryptedAccessToken, // Encrypt before storing
     refreshToken: undefined, // GitHub OAuth doesn't provide refresh tokens
     scope: scope || undefined,
     username: githubUser.login,
@@ -63,6 +66,27 @@ export async function createGitHubSession(accessToken: string, scope?: string): 
     name: githubUser.name || githubUser.login,
     avatarUrl: githubUser.avatar_url,
   })
+
+  // Cross-provider merge: if this user has a verified email that matches an
+  // existing account, offer to link the accounts.
+  if (email) {
+    const existingUser = await getUserByEmail(email)
+    if (existingUser && existingUser.id !== userId) {
+      const mergeCandidate = await requestMerge(
+        'github',
+        `${githubUser.id}`,
+        accessToken,
+        encryptedAccessToken,
+        undefined,
+        scope || undefined,
+        githubUser.login,
+        email,
+      )
+      if (mergeCandidate) {
+        console.log('Created merge token for GitHub session')
+      }
+    }
+  }
 
   const dbUser = await getUserById(userId)
 

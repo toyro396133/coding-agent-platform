@@ -43,7 +43,7 @@ export const users = pgTable(
     id: text('id').primaryKey(), // Internal user ID (we generate this)
     // Primary OAuth account info (how they signed in)
     provider: text('provider', {
-      enum: ['github', 'vercel', 'credentials'],
+      enum: ['github', 'vercel', 'credentials', 'google', 'discord'],
     }).notNull(), // Primary auth provider
     externalId: text('external_id').notNull(), // External ID from OAuth provider
     accessToken: text('access_token').notNull(), // Encrypted OAuth access token
@@ -63,12 +63,14 @@ export const users = pgTable(
   (table) => ({
     // Unique constraint: prevent duplicate signups from same provider + external ID
     providerExternalIdUnique: uniqueIndex('users_provider_external_id_idx').on(table.provider, table.externalId),
+    // Index for email lookups (used by cross-provider identity merging)
+    emailIdx: index('users_email_idx').on(table.email),
   }),
 )
 
 export const insertUserSchema = z.object({
   id: z.string().optional(), // Auto-generated if not provided
-  provider: z.enum(['github', 'vercel', 'credentials']),
+  provider: z.enum(['github', 'vercel', 'credentials', 'google', 'discord']),
   externalId: z.string().min(1, 'External ID is required'),
   accessToken: z.string(),
   refreshToken: z.string().optional(),
@@ -86,7 +88,7 @@ export const insertUserSchema = z.object({
 
 export const selectUserSchema = z.object({
   id: z.string(),
-  provider: z.enum(['github', 'vercel', 'credentials']),
+  provider: z.enum(['github', 'vercel', 'credentials', 'google', 'discord']),
   externalId: z.string(),
   accessToken: z.string(),
   refreshToken: z.string().nullable(),
@@ -329,9 +331,10 @@ export type Connector = z.infer<typeof selectConnectorSchema>
 export type InsertConnector = z.infer<typeof insertConnectorSchema>
 
 // Accounts table - Additional accounts linked to users
-// Currently only GitHub can be connected as an additional account
-// (e.g., Vercel users can connect their GitHub account)
-// Multiple users can connect to the same external account (each as a separate record)
+// Stores all OAuth accounts connected to a user, including the primary sign-in
+// provider (also stored in users table) and any additional linked accounts.
+// Cross-provider merge: when a user signs in with a different provider but
+// with the same verified email, the accounts are linked under one user ID.
 export const accounts = pgTable(
   'accounts',
   {
@@ -340,29 +343,29 @@ export const accounts = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }), // Foreign key to users table
     provider: text('provider', {
-      enum: ['github'],
-    })
-      .notNull()
-      .default('github'), // Only GitHub for now
-    externalUserId: text('external_user_id').notNull(), // GitHub user ID
+      enum: ['github', 'google', 'discord'],
+    }).notNull(),
+    externalUserId: text('external_user_id').notNull(), // External ID from the OAuth provider
     accessToken: text('access_token').notNull(), // Encrypted OAuth access token
     refreshToken: text('refresh_token'), // Encrypted OAuth refresh token
     expiresAt: timestamp('expires_at'),
     scope: text('scope'),
-    username: text('username').notNull(), // GitHub username
+    username: text('username').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
     // Unique constraint: a user can only have one account per provider
     userIdProviderUnique: uniqueIndex('accounts_user_id_provider_idx').on(table.userId, table.provider),
+    // Index for looking up accounts by provider + external user ID
+    providerExternalUserIdIdx: index('accounts_provider_external_user_id_idx').on(table.provider, table.externalUserId),
   }),
 )
 
 export const insertAccountSchema = z.object({
   id: z.string().optional(),
   userId: z.string(),
-  provider: z.enum(['github']).default('github'),
+  provider: z.enum(['github', 'google', 'discord']),
   externalUserId: z.string().min(1, 'External user ID is required'),
   accessToken: z.string(),
   refreshToken: z.string().optional(),
@@ -376,7 +379,7 @@ export const insertAccountSchema = z.object({
 export const selectAccountSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  provider: z.enum(['github']),
+  provider: z.enum(['github', 'google', 'discord']),
   externalUserId: z.string(),
   accessToken: z.string(),
   refreshToken: z.string().nullable(),
@@ -892,3 +895,358 @@ export const selectCheckpointSchema = z.object({
 
 export type Checkpoint = z.infer<typeof selectCheckpointSchema>
 export type InsertCheckpoint = z.infer<typeof insertCheckpointSchema>
+
+// ─── Visual QA Runs ─────────────────────────────────────────────────────
+// Stores screenshots + vision-model critiques produced by the orchestrator's
+// visual QA tools, so results (and history) can be shown in the task UI.
+
+export const visualQaRuns = pgTable(
+  'visual_qa_runs',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    prompt: text('prompt').notNull(),
+    verdict: text('verdict', {
+      enum: ['pass', 'fail', 'unknown'],
+    })
+      .notNull()
+      .default('unknown'),
+    critique: text('critique').notNull(),
+    screenshotBase64: text('screenshot_base64').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    taskIdIdx: index('visual_qa_runs_task_id_idx').on(table.taskId),
+  }),
+)
+
+export const insertVisualQaRunSchema = z.object({
+  id: z.string().optional(),
+  taskId: z.string().min(1, 'Task ID is required'),
+  userId: z.string().min(1, 'User ID is required'),
+  url: z.string().min(1, 'URL is required'),
+  prompt: z.string().min(1, 'Prompt is required'),
+  verdict: z.enum(['pass', 'fail', 'unknown']).default('unknown'),
+  critique: z.string().min(1, 'Critique is required'),
+  screenshotBase64: z.string().min(1, 'Screenshot is required'),
+  createdAt: z.date().optional(),
+})
+
+export const selectVisualQaRunSchema = z.object({
+  id: z.string(),
+  taskId: z.string(),
+  userId: z.string(),
+  url: z.string(),
+  prompt: z.string(),
+  verdict: z.enum(['pass', 'fail', 'unknown']),
+  critique: z.string(),
+  screenshotBase64: z.string(),
+  createdAt: z.date(),
+})
+
+export type VisualQaRun = z.infer<typeof selectVisualQaRunSchema>
+export type InsertVisualQaRun = z.infer<typeof insertVisualQaRunSchema>
+
+// ─── Provider Usage Tracking ────────────────────────────────────────────
+// Tracks API usage per provider for rate limiting and key rotation.
+
+export const providerUsage = pgTable(
+  'provider_usage',
+  {
+    id: text('id').primaryKey(),
+    provider: text('provider', {
+      enum: ['openai', 'anthropic', 'gemini', 'cursor', 'deepseek', 'aigateway'],
+    }).notNull(),
+    requestCount: integer('request_count').notNull().default(0),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    windowStart: timestamp('window_start').notNull(),
+    windowReset: timestamp('window_reset').notNull(),
+    isExhausted: boolean('is_exhausted').notNull().default(false),
+    quotaWindowDay: text('quota_window_day').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    providerDayIdx: index('provider_usage_provider_day_idx').on(table.provider, table.quotaWindowDay),
+  }),
+)
+
+export const insertProviderUsageSchema = z.object({
+  id: z.string(),
+  provider: z.enum(['openai', 'anthropic', 'gemini', 'cursor', 'deepseek', 'aigateway']),
+  requestCount: z.number().optional(),
+  inputTokens: z.number().optional(),
+  outputTokens: z.number().optional(),
+  windowStart: z.date(),
+  windowReset: z.date(),
+  isExhausted: z.boolean().optional(),
+  quotaWindowDay: z.string(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+export const selectProviderUsageSchema = z.object({
+  id: z.string(),
+  provider: z.enum(['openai', 'anthropic', 'gemini', 'cursor', 'deepseek', 'aigateway']),
+  requestCount: z.number(),
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+  windowStart: z.date(),
+  windowReset: z.date(),
+  isExhausted: z.boolean(),
+  quotaWindowDay: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export type ProviderUsage = z.infer<typeof selectProviderUsageSchema>
+export type InsertProviderUsage = z.infer<typeof insertProviderUsageSchema>
+
+// ─── API Key Pool ───────────────────────────────────────────────────────
+// Multiple API keys per provider for rotation and fallback.
+
+export const poolApiKeys = pgTable(
+  'pool_api_keys',
+  {
+    id: text('id').primaryKey(),
+    provider: text('provider', {
+      enum: ['openai', 'anthropic', 'gemini', 'cursor', 'deepseek', 'aigateway'],
+    }).notNull(),
+    label: text('label').notNull(),
+    value: text('value').notNull(),
+    isExhausted: boolean('is_exhausted').notNull().default(false),
+    usageCount: integer('usage_count').notNull().default(0),
+    lastUsedAt: timestamp('last_used_at'),
+    exhaustedAt: timestamp('exhausted_at'),
+    quotaResetMinutes: integer('quota_reset_minutes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    providerIdx: index('pool_api_keys_provider_idx').on(table.provider),
+  }),
+)
+
+export const insertPoolApiKeySchema = z.object({
+  id: z.string().optional(),
+  provider: z.enum(['openai', 'anthropic', 'gemini', 'cursor', 'deepseek', 'aigateway']),
+  label: z.string().min(1, 'Label is required'),
+  value: z.string().min(1, 'Value is required'),
+  isExhausted: z.boolean().optional(),
+  usageCount: z.number().optional(),
+  lastUsedAt: z.date().optional().nullable(),
+  exhaustedAt: z.date().optional().nullable(),
+  quotaResetMinutes: z.number().optional().nullable(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  deletedAt: z.date().optional().nullable(),
+})
+
+export const selectPoolApiKeySchema = z.object({
+  id: z.string(),
+  provider: z.enum(['openai', 'anthropic', 'gemini', 'cursor', 'deepseek', 'aigateway']),
+  label: z.string(),
+  value: z.string(),
+  isExhausted: z.boolean(),
+  usageCount: z.number(),
+  lastUsedAt: z.date().nullable(),
+  exhaustedAt: z.date().nullable(),
+  quotaResetMinutes: z.number().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  deletedAt: z.date().nullable(),
+})
+
+export type PoolApiKey = z.infer<typeof selectPoolApiKeySchema>
+export type InsertPoolApiKey = z.infer<typeof insertPoolApiKeySchema>
+
+// ─── User Request Queue ─────────────────────────────────────────────────
+// A real queue of user/agent requests that wait to be executed sequentially.
+// Distinct from the agent's internal to-do list (`tasks`): items here are
+// enqueued by the user (or by the agent as follow-up steps) and are
+// auto-dispatched in order once the currently running task completes.
+
+export const requestQueue = pgTable(
+  'request_queue',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    prompt: text('prompt').notNull(),
+    title: text('title'),
+    repoUrl: text('repo_url'),
+    selectedAgent: text('selected_agent').notNull().default('claude'),
+    selectedModel: text('selected_model'),
+    installDependencies: boolean('install_dependencies').notNull().default(false),
+    keepAlive: boolean('keep_alive').notNull().default(false),
+    enableBrowser: boolean('enable_browser').notNull().default(false),
+    maxDuration: integer('max_duration'),
+    /** Ordering within the user's queue (lower = earlier) */
+    position: integer('position').notNull().default(0),
+    /** queued → processing → completed | error | stopped */
+    status: text('status', {
+      enum: ['queued', 'processing', 'completed', 'error', 'stopped'],
+    })
+      .notNull()
+      .default('queued'),
+    /** Who added this request — the user or the agent (follow-up step) */
+    source: text('source', {
+      enum: ['user', 'agent'],
+    })
+      .notNull()
+      .default('user'),
+    /** Linked task once this request is dispatched for execution */
+    taskId: text('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+    error: text('error'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    completedAt: timestamp('completed_at'),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    userIdIdx: index('request_queue_user_id_idx').on(table.userId),
+    userPositionIdx: index('request_queue_user_position_idx').on(table.userId, table.position),
+  }),
+)
+
+export const insertRequestQueueSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().min(1, 'User ID is required'),
+  prompt: z.string().min(1, 'Prompt is required'),
+  title: z.string().optional().nullable(),
+  repoUrl: z.string().optional().nullable(),
+  selectedAgent: z.string().optional().default('claude'),
+  selectedModel: z.string().optional().nullable(),
+  installDependencies: z.boolean().optional().default(false),
+  keepAlive: z.boolean().optional().default(false),
+  enableBrowser: z.boolean().optional().default(false),
+  maxDuration: z.number().optional().nullable(),
+  position: z.number().optional().default(0),
+  status: z.enum(['queued', 'processing', 'completed', 'error', 'stopped']).optional().default('queued'),
+  source: z.enum(['user', 'agent']).optional().default('user'),
+  taskId: z.string().optional().nullable(),
+  error: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  completedAt: z.date().optional().nullable(),
+  deletedAt: z.date().optional().nullable(),
+})
+
+export const selectRequestQueueSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  prompt: z.string(),
+  title: z.string().nullable(),
+  repoUrl: z.string().nullable(),
+  selectedAgent: z.string(),
+  selectedModel: z.string().nullable(),
+  installDependencies: z.boolean(),
+  keepAlive: z.boolean(),
+  enableBrowser: z.boolean(),
+  maxDuration: z.number().nullable(),
+  position: z.number(),
+  status: z.enum(['queued', 'processing', 'completed', 'error', 'stopped']),
+  source: z.enum(['user', 'agent']),
+  taskId: z.string().nullable(),
+  error: z.string().nullable(),
+  notes: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  completedAt: z.date().nullable(),
+  deletedAt: z.date().nullable(),
+})
+
+export type RequestQueue = z.infer<typeof selectRequestQueueSchema>
+export type InsertRequestQueue = z.infer<typeof insertRequestQueueSchema>
+
+// ─── Merge Tokens ───────────────────────────────────────────────────────
+// One-time tokens used for the cross-provider account merge confirmation flow.
+// When a user signs in with a new provider that shares a verified email with
+// an existing account, a token is created. The user must confirm the merge
+// (via the MergeAccountsDialog) before the accounts are linked.
+
+export const mergeTokens = pgTable('merge_tokens', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  /** The existing user ID that the new provider will be merged into */
+  targetUserId: text('target_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** The new provider being linked */
+  provider: text('provider', {
+    enum: ['github', 'google', 'discord'],
+  }).notNull(),
+  /** The external user ID from the new provider */
+  externalUserId: text('external_user_id').notNull(),
+  /** The encrypted access token for the new provider */
+  accessToken: text('access_token').notNull(),
+  /** The encrypted refresh token (if any) for the new provider */
+  refreshToken: text('refresh_token'),
+  /** The OAuth scope for the new provider */
+  scope: text('scope'),
+  /** The username from the new provider */
+  username: text('username').notNull(),
+  /** Email that matched during the merge request */
+  matchedEmail: text('matched_email').notNull(),
+  /** pending → confirmed → expired */
+  status: text('status', {
+    enum: ['pending', 'confirmed', 'expired'],
+  })
+    .notNull()
+    .default('pending'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  confirmedAt: timestamp('confirmed_at'),
+})
+
+export const insertMergeTokenSchema = z.object({
+  id: z.string().optional(),
+  targetUserId: z.string().min(1, 'Target user ID is required'),
+  provider: z.enum(['github', 'google', 'discord']),
+  externalUserId: z.string().min(1, 'External user ID is required'),
+  accessToken: z.string(),
+  refreshToken: z.string().optional().nullable(),
+  scope: z.string().optional().nullable(),
+  username: z.string().min(1, 'Username is required'),
+  matchedEmail: z.string().email(),
+  status: z.enum(['pending', 'confirmed', 'expired']).optional().default('pending'),
+  createdAt: z.date().optional(),
+  expiresAt: z.date(),
+  confirmedAt: z.date().optional().nullable(),
+})
+
+export const selectMergeTokenSchema = z.object({
+  id: z.string(),
+  targetUserId: z.string(),
+  provider: z.enum(['github', 'google', 'discord']),
+  externalUserId: z.string(),
+  accessToken: z.string(),
+  refreshToken: z.string().nullable(),
+  scope: z.string().nullable(),
+  username: z.string(),
+  matchedEmail: z.string(),
+  status: z.enum(['pending', 'confirmed', 'expired']),
+  createdAt: z.date(),
+  expiresAt: z.date(),
+  confirmedAt: z.date().nullable(),
+})
+
+export type MergeToken = z.infer<typeof selectMergeTokenSchema>
+export type InsertMergeToken = z.infer<typeof insertMergeTokenSchema>

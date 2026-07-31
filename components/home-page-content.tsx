@@ -31,6 +31,7 @@ import { sessionAtom } from '@/lib/atoms/session'
 import { githubConnectionAtom, githubConnectionInitializedAtom } from '@/lib/atoms/github-connection'
 import { OpenRepoUrlDialog } from '@/components/open-repo-url-dialog'
 import { MultiRepoDialog } from '@/components/multi-repo-dialog'
+import { QueuePanel } from '@/components/queue-panel'
 import { VERCEL_DEPLOY_URL } from '@/lib/constants'
 
 interface HomePageContentProps {
@@ -340,6 +341,7 @@ export function HomePageContent({
     keepAlive: boolean
     enableBrowser: boolean
     executionLevel?: string
+    sendToQueue?: boolean
     workerTeam?: {
       workers: { id: string; role: string; agentType: string; model: string; instructions: string; priority: number }[]
       timeoutMinutes: number
@@ -367,6 +369,60 @@ export function HomePageContent({
         })
         return
       }
+    }
+
+    // If the user chose "Add to queue", enqueue the request instead of running
+    // it immediately. The queue auto-advances once current work finishes.
+    if (data.sendToQueue) {
+      setTaskPrompt('')
+      setIsSubmitting(true)
+      try {
+        // Multi-repo mode: enqueue one request per selected repository (they
+        // run serially in queue order). Otherwise enqueue a single request.
+        const targets =
+          multiRepoMode && selectedRepos.length > 0
+            ? selectedRepos.map((repo) => ({ prompt: data.prompt, repoUrl: repo.clone_url }))
+            : [{ prompt: data.prompt, repoUrl: data.repoUrl || null }]
+
+        const responses = await Promise.all(
+          targets.map((target) =>
+            fetch('/api/queue', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt: target.prompt,
+                title: data.prompt.slice(0, 80),
+                repoUrl: target.repoUrl,
+                selectedAgent: data.selectedAgent,
+                selectedModel: data.selectedModel,
+                installDependencies: data.installDependencies,
+                maxDuration: data.maxDuration,
+                keepAlive: data.keepAlive,
+                enableBrowser: data.enableBrowser,
+              }),
+            }),
+          ),
+        )
+
+        const okCount = responses.filter((r) => r.ok).length
+        if (okCount === responses.length) {
+          toast.success(t.queue.added)
+          if (multiRepoMode) setSelectedRepos([])
+          window.dispatchEvent(new Event('queue-changed'))
+        } else {
+          const error = await responses
+            .find((r) => !r.ok)
+            ?.json()
+            .catch(() => null)
+          toast.error(error?.error || t.errors.failedToCreateTask)
+        }
+      } catch (error) {
+        console.error('Error adding to queue:', error)
+        toast.error(t.errors.failedToCreateTask)
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
     }
 
     // Clear the saved prompt since we're actually submitting it now
@@ -569,18 +625,25 @@ export function HomePageContent({
       </div>
 
       {user ? (
-        <div className="flex-1 flex items-center justify-center px-4 pb-20 md:pb-4">
-          <TaskForm
-            onSubmit={handleTaskSubmit}
-            isSubmitting={isSubmitting}
-            selectedOwner={selectedOwner}
-            selectedRepo={selectedRepo}
-            initialInstallDependencies={initialInstallDependencies}
-            initialMaxDuration={initialMaxDuration}
-            initialKeepAlive={initialKeepAlive}
-            initialEnableBrowser={initialEnableBrowser}
-            maxSandboxDuration={maxSandboxDuration}
-          />
+        <div className="flex-1 overflow-y-auto px-4 pb-24 md:pb-8">
+          <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 py-6 lg:flex-row lg:items-start lg:justify-center">
+            <div className="w-full max-w-2xl lg:w-auto lg:flex-1">
+              <TaskForm
+                onSubmit={handleTaskSubmit}
+                isSubmitting={isSubmitting}
+                selectedOwner={selectedOwner}
+                selectedRepo={selectedRepo}
+                initialInstallDependencies={initialInstallDependencies}
+                initialMaxDuration={initialMaxDuration}
+                initialKeepAlive={initialKeepAlive}
+                initialEnableBrowser={initialEnableBrowser}
+                maxSandboxDuration={maxSandboxDuration}
+              />
+            </div>
+            <div className="w-full max-w-2xl lg:w-96 lg:shrink-0">
+              <QueuePanel />
+            </div>
+          </div>
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center px-4 pb-20 md:pb-4">

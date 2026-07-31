@@ -3,7 +3,7 @@
 import { Task } from '@/lib/db/schema'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Plus, Trash2, GitBranch, Loader2, Search, X } from 'lucide-react'
+import { AlertCircle, Plus, Sparkles, Trash2, GitBranch, Loader2, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -356,6 +356,11 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
               </button>
             </div>
             <div className="flex items-center gap-1">
+              <Link href="/capabilities" onClick={handleLinkClick}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.capabilities.metaTitle}>
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </Link>
               <Link href="/" onClick={handleLinkClick}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                   <Plus className="h-4 w-4" />
@@ -430,6 +435,11 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
             >
               <Trash2 className="h-4 w-4" />
             </Button>
+            <Link href="/capabilities" onClick={handleLinkClick}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.capabilities.metaTitle}>
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            </Link>
             <Link href="/" onClick={handleLinkClick}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                 <Plus className="h-4 w-4" />

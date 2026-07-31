@@ -4,7 +4,8 @@ import type { Session, Tokens } from './types'
 import { SESSION_COOKIE_NAME } from './constants'
 import { encryptJWE } from '@/lib/jwe/encrypt'
 import { fetchUser } from '@/lib/vercel-client/user'
-import { upsertUser, getUserById } from '@/lib/db/users'
+import { upsertUser, getUserById, getUserByEmail } from '@/lib/db/users'
+import { requestMerge } from '@/lib/db/merge-identity'
 import { encrypt } from '@/lib/crypto'
 import ms from 'ms'
 
@@ -18,17 +19,43 @@ export async function createSession(tokens: Tokens): Promise<Session | undefined
 
   // Create or update user in database
   const externalId = user.uid || user.id || ''
+  const encryptedAccessToken = encrypt(tokens.accessToken)
+  const encryptedRefreshToken = tokens.refreshToken ? encrypt(tokens.refreshToken) : undefined
+
   const userId = await upsertUser({
     provider: 'vercel',
     externalId,
-    accessToken: encrypt(tokens.accessToken), // Encrypt before storing
-    refreshToken: tokens.refreshToken ? encrypt(tokens.refreshToken) : undefined, // Encrypt if present
+    accessToken: encryptedAccessToken, // Encrypt before storing
+    refreshToken: encryptedRefreshToken, // Encrypt if present
     scope: undefined, // Vercel doesn't provide scope
     username: user.username,
     email: user.email,
     name: user.name,
     avatarUrl: `https://vercel.com/api/www/avatar/?u=${user.username}`,
   })
+
+  // Cross-provider merge: if this user has a verified email that matches an
+  // existing account, offer to link the accounts.
+  // Note: Vercel doesn't create a row in the accounts table — it's a primary
+  // provider. The merge token is created here so the user can confirm.
+  if (user.email) {
+    const existingUser = await getUserByEmail(user.email)
+    if (existingUser && existingUser.id !== userId) {
+      const mergeCandidate = await requestMerge(
+        'github', // Vercel merges via GitHub connection; this is a placeholder
+        externalId,
+        tokens.accessToken,
+        encryptedAccessToken,
+        encryptedRefreshToken,
+        undefined,
+        user.username,
+        user.email,
+      )
+      if (mergeCandidate) {
+        console.log('Created merge token for Vercel session')
+      }
+    }
+  }
 
   const dbUser = await getUserById(userId)
 

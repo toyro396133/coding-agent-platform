@@ -110,6 +110,19 @@ export async function getUserByExternalId(provider: 'github' | 'vercel', externa
 }
 
 /**
+ * Get user by verified email (case-insensitive)
+ * Used by cross-provider identity merging to find an existing account.
+ */
+export async function getUserByEmail(email: string) {
+  const result = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.email, email.toLowerCase())))
+    .limit(1)
+  return result[0] || null
+}
+
+/**
  * Get user by username
  */
 export async function getUserByUsername(username: string) {

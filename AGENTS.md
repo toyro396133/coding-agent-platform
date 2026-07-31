@@ -51,6 +51,15 @@ The `redactSensitiveInfo()` function in `lib/utils/logging.ts` automatically red
 - JSON fields (teamId, projectId)
 - Environment variables containing KEY, TOKEN, SECRET, PASSWORD, TEAM_ID, PROJECT_ID
 
+## Capabilities Documentation Rule
+
+**`docs/CAPABILITIES.md` is the official source of truth for all platform capabilities.**
+
+- Every new feature or implemented function **MUST** be added to `docs/CAPABILITIES.md` in the matching category, with technical detail (files, behavior, limitations) — in the same PR/commit that implements it.
+- Every new idea **MUST** be recorded in the "רעיונות בתכנון" (Planned Ideas) section of that document.
+- The site's capabilities page (`/capabilities`) loads from `lib/capabilities-data.ts` + `dictionaries` — keep those in sync when adding UI-visible capabilities.
+- Update the "Last Updated" date at the top of the document with every change.
+
 ## Code Quality Guidelines
 
 ### Code Formatting and Quality Checks

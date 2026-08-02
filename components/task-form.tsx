@@ -686,7 +686,7 @@ export function TaskForm({
                         <DropdownMenuLabel>{t.taskForm.taskOptions}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <div className="p-2 space-y-4">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center gap-2">
                             <Checkbox
                               id="install-deps"
                               checked={installDependencies}
@@ -725,7 +725,7 @@ export function TaskForm({
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center gap-2">
                               <Checkbox
                                 id="keep-alive"
                                 checked={keepAlive}

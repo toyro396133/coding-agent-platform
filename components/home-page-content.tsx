@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocale } from '@/components/providers/locale-provider'
 import { TaskForm } from '@/components/task-form'
 import { SharedHeader } from '@/components/shared-header'
@@ -19,10 +19,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, RefreshCw, Unlink, Settings, Plus, ExternalLink } from 'lucide-react'
+import { MoreHorizontal, RefreshCw, Unlink, Settings, Plus, ExternalLink, Sparkles, Zap } from 'lucide-react'
 import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
 import { GitHubIcon } from '@/components/icons/github-icon'
+import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { cn } from '@/lib/utils'
 import { getEnabledAuthProviders } from '@/lib/auth/providers'
+import Link from 'next/link'
 import { useSetAtom, useAtom, useAtomValue } from 'jotai'
 import { taskPromptAtom } from '@/lib/atoms/task'
 import { HomePageMobileFooter } from '@/components/home-page-mobile-footer'
@@ -33,6 +36,21 @@ import { OpenRepoUrlDialog } from '@/components/open-repo-url-dialog'
 import { MultiRepoDialog } from '@/components/multi-repo-dialog'
 import { QueuePanel } from '@/components/queue-panel'
 import { VERCEL_DEPLOY_URL } from '@/lib/constants'
+
+const HERO_PROMPTS = [
+  'בנה API לרשימת משימות עם Express ו-TypeScript',
+  'צור דף נחיתה רספונסיבי עם Tailwind',
+  'הוסף מערכת אימות עם NextAuth ו-Postgres',
+] as const
+
+const HERO_AGENTS = [
+  { name: 'Claude', Logo: Claude, delay: 0 },
+  { name: 'Codex', Logo: Codex, delay: 100 },
+  { name: 'Cursor', Logo: Cursor, delay: 200 },
+  { name: 'Copilot', Logo: Copilot, delay: 300 },
+  { name: 'Gemini', Logo: Gemini, delay: 400 },
+  { name: 'OpenCode', Logo: OpenCode, delay: 500 },
+] as const
 
 interface HomePageContentProps {
   initialSelectedOwner?: string
@@ -263,7 +281,48 @@ export function HomePageContent({
     }
   }
 
-  // Build leftActions for the header
+  // ─── Terminal hero state ───
+  const [heroPromptIndex, setHeroPromptIndex] = useState(0)
+  const [heroTyped, setHeroTyped] = useState('')
+  const [heroCursor, setHeroCursor] = useState(true)
+  const [agentsRevealed, setAgentsRevealed] = useState(false)
+  const heroTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Typing animation for the hero prompt
+  useEffect(() => {
+    const text = HERO_PROMPTS[heroPromptIndex]
+    let i = 0
+
+    const tick = () => {
+      if (i < text.length) {
+        setHeroTyped(text.slice(0, i + 1))
+        i++
+        heroTimerRef.current = setTimeout(tick, 45 + Math.random() * 25)
+      } else {
+        // After typing completes, show agents, then cycle prompt
+        setAgentsRevealed(true)
+        heroTimerRef.current = setTimeout(() => {
+          setAgentsRevealed(false)
+          setHeroPromptIndex((prev) => (prev + 1) % HERO_PROMPTS.length)
+        }, 4000)
+      }
+    }
+    // Reset the typed text asynchronously, then start typing, so no state is
+    // set synchronously within the effect body.
+    heroTimerRef.current = setTimeout(() => {
+      setHeroTyped('')
+      tick()
+    }, 400)
+    return () => {
+      if (heroTimerRef.current) clearTimeout(heroTimerRef.current)
+    }
+  }, [heroPromptIndex])
+
+  // Blinking cursor
+  useEffect(() => {
+    const interval = setInterval(() => setHeroCursor((c) => !c), 530)
+    return () => clearInterval(interval)
+  }, [])
   const headerLeftActions = (
     <div className="flex items-center gap-1 sm:gap-2 h-8 min-w-0 flex-1">
       {!githubConnectionInitialized ? null : githubConnection.connected || isGitHubAuthUser ? (
@@ -627,7 +686,14 @@ export function HomePageContent({
       {user ? (
         <div className="flex-1 overflow-y-auto px-4 pb-24 md:pb-8">
           <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 py-6 lg:flex-row lg:items-start lg:justify-center">
-            <div className="w-full max-w-2xl lg:w-auto lg:flex-1">
+            {/* ─── Pipeline Glow wrapper ─── */}
+            <div
+              className="w-full max-w-2xl lg:w-auto lg:flex-1 rounded-2xl opacity-0"
+              style={{
+                animation: 'fadeIn 0.6s ease-out 0.15s forwards',
+                boxShadow: '0 0 0 1px oklch(0.62 0.185 65 / 0.12), 0 0 40px -16px oklch(0.62 0.185 65 / 0.06)',
+              }}
+            >
               <TaskForm
                 onSubmit={handleTaskSubmit}
                 isSubmitting={isSubmitting}
@@ -640,58 +706,123 @@ export function HomePageContent({
                 maxSandboxDuration={maxSandboxDuration}
               />
             </div>
-            <div className="w-full max-w-2xl lg:w-96 lg:shrink-0">
+            <div
+              className="w-full max-w-2xl lg:w-96 lg:shrink-0 opacity-0"
+              style={{ animation: 'fadeIn 0.5s ease-out 0.4s forwards' }}
+            >
               <QueuePanel />
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center px-4 pb-20 md:pb-4">
-          <div className="max-w-2xl text-center space-y-6">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-4">
+          {/* ─── Terminal Window ─── */}
+          <div className="w-full max-w-2xl opacity-0" style={{ animation: 'fadeIn 0.6s ease-out 0.15s forwards' }}>
             <div
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-xs font-medium text-muted-foreground mb-2 opacity-0"
-              style={{ animation: 'fadeIn 0.5s ease-out forwards' }}
+              className="rounded-2xl overflow-hidden border border-white/[0.06]"
+              style={{
+                background: 'oklch(0.15 0.01 255)',
+                boxShadow: '0 0 0 1px oklch(0.62 0.185 65 / 0.08), 0 0 48px -12px oklch(0.62 0.185 65 / 0.04)',
+              }}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Multi-Agent AI Platform
+              {/* Title bar */}
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-500/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" />
+                </div>
+                <span className="flex-1 text-center text-[11px] text-white/25 font-mono">terminal — freebuff</span>
+              </div>
+
+              {/* Prompt area */}
+              <div className="px-5 py-5 md:px-6 md:py-6">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 shrink-0 font-mono text-sm md:text-base text-amber-400/80 select-none">
+                    $
+                  </span>
+                  <span className="font-mono text-sm md:text-base text-white/80 leading-relaxed">
+                    {heroTyped}
+                    <span
+                      className={cn(
+                        'inline-block w-[2px] h-[1.1em] align-text-bottom ms-0.5 -mb-0.5',
+                        heroCursor ? 'bg-amber-400' : 'bg-transparent',
+                      )}
+                    />
+                  </span>
+                </div>
+              </div>
             </div>
-            <h1
-              className="text-4xl md:text-5xl font-bold tracking-tight text-balance opacity-0"
-              style={{ animation: 'fadeIn 0.5s ease-out 0.15s forwards' }}
-            >
-              {t.home.title}
-            </h1>
-            <p
-              className="text-lg text-muted-foreground max-w-xl mx-auto text-balance text-pretty opacity-0"
-              style={{ animation: 'fadeIn 0.5s ease-out 0.3s forwards' }}
-            >
-              {t.home.subtitle}
-            </p>
-            <div
-              className="flex items-center justify-center gap-3 pt-2 opacity-0"
-              style={{ animation: 'fadeIn 0.5s ease-out 0.45s forwards' }}
-            >
-              <Button
-                onClick={() => setShowSignInDialog(true)}
-                size="lg"
-                className="h-11 px-6 text-base transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          </div>
+
+          {/* ─── 6-Agent Reveal ─── */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-4">
+            {HERO_AGENTS.map((agent) => (
+              <div
+                key={agent.name}
+                className={cn(
+                  'flex items-center gap-2 rounded-full border border-border/50 bg-card px-3 py-2 transition-all duration-500',
+                  'hover:border-amber-500/20 hover:shadow-[0_0_0_1px_oklch(0.62_0.185_65_/_0.15)]',
+                  !agentsRevealed && 'opacity-30 scale-90',
+                  agentsRevealed && 'opacity-100 scale-100',
+                )}
+                style={{
+                  transitionDelay: agentsRevealed ? `${agent.delay}ms` : '0ms',
+                }}
               >
-                {t.auth.signIn}
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-11 px-6 text-base transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                asChild
-              >
-                <a href={VERCEL_DEPLOY_URL} target="_blank" rel="noopener noreferrer">
-                  <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
-                    <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
-                  </svg>
-                  {t.home.deployYourOwn}
-                </a>
-              </Button>
-            </div>
+                <agent.Logo className="h-4 w-4 md:h-5 md:w-5" />
+                <span className="text-xs md:text-sm font-medium text-foreground/80">{agent.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* ─── CTA ─── */}
+          <div
+            className="mt-10 flex flex-col sm:flex-row items-center gap-3 opacity-0"
+            style={{ animation: 'fadeIn 0.5s ease-out 0.8s forwards' }}
+          >
+            <Button
+              onClick={() => setShowSignInDialog(true)}
+              size="lg"
+              className="h-12 px-8 text-base bg-amber-500 hover:bg-amber-400 text-amber-950 font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Sparkles className="h-4 w-4 me-2 rtl:scale-x-[-1]" />
+              {t.auth.signIn}
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              className="h-12 px-6 text-base text-muted-foreground hover:text-foreground"
+              asChild
+            >
+              <a href={VERCEL_DEPLOY_URL} target="_blank" rel="noopener noreferrer">
+                <svg viewBox="0 0 76 65" className="h-3 w-3 me-2" fill="currentColor">
+                  <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
+                </svg>
+                {t.home.deployYourOwn}
+              </a>
+            </Button>
+          </div>
+
+          {/* ─── Nav links ─── */}
+          <div
+            className="mt-8 flex items-center gap-6 opacity-0"
+            style={{ animation: 'fadeIn 0.5s ease-out 1s forwards' }}
+          >
+            <Link
+              href="/landing"
+              className="text-sm text-muted-foreground hover:text-amber-500 transition-colors flex items-center gap-1.5"
+            >
+              <Sparkles className="h-3.5 w-3.5 rtl:scale-x-[-1]" />
+              Learn more
+            </Link>
+            <Link
+              href="/capabilities"
+              className="text-sm text-muted-foreground hover:text-amber-500 transition-colors flex items-center gap-1.5"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Capabilities
+            </Link>
           </div>
         </div>
       )}

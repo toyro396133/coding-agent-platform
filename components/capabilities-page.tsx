@@ -1,17 +1,35 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { ArrowLeft, Search, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Search, X, Zap } from 'lucide-react'
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
+import { useMemo, useState } from 'react'
 import { useLocale } from '@/components/providers/locale-provider'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { ERROR_CODE_CATALOG } from '@/lib/api/job-errors'
 import { CAPABILITY_CATEGORIES, CAPABILITY_STATS } from '@/lib/capabilities-data'
+import { cn } from '@/lib/utils'
 
 type CategoryText = { title: string; desc: string; features: Record<string, string> }
 
 function getCategoryText(t: ReturnType<typeof useLocale>['t'], id: string): CategoryText {
   return (t.capabilities.categories as unknown as Record<string, CategoryText>)[id]
+}
+
+// Localized display name for each JobErrorCategory value (from the error catalog).
+function getErrorCategoryLabel(t: ReturnType<typeof useLocale>['t'], category: string): string {
+  const labels: Record<string, string> = {
+    cancellation: t.capabilities.errorCatCancellation,
+    build: t.capabilities.errorCatBuild,
+    verification: t.capabilities.errorCatVerification,
+    infrastructure: t.capabilities.errorCatInfrastructure,
+    authentication: t.capabilities.errorCatAuthentication,
+    git: t.capabilities.errorCatGit,
+    agent: t.capabilities.errorCatAgent,
+    limits: t.capabilities.errorCatLimits,
+    unknown: t.capabilities.errorCatUnknown,
+  }
+  return labels[category] ?? category
 }
 
 export function CapabilitiesPage() {
@@ -50,6 +68,15 @@ export function CapabilitiesPage() {
             <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
             {t.capabilities.backToHome}
           </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/landing"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-amber-500 transition-colors"
+            >
+              <Zap className="h-4 w-4" />
+              Landing
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -158,6 +185,63 @@ export function CapabilitiesPage() {
               .replace('{total}', String(shownFeatures))
               .replace('{categories}', String(shownCategories))}
           </p>
+          {/* Error Codes Appendix — machine-readable failure codes (Error details & codes).
+              Hidden while a search query is active so the filtered results stay coherent. */}
+          {!query.trim() && (
+            <section id="error-codes" className="space-y-4 border-t pt-8">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold tracking-tight">{t.capabilities.errorCodesTitle}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">{t.capabilities.errorCodesDesc}</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border bg-card">
+                <table className="w-full text-sm min-w-[720px]">
+                  <thead>
+                    <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-3 font-medium">{t.capabilities.errorCodeCol}</th>
+                      <th className="px-4 py-3 font-medium">{t.capabilities.errorCategoryCol}</th>
+                      <th className="px-4 py-3 font-medium">{t.capabilities.errorStageCol}</th>
+                      <th className="px-4 py-3 font-medium">{t.capabilities.errorRetryableCol}</th>
+                      <th className="px-4 py-3 font-medium">{t.capabilities.errorRecoveryHintCol}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ERROR_CODE_CATALOG.map((entry) => (
+                      <tr key={entry.code} className="border-b last:border-0 transition-colors hover:bg-muted/40">
+                        <td className="px-4 py-2.5">
+                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{entry.code}</code>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                          {getErrorCategoryLabel(t, entry.category)}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground">{entry.stage ?? '—'}</td>
+                        <td className="px-4 py-2.5">
+                          {entry.retryable ? (
+                            <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 text-[10px]">
+                              {t.capabilities.errorRetryableYes}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground text-[10px]">
+                              {t.capabilities.errorRetryableNo}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground leading-relaxed">
+                          {entry.recovery_hint}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground">{t.capabilities.errorCodesNote}</p>
+            </section>
+          )}
         </div>
       </main>
     </div>

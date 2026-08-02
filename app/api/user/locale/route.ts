@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
+import ms from 'ms'
+import { type NextRequest, NextResponse } from 'next/server'
 import { updateUserLocale } from '@/lib/db/users'
-import { getSessionFromCookie } from '@/lib/session/server'
 import { encryptJWE } from '@/lib/jwe/encrypt'
 import { SESSION_COOKIE_NAME } from '@/lib/session/constants'
-import ms from 'ms'
+import { getServerSession } from '@/lib/session/get-server-session'
+import { getSessionFromCookie } from '@/lib/session/server'
 
 export async function PATCH(request: NextRequest) {
   const session = await getServerSession()

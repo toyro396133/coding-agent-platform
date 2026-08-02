@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { getUserGitHubToken } from '@/lib/github/user-token'
 import { Octokit } from '@octokit/rest'
+import { NextResponse } from 'next/server'
+import { getUserGitHubToken } from '@/lib/github/user-token'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 interface RepoTemplate {
   id: string
@@ -44,7 +44,7 @@ async function copyFilesRecursively(
 
           // Calculate relative path by removing the base path prefix
           const relativePath = basePath
-            ? item.path.startsWith(basePath + '/')
+            ? item.path.startsWith(`${basePath}/`)
               ? item.path.substring(basePath.length + 1)
               : item.name
             : item.path

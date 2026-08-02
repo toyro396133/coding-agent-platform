@@ -1,6 +1,6 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext, BackgroundTask } from './types'
+import type { BackgroundTask, ToolContext } from './types'
 
 export function createBackgroundTools(ctx: ToolContext) {
   const tasks: BackgroundTask[] = []

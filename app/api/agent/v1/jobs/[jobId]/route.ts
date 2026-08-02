@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
-import { db } from '@/lib/db/client'
-import { tasks, taskMessages } from '@/lib/db/schema'
-import { eq, and, asc } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { buildJobDiffForTask, type JobDiff } from '@/lib/api/job-diff'
 import { deriveErrorDetails } from '@/lib/api/job-errors'
+import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
+import { db } from '@/lib/db/client'
+import { taskMessages, tasks } from '@/lib/db/schema'
 
 // Terminal states after which a result is considered final
 const TERMINAL_STATUSES = ['completed', 'error', 'stopped']
@@ -184,7 +184,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
         })),
       },
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error fetching job state')
     return NextResponse.json(
       {

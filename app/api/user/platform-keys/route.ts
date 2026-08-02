@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSessionFromReq } from '@/lib/session/server'
+import crypto from 'node:crypto'
+import { and, eq } from 'drizzle-orm'
+import { nanoid } from 'nanoid'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { platformApiKeys } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
-import { nanoid } from 'nanoid'
-import crypto from 'crypto'
+import { getSessionFromReq } from '@/lib/session/server'
 
 // Utility to create a secure API key
 function generateSecureApiKey() {
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       success: true,
       apiKeys: keys.reverse(), // latest first
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error fetching platform API keys')
     return NextResponse.json({ error: 'Failed to fetch API keys' }, { status: 500 })
   }
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         createdAt: new Date(),
       },
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error creating platform API key')
     return NextResponse.json({ error: 'Failed to create API key' }, { status: 500 })
   }
@@ -120,7 +120,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error deleting platform API key')
     return NextResponse.json({ error: 'Failed to delete API key' }, { status: 500 })
   }

@@ -1,7 +1,7 @@
+import { and, eq } from 'drizzle-orm'
+import { MAX_MESSAGES_PER_DAY, MAX_SANDBOX_DURATION } from '@/lib/constants'
 import { db } from './client'
 import { settings } from './schema'
-import { eq, and } from 'drizzle-orm'
-import { MAX_MESSAGES_PER_DAY, MAX_SANDBOX_DURATION } from '@/lib/constants'
 
 /**
  * Get a setting value with fallback to default.

@@ -1,41 +1,41 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useLocale } from '@/components/providers/locale-provider'
-import { TaskForm } from '@/components/task-form'
-import { SharedHeader } from '@/components/shared-header'
-import { RepoSelector } from '@/components/repo-selector'
-import { toast } from 'sonner'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { ExternalLink, MoreHorizontal, Plus, RefreshCw, Settings, Sparkles, Unlink, Zap } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { useTasks } from '@/components/app-layout'
-import { setSelectedOwner, setSelectedRepo } from '@/lib/utils/cookies'
-import type { Session } from '@/lib/session/types'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { HomePageMobileFooter } from '@/components/home-page-mobile-footer'
+import { GitHubIcon } from '@/components/icons/github-icon'
+import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { MultiRepoDialog } from '@/components/multi-repo-dialog'
+import { OpenRepoUrlDialog } from '@/components/open-repo-url-dialog'
+import { useLocale } from '@/components/providers/locale-provider'
+import { QueuePanel } from '@/components/queue-panel'
+import { RepoSelector } from '@/components/repo-selector'
+import { SharedHeader } from '@/components/shared-header'
+import { TaskForm } from '@/components/task-form'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, RefreshCw, Unlink, Settings, Plus, ExternalLink, Sparkles, Zap } from 'lucide-react'
-import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
-import { GitHubIcon } from '@/components/icons/github-icon'
-import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
-import { cn } from '@/lib/utils'
-import { getEnabledAuthProviders } from '@/lib/auth/providers'
-import Link from 'next/link'
-import { useSetAtom, useAtom, useAtomValue } from 'jotai'
-import { taskPromptAtom } from '@/lib/atoms/task'
-import { HomePageMobileFooter } from '@/components/home-page-mobile-footer'
+import { githubConnectionAtom, githubConnectionInitializedAtom } from '@/lib/atoms/github-connection'
 import { multiRepoModeAtom, selectedReposAtom } from '@/lib/atoms/multi-repo'
 import { sessionAtom } from '@/lib/atoms/session'
-import { githubConnectionAtom, githubConnectionInitializedAtom } from '@/lib/atoms/github-connection'
-import { OpenRepoUrlDialog } from '@/components/open-repo-url-dialog'
-import { MultiRepoDialog } from '@/components/multi-repo-dialog'
-import { QueuePanel } from '@/components/queue-panel'
+import { taskPromptAtom } from '@/lib/atoms/task'
+import { getEnabledAuthProviders } from '@/lib/auth/providers'
 import { VERCEL_DEPLOY_URL } from '@/lib/constants'
+import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
+import type { Session } from '@/lib/session/types'
+import { cn } from '@/lib/utils'
+import { setSelectedOwner, setSelectedRepo } from '@/lib/utils/cookies'
 
 const HERO_PROMPTS = [
   'בנה API לרשימת משימות עם Express ו-TypeScript',
@@ -566,7 +566,7 @@ export function HomePageContent({
     if (isMultiAgent) {
       // Create multiple tasks, one for each selected model
       const taskIds: string[] = []
-      const tasksData = data.selectedModels!.map((modelValue) => {
+      const tasksData = data.selectedModels?.map((modelValue) => {
         // Parse agent:model format
         const [agent, model] = modelValue.split(':')
         const { id } = addTaskOptimistically({

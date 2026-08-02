@@ -1,12 +1,12 @@
 'use client'
 
+import { GitBranch, GitPullRequest } from 'lucide-react'
 import { useState } from 'react'
-import { SharedHeader } from '@/components/shared-header'
-import type { Session } from '@/lib/session/types'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RepoCommits } from '@/components/repo-commits'
 import { RepoPullRequests } from '@/components/repo-pull-requests'
-import { GitBranch, GitPullRequest } from 'lucide-react'
+import { SharedHeader } from '@/components/shared-header'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { Session } from '@/lib/session/types'
 
 interface RepoPageClientProps {
   owner: string

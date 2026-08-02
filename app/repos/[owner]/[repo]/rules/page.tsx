@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Trash2, CheckCircle2, Circle } from 'lucide-react'
+import { CheckCircle2, Circle, Loader2, Trash2 } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 import type { ProjectRule } from '@/lib/db/schema'
 
 export default function RulesPage({ params }: { params: Promise<{ owner: string; repo: string }> }) {
@@ -41,7 +41,7 @@ export default function RulesPage({ params }: { params: Promise<{ owner: string;
     const controller = new AbortController()
     fetchRules(controller.signal)
     return () => controller.abort()
-  }, [unwrappedParams.owner, unwrappedParams.repo])
+  }, [fetchRules])
 
   const handleAddRule = async () => {
     if (!newRule.trim()) return
@@ -60,7 +60,7 @@ export default function RulesPage({ params }: { params: Promise<{ owner: string;
       } else {
         toast.error('Failed to add rule')
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Error adding rule')
     } finally {
       setIsSubmitting(false)
@@ -81,7 +81,7 @@ export default function RulesPage({ params }: { params: Promise<{ owner: string;
       } else {
         toast.error('Failed to update rule')
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update rule')
     }
   }
@@ -99,7 +99,7 @@ export default function RulesPage({ params }: { params: Promise<{ owner: string;
       } else {
         toast.error('Failed to delete rule')
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete rule')
     }
   }

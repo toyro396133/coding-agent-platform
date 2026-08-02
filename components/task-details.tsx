@@ -3,12 +3,8 @@
 import {
   AlertCircle,
   Cable,
-  CheckCircle,
   ChevronDown,
   Code,
-  ExternalLink,
-  Eye,
-  EyeOff,
   FileText,
   GitBranch,
   GitPullRequest,
@@ -18,18 +14,15 @@ import {
   Minimize,
   Monitor,
   MoreVertical,
-  Play,
   Plus,
   RefreshCw,
   RotateCcw,
   Server,
-  Square,
   StopCircle,
   Trash2,
   X,
   XCircle,
 } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -47,15 +40,15 @@ import LinearIcon from '@/components/icons/linear-icon'
 import NotionIcon from '@/components/icons/notion-icon'
 import PlaywrightIcon from '@/components/icons/playwright-icon'
 import SupabaseIcon from '@/components/icons/supabase-icon'
-import VercelIcon from '@/components/icons/vercel-icon'
 import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
 import { MergePRDialog } from '@/components/merge-pr-dialog'
 import { PipelineBadge } from '@/components/pipeline-status'
 import { PRStatusIcon } from '@/components/pr-status-icon'
 import { useLocale } from '@/components/providers/locale-provider'
-import { SandboxVisualizer, type SandboxVisualizerData } from '@/components/sandbox-visualizer'
+import { SandboxVisualizer } from '@/components/sandbox-visualizer'
 import { TaskChat } from '@/components/task-chat'
 import { InteractiveTaskPanel } from '@/components/tasks/interactive-task-panel'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,7 +59,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -159,7 +151,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
   const [tryAgainKeepAlive, setTryAgainKeepAlive] = useState(task.keepAlive || false)
   const [tryAgainEnableBrowser, setTryAgainEnableBrowser] = useState(task.enableBrowser || false)
   const [deploymentUrl, setDeploymentUrl] = useState<string | null>(task.previewUrl || null)
-  const [loadingDeployment, setLoadingDeployment] = useState(false)
+  const [_loadingDeployment, setLoadingDeployment] = useState(false)
   const [showPRDialog, setShowPRDialog] = useState(false)
   const [showMergePRDialog, setShowMergePRDialog] = useState(false)
   const [prUrl, setPrUrl] = useState<string | null>(task.prUrl || null)
@@ -174,8 +166,8 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
     filesPane === 'files' ? (subMode === 'local' ? 'all-local' : 'all') : subMode
   const [activeTab, setActiveTab] = useState<'code' | 'chat' | 'preview'>('code')
   const [showFilesList, setShowFilesList] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [sandboxTimeRemaining, setSandboxTimeRemaining] = useState<string | null>(null)
+  const [_showPreview, _setShowPreview] = useState(false)
+  const [_sandboxTimeRemaining, setSandboxTimeRemaining] = useState<string | null>(null)
 
   // Desktop pane toggles - initialize from cookies
   const [showFilesPane, setShowFilesPane] = useState(() => getShowFilesPane())
@@ -285,7 +277,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
   const selectedItemIsFolder = selectedItemIsFolderByMode[viewMode]
 
   // Helper function to format dates - show only time if same day as today
-  const formatDateTime = (date: Date) => {
+  const _formatDateTime = (date: Date) => {
     const today = new Date()
     const isToday = date.toDateString() === today.toDateString()
 
@@ -579,7 +571,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
     }, 60000) // 60 seconds
 
     return () => clearInterval(interval)
-  }, [currentStatus, task.keepAlive, task.createdAt])
+  }, [currentStatus, task.keepAlive, task.createdAt, task.maxDuration])
 
   // Periodic sandbox health check
   useEffect(() => {
@@ -730,7 +722,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
     fetchMcpServers()
     // Use JSON.stringify to create stable dependency - only re-run when IDs actually change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(task.mcpServerIds)])
+  }, [task.mcpServerIds.length, task.mcpServerIds?.includes, task.mcpServerIds])
 
   // Fetch deployment info when task is completed and has a branch (only if not already cached)
   useEffect(() => {
@@ -852,7 +844,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
     syncPRStatus()
     // Only run on mount and when prNumber changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task.prNumber])
+  }, [task.prNumber, task.prUrl, task.id, refreshTasks, task.repoUrl, task.prStatus, prStatus])
 
   // Fetch diffs for changed files only (in "changes" mode)
   const fetchAllDiffs = useCallback(
@@ -998,7 +990,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
         }
 
         // Switch to tab 1-9 with Cmd/Ctrl + 1-9
-        const digit = parseInt(event.key)
+        const digit = parseInt(event.key, 10)
         if (digit >= 1 && digit <= 9 && openTabs.length >= digit) {
           event.preventDefault()
           switchToTab(digit - 1)
@@ -1048,7 +1040,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [openTabs, activeTabIndex])
+  }, [openTabs, activeTabIndex, switchToTab, attemptCloseTab])
 
   // Trigger refresh when task completes
   useEffect(() => {
@@ -1187,7 +1179,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
         inline: 'center',
       })
     }
-  }, [activeTabIndex, selectedFile, viewMode])
+  }, [activeTabIndex, viewMode])
 
   const handleOpenPR = () => {
     if (prUrl) {
@@ -1745,14 +1737,14 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
           {/* Worker Team Status — shown when task has worker team config */}
           {(() => {
             const wc = task.workerTeamConfig
-            if (!wc || !wc.workers || wc.workers.length === 0) return null
+            if (!wc?.workers || wc.workers.length === 0) return null
             return (
               <div className="w-full mt-2 border-t pt-2 space-y-3">
                 <SandboxVisualizer
                   data={{
                     workers: wc.workers.map((w) => ({
                       id: w.id,
-                      role: w.role || w.agentType + ' worker',
+                      role: w.role || `${w.agentType} worker`,
                       agentType: w.agentType,
                       model: w.model,
                       status: (currentStatus === 'processing'
@@ -2053,7 +2045,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                       onSavingStateChange={
                         selectedFile ? (isSaving) => handleSavingStateChange(selectedFile, isSaving) : undefined
                       }
-                      onOpenFile={(filename, lineNumber) => {
+                      onOpenFile={(filename, _lineNumber) => {
                         openFileInTab(filename)
                         // TODO: Optionally scroll to lineNumber after opening
                       }}
@@ -2321,7 +2313,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                       onSavingStateChange={
                         selectedFile ? (isSaving) => handleSavingStateChange(selectedFile, isSaving) : undefined
                       }
-                      onOpenFile={(filename, lineNumber) => {
+                      onOpenFile={(filename, _lineNumber) => {
                         openFileInTab(filename)
                         // TODO: Optionally scroll to lineNumber after opening
                       }}
@@ -2728,7 +2720,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   </Label>
                   <Select
                     value={tryAgainMaxDuration.toString()}
-                    onValueChange={(value) => setTryAgainMaxDuration(parseInt(value))}
+                    onValueChange={(value) => setTryAgainMaxDuration(parseInt(value, 10))}
                   >
                     <SelectTrigger id="try-again-max-duration" className="w-full">
                       <SelectValue />

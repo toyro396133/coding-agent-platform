@@ -1,6 +1,14 @@
 'use client'
 
-import type { Session } from '@/lib/session/types'
+import { useAtomValue, useSetAtom } from 'jotai'
+import { Key, Server } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { ApiKeysDialog } from '@/components/api-keys-dialog'
+import { GitHubIcon } from '@/components/icons/github-icon'
+import { SandboxesDialog } from '@/components/sandboxes-dialog'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -9,19 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { redirectToSignOut } from '@/lib/session/redirect-to-sign-out'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { useSetAtom, useAtomValue } from 'jotai'
-import { sessionAtom } from '@/lib/atoms/session'
 import { githubConnectionAtom } from '@/lib/atoms/github-connection'
-import { GitHubIcon } from '@/components/icons/github-icon'
-import { ApiKeysDialog } from '@/components/api-keys-dialog'
-import { SandboxesDialog } from '@/components/sandboxes-dialog'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Key, Server } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { sessionAtom } from '@/lib/atoms/session'
 import { getEnabledAuthProviders } from '@/lib/auth/providers'
+import { redirectToSignOut } from '@/lib/session/redirect-to-sign-out'
+import type { Session } from '@/lib/session/types'
 
 interface RateLimitInfo {
   used: number
@@ -146,24 +146,22 @@ export function SignOut({ user, authProvider }: Pick<Session, 'user' | 'authProv
         </DropdownMenuItem>
 
         {/* Only show GitHub Connect/Disconnect for Vercel users when GitHub is enabled */}
-        {authProvider === 'vercel' && hasGitHub && (
-          <>
-            {githubConnection.connected ? (
-              <DropdownMenuItem onClick={handleGitHubDisconnect} className="cursor-pointer">
-                <GitHubIcon className="h-4 w-4 me-2" />
-                Disconnect
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem
-                onClick={() => (window.location.href = '/api/auth/github/signin')}
-                className="cursor-pointer"
-              >
-                <GitHubIcon className="h-4 w-4 me-2" />
-                Connect
-              </DropdownMenuItem>
-            )}
-          </>
-        )}
+        {authProvider === 'vercel' &&
+          hasGitHub &&
+          (githubConnection.connected ? (
+            <DropdownMenuItem onClick={handleGitHubDisconnect} className="cursor-pointer">
+              <GitHubIcon className="h-4 w-4 me-2" />
+              Disconnect
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onClick={() => (window.location.href = '/api/auth/github/signin')}
+              className="cursor-pointer"
+            >
+              <GitHubIcon className="h-4 w-4 me-2" />
+              Connect
+            </DropdownMenuItem>
+          ))}
 
         <DropdownMenuSeparator />
 

@@ -1,10 +1,10 @@
-import { tool, generateText } from 'ai'
+import { generateText, tool } from 'ai'
 import { z } from 'zod'
-import type { CommandResult } from '@/lib/sandbox/commands'
-import type { ToolContext } from './types'
-import { SandboxBridge } from '../runtime/sandbox-bridge'
 import { getModelClient } from '@/lib/ai/models'
 import { withRetry } from '@/lib/ai/retry'
+import type { CommandResult } from '@/lib/sandbox/commands'
+import { SandboxBridge } from '../runtime/sandbox-bridge'
+import type { ToolContext } from './types'
 import { saveVisualQaRun, type VisualQaVerdict } from './visual-qa-store'
 
 /**

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { extractFileSymbols, buildAiderRepoMapText, estimateTokens, type RepoMapFile } from './aider-repo-map'
+import { describe, expect, it } from 'vitest'
+import { buildAiderRepoMapText, estimateTokens, extractFileSymbols, type RepoMapFile } from './aider-repo-map'
 
 describe('extractFileSymbols — TypeScript (AST)', () => {
   const tsContent = `import { z } from 'zod'
@@ -48,31 +48,31 @@ const secretInternal = 42
     const symbols = extractFileSymbols(tsContent, 'lib/sandbox/creation.ts')
     const create = symbols.find((s) => s.name === 'createSandbox')
     expect(create).toBeDefined()
-    expect(create!.kind).toBe('function')
-    expect(create!.signature).toContain('export async function createSandbox')
-    expect(create!.signature).toContain('config: SandboxConfig')
-    expect(create!.signature).toContain('Promise<SandboxResult>')
+    expect(create?.kind).toBe('function')
+    expect(create?.signature).toContain('export async function createSandbox')
+    expect(create?.signature).toContain('config: SandboxConfig')
+    expect(create?.signature).toContain('Promise<SandboxResult>')
   })
 
   it('extracts non-exported functions', () => {
     const symbols = extractFileSymbols(tsContent, 'lib/sandbox/creation.ts')
     const helper = symbols.find((s) => s.name === 'internalHelper')
     expect(helper).toBeDefined()
-    expect(helper!.signature).toContain('function internalHelper')
-    expect(helper!.signature).not.toContain('export')
+    expect(helper?.signature).toContain('function internalHelper')
+    expect(helper?.signature).not.toContain('export')
   })
 
   it('extracts classes with method signatures (no bodies)', () => {
     const symbols = extractFileSymbols(tsContent, 'lib/sandbox/creation.ts')
     const cls = symbols.find((s) => s.name === 'SandboxBridge')
     expect(cls).toBeDefined()
-    expect(cls!.kind).toBe('class')
-    expect(cls!.signature).toContain('export class SandboxBridge')
-    expect(cls!.methods).toBeDefined()
-    expect(cls!.methods!).toContain('isAvailable(): boolean')
-    expect(cls!.methods!).toContain('readFile(path: string, offset?: number): Promise<string>')
+    expect(cls?.kind).toBe('class')
+    expect(cls?.signature).toContain('export class SandboxBridge')
+    expect(cls?.methods).toBeDefined()
+    expect(cls?.methods!).toContain('isAvailable(): boolean')
+    expect(cls?.methods!).toContain('readFile(path: string, offset?: number): Promise<string>')
     // No method body text leaked into signatures
-    for (const m of cls!.methods!) {
+    for (const m of cls?.methods!) {
       expect(m).not.toContain('return')
     }
   })

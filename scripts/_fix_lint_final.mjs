@@ -12,7 +12,7 @@ function apply(file, replacements) {
     console.log('MISSING', file)
     return
   }
-  let content = fs.readFileSync(abs, 'utf8')
+  const content = fs.readFileSync(abs, 'utf8')
   const isCRLF = CRLF.test(content)
   let src = content.replace(/\r\n/g, '\n')
 

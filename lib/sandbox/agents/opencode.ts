@@ -1,9 +1,9 @@
-import { Sandbox } from '@vercel/sandbox'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from '../commands'
-import { AgentExecutionResult } from '../types'
+import type { Sandbox } from '@vercel/sandbox'
+import type { connectors } from '@/lib/db/schema'
 import { redactSensitiveInfo } from '@/lib/utils/logging'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { connectors } from '@/lib/db/schema'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import { runCommandInSandbox, runInProject } from '../commands'
+import type { AgentExecutionResult } from '../types'
 
 type Connector = typeof connectors.$inferSelect
 
@@ -17,7 +17,7 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
   const result = await runInProject(sandbox, command, args)
 
   // Only try to access properties if result is valid
-  if (result && result.output && result.output.trim()) {
+  if (result?.output?.trim()) {
     const redactedOutput = redactSensitiveInfo(result.output.trim())
     await logger.info(redactedOutput)
   }
@@ -168,14 +168,14 @@ export async function executeOpenCodeInSandbox(
 
         if (server.type === 'local') {
           // Local MCP server - parse command string into executable and args
-          const commandParts = server.command!.trim().split(/\s+/)
+          const commandParts = server.command?.trim().split(/\s+/)
 
           // Parse env from JSON string if present
           let envObject: Record<string, string> | undefined
           if (server.env) {
             try {
               envObject = JSON.parse(server.env)
-            } catch (e) {
+            } catch (_e) {
               await logger.info('Warning: Failed to parse env for MCP server')
             }
           }
@@ -359,13 +359,13 @@ EOF`
     const stderr = executeResult.error || ''
 
     // Log the output
-    if (stdout && stdout.trim()) {
+    if (stdout?.trim()) {
       await logger.info(redactSensitiveInfo(stdout.trim()))
       if (logger) {
         await logger.info(redactSensitiveInfo(stdout.trim()))
       }
     }
-    if (stderr && stderr.trim()) {
+    if (stderr?.trim()) {
       await logger.error(redactSensitiveInfo(stderr.trim()))
       if (logger) {
         await logger.error(redactSensitiveInfo(stderr.trim()))

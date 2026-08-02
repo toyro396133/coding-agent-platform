@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { listProjects } from '@/lib/vercel/api'
 import { getServerSession } from '@/lib/session/get-server-session'
+import { listProjects } from '@/lib/vercel/api'
 
 export async function GET() {
   const session = await getServerSession()

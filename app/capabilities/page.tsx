@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import type { Metadata } from 'next'
 import { CapabilitiesPage } from '@/components/capabilities-page'
 
 export const metadata: Metadata = {

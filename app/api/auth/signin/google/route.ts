@@ -1,6 +1,6 @@
-import { type NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
 import { Google, generateCodeVerifier, generateState } from 'arctic'
+import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
 import { isRelativeUrl } from '@/lib/utils/is-relative-url'
 
 export async function GET(req: NextRequest): Promise<Response> {

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { Activity, Loader2, Play, Square } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Play, Square, Loader2, Activity } from 'lucide-react'
 
 interface PersistentAgentControlProps {
   taskId: string
@@ -27,7 +27,7 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
       const data = await res.json()
       setRunning(data.running || false)
       setRuns(data.runs || 0)
-    } catch (e) {
+    } catch (_e) {
       console.error('Persistent agent status check failed')
     }
   }
@@ -36,7 +36,7 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
     checkStatus()
     const interval = setInterval(checkStatus, 5000)
     return () => clearInterval(interval)
-  }, [taskId])
+  }, [checkStatus])
 
   const startAgent = async () => {
     setLoading(true)
@@ -50,7 +50,7 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
       if (res.ok && data.success) {
         setRunning(true)
       }
-    } catch (e) {
+    } catch (_e) {
       console.error('Persistent agent start failed')
     } finally {
       setLoading(false)
@@ -69,7 +69,7 @@ export function PersistentAgentControl({ taskId, agent, className }: PersistentA
       if (res.ok && data.success) {
         setRunning(false)
       }
-    } catch (e) {
+    } catch (_e) {
       console.error('Persistent agent stop failed')
     } finally {
       setLoading(false)

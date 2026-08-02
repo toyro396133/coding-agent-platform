@@ -14,10 +14,10 @@
  * automatically, in order.
  */
 
+import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { requestQueue, tasks } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { advanceQueue, releaseQueueItem, type QueueItem } from './engine'
+import { advanceQueue, type QueueItem, releaseQueueItem } from './engine'
 
 /**
  * Dispatch a claimed queue item to the background task pipeline by POSTing to
@@ -94,7 +94,7 @@ export async function dispatchQueueItem(
       return false
     }
     return true
-  } catch (error) {
+  } catch (_error) {
     clearTimeout(timeoutId)
     await releaseQueueItem(userId, item.id)
     return false

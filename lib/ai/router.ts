@@ -429,7 +429,7 @@ export async function getSubAgentModel(subTaskType: string, userId: string): Pro
         updatedAt: new Date(),
       })
       .onConflictDoNothing({ target: [settings.userId, settings.key] })
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to save sub-agent routing to database')
   }
 

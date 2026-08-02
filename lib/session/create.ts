@@ -1,13 +1,13 @@
 import 'server-only'
 
-import type { Session, Tokens } from './types'
-import { SESSION_COOKIE_NAME } from './constants'
+import ms from 'ms'
+import { encrypt } from '@/lib/crypto'
+import { requestMerge } from '@/lib/db/merge-identity'
+import { getUserByEmail, getUserById, upsertUser } from '@/lib/db/users'
 import { encryptJWE } from '@/lib/jwe/encrypt'
 import { fetchUser } from '@/lib/vercel-client/user'
-import { upsertUser, getUserById, getUserByEmail } from '@/lib/db/users'
-import { requestMerge } from '@/lib/db/merge-identity'
-import { encrypt } from '@/lib/crypto'
-import ms from 'ms'
+import { SESSION_COOKIE_NAME } from './constants'
+import type { Session, Tokens } from './types'
 
 export async function createSession(tokens: Tokens): Promise<Session | undefined> {
   const user = await fetchUser(tokens.accessToken)

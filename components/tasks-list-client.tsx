@@ -1,12 +1,27 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Task } from '@/lib/db/schema'
-import { SharedHeader } from '@/components/shared-header'
+import {
+  AlertCircle,
+  CheckSquare,
+  ChevronRight,
+  Clock,
+  ListPlus,
+  Plus,
+  Square,
+  StopCircle,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { useTasks } from '@/components/app-layout'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
+import { ErrorState } from '@/components/error-state'
+import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { PRCheckStatus } from '@/components/pr-check-status'
+import { PRStatusIcon } from '@/components/pr-status-icon'
+import { useLocale } from '@/components/providers/locale-provider'
+import { SharedHeader } from '@/components/shared-header'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,28 +32,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
-  AlertCircle,
-  Trash2,
-  Square,
-  StopCircle,
-  CheckSquare,
-  X,
-  Clock,
-  ListPlus,
-  Plus,
-  ChevronRight,
-} from 'lucide-react'
-import { ErrorState } from '@/components/error-state'
-import { useLocale } from '@/components/providers/locale-provider'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import type { Task } from '@/lib/db/schema'
 import type { Session } from '@/lib/session/types'
-import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
-import { PRStatusIcon } from '@/components/pr-status-icon'
-import { PRCheckStatus } from '@/components/pr-check-status'
+import { cn } from '@/lib/utils'
 
 interface TasksListClientProps {
   user: Session['user'] | null
@@ -47,7 +47,7 @@ interface TasksListClientProps {
 }
 
 // Model mappings for human-friendly names
-import { AGENT_MODELS, getModelName } from '@/lib/ai/model-definitions'
+import { getModelName } from '@/lib/ai/model-definitions'
 
 function getTimeAgo(date: Date): string {
   const now = new Date()

@@ -1,5 +1,5 @@
 import { and, asc, eq, isNull } from 'drizzle-orm'
-import { NextRequest } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { buildJobDiffForTask } from '@/lib/api/job-diff'
 import { deriveErrorDetails } from '@/lib/api/job-errors'
 import { db } from '@/lib/db/client'
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ taskId:
         if (isClosed) return
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-        } catch (err) {
+        } catch (_err) {
           close()
         }
       }
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ taskId:
             controller.enqueue(encoder.encode('data: [DONE]\n\n'))
             controller.close()
           }
-        } catch (err) {
+        } catch (_err) {
           console.error('Error finalizing internal job stream')
         } finally {
           close()
@@ -242,7 +242,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ taskId:
               if (intervalId) clearInterval(intervalId)
             }
           }
-        } catch (e) {
+        } catch (_e) {
           console.error('Error polling task status')
         }
       }, 3000)

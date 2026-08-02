@@ -1,8 +1,8 @@
-import { type NextRequest } from 'next/server'
-import { getSessionFromReq } from '@/lib/session/server'
+import { and, eq } from 'drizzle-orm'
+import type { NextRequest } from 'next/server'
 import { db } from '@/lib/db/client'
 import { accounts } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { getSessionFromReq } from '@/lib/session/server'
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromReq(req)

@@ -1,4 +1,4 @@
-import { Sandbox } from '@vercel/sandbox'
+import type { Sandbox } from '@vercel/sandbox'
 import { runInProject } from './commands'
 
 export interface CodeReviewResult {

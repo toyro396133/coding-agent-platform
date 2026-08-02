@@ -189,7 +189,7 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
     }
 
     prevLogsLengthRef.current[activeWorkerId] = workerLogs.length
-  }, [activeWorkerId, workers, task.logs])
+  }, [activeWorkerId, workers, getWorkerLogs])
 
   // Early return if no workers (after all hooks)
   if (!hasWorkers) return null
@@ -246,7 +246,7 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
 
   const getWorkerLogs = (workerName: string): LogEntry[] => {
     // First try polled data for live logs
-    if (mergedStatusData && mergedStatusData.workerLogs) {
+    if (mergedStatusData?.workerLogs) {
       const polledLogs = mergedStatusData.workerLogs[workerName]
       if (polledLogs && polledLogs.length > 0) {
         return polledLogs as LogEntry[]

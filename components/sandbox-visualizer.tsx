@@ -1,25 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import {
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Play,
-  Server,
-  GitBranch,
-  FileCode,
-  AlertTriangle,
-  RefreshCw,
-  Timer,
-  Layers,
-} from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, FileCode, Layers, Loader2, Server, Timer, XCircle } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -205,7 +191,7 @@ export function SandboxVisualizer({
   const activeCount = displayData.workers.filter((w) => w.status === 'running' || w.status === 'creating').length
   const doneCount = displayData.workers.filter((w) => w.status === 'completed').length
   const failCount = displayData.workers.filter((w) => w.status === 'failed' || w.status === 'timeout').length
-  const pendingCount = displayData.workers.length - activeCount - doneCount - failCount
+  const _pendingCount = displayData.workers.length - activeCount - doneCount - failCount
   const overallProgress =
     displayData.workers.length > 0 ? Math.round(((doneCount + failCount) / displayData.workers.length) * 100) : 0
 

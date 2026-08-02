@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server'
-import type { Session, SessionUserInfo, Tokens } from '@/lib/session/types'
 import { createSession, saveSession } from '@/lib/session/create'
 import { saveSession as saveGitHubSession } from '@/lib/session/create-github'
-import { getSessionFromReq } from '@/lib/session/server'
 import { getOAuthToken } from '@/lib/session/get-oauth-token'
+import { getSessionFromReq } from '@/lib/session/server'
+import type { Session, SessionUserInfo, Tokens } from '@/lib/session/types'
 
 export async function GET(req: NextRequest) {
   const existingSession = await getSessionFromReq(req)

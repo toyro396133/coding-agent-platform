@@ -31,7 +31,7 @@ export async function saveVisualQaRun(input: SaveVisualQaRunInput): Promise<void
       critique: input.critique,
       screenshotBase64: input.screenshotBase64,
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to save visual QA run')
   }
 }

@@ -1,7 +1,7 @@
-import { getServerSession } from '@/lib/session/get-server-session'
-import { getGitHubStars } from '@/lib/github-stars'
-import { TasksListClient } from '@/components/tasks-list-client'
 import { redirect } from 'next/navigation'
+import { TasksListClient } from '@/components/tasks-list-client'
+import { getGitHubStars } from '@/lib/github-stars'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export default async function TasksListPage() {
   const session = await getServerSession()

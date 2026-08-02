@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'node:events'
 
 /**
  * In-process pub/sub event bus for job status events.

@@ -1,4 +1,4 @@
-import { jwtDecrypt, base64url } from 'jose'
+import { base64url, jwtDecrypt } from 'jose'
 
 export async function decryptJWE<T extends string | object = string | object>(
   cyphertext: string,

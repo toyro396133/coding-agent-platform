@@ -5,8 +5,8 @@ export interface LocalExecutionResult {
 
 export async function checkLocalEnvironment(): Promise<LocalExecutionResult> {
   try {
-    const { exec } = await import('child_process')
-    const { promisify } = await import('util')
+    const { exec } = await import('node:child_process')
+    const { promisify } = await import('node:util')
     const execAsync = promisify(exec)
 
     let hasOllama = false

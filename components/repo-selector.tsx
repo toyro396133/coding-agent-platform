@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { Layers, Loader2, Lock } from 'lucide-react'
 import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Lock, Loader2, Layers } from 'lucide-react'
-import { useAtomValue, useSetAtom, useAtom } from 'jotai'
-import { githubConnectionAtom } from '@/lib/atoms/github-connection'
 import { githubOwnersAtom, githubReposAtomFamily } from '@/lib/atoms/github-cache'
+import { githubConnectionAtom } from '@/lib/atoms/github-connection'
 import { multiRepoModeAtom, selectedReposAtom } from '@/lib/atoms/multi-repo'
 
 interface GitHubOwner {
@@ -51,7 +51,7 @@ export function RepoSelector({
   const [loadingOwners, setLoadingOwners] = useState(true)
   const [loadingRepos, setLoadingRepos] = useState(false)
   const [repoDropdownOpen, setRepoDropdownOpen] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [_isRefreshing, setIsRefreshing] = useState(false)
   const [temporaryOwner, setTemporaryOwner] = useState<GitHubOwner | null>(null)
   const [temporaryRepo, setTemporaryRepo] = useState<GitHubRepo | null>(null)
 
@@ -202,7 +202,7 @@ export function RepoSelector({
 
     loadOwners()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [githubConnection.connected, setGitHubConnection, setOwners])
+  }, [githubConnection.connected, setGitHubConnection, setOwners, owners.length, owners])
 
   // Check if a selected owner/repo is accessible even if not in the user's scopes
   // OR create a placeholder owner when signed out
@@ -365,7 +365,7 @@ export function RepoSelector({
       setLoadingRepos(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOwner, setGitHubConnection, setOwners, setRepos])
+  }, [selectedOwner, setGitHubConnection, setOwners, setRepos, repos.length, repos])
 
   // Focus filter input when dropdown opens (but not on mobile to prevent keyboard popup)
   useEffect(() => {
@@ -384,7 +384,7 @@ export function RepoSelector({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoDropdownOpen, repos?.length])
+  }, [repoDropdownOpen, repos?.length, repos])
 
   // Filter repos based on search
   const filteredRepos = (repos || []).filter(
@@ -526,21 +526,20 @@ export function RepoSelector({
             </div>
           </SelectItem>
           <div className="h-px bg-border my-1" />
-          {displayedOwners &&
-            displayedOwners.map((owner) => (
-              <SelectItem key={owner.login} value={owner.login}>
-                <div className="flex items-center gap-2">
-                  <Image
-                    src={owner.avatar_url}
-                    alt={owner.login}
-                    width={16}
-                    height={16}
-                    className="w-4 h-4 rounded-full"
-                  />
-                  <span>{owner.login}</span>
-                </div>
-              </SelectItem>
-            ))}
+          {displayedOwners?.map((owner) => (
+            <SelectItem key={owner.login} value={owner.login}>
+              <div className="flex items-center gap-2">
+                <Image
+                  src={owner.avatar_url}
+                  alt={owner.login}
+                  width={16}
+                  height={16}
+                  className="w-4 h-4 rounded-full"
+                />
+                <span>{owner.login}</span>
+              </div>
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

@@ -8,11 +8,11 @@
  * - Shows what changed between checkpoints
  */
 
+import { desc, eq } from 'drizzle-orm'
+import type { SandboxBridge } from '@/lib/ai/orchestrator/runtime/sandbox-bridge'
 import { db } from '@/lib/db/client'
 import { checkpoints } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
 import { generateId } from '@/lib/utils/id'
-import { SandboxBridge } from '@/lib/ai/orchestrator/runtime/sandbox-bridge'
 
 export interface CheckpointEntry {
   id: string
@@ -56,7 +56,7 @@ export async function createCheckpoint(
   const fileStates: Record<string, string> = {}
 
   // Save file states from sandbox if available
-  if (options?.bridge && options?.bridge.isAvailable()) {
+  if (options?.bridge?.isAvailable()) {
     const filesToSnapshot = options.files || []
 
     for (const filePath of filesToSnapshot) {
@@ -94,7 +94,7 @@ export async function createCheckpoint(
       metadata: options?.metadata || null,
       status: 'active',
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to save checkpoint to database')
     // Continue anyway - the in-memory checkpoint is still valid
   }
@@ -123,7 +123,7 @@ export async function getTaskCheckpoints(taskId: string): Promise<CheckpointEntr
       fileStates: typeof row.fileStates === 'string' ? JSON.parse(row.fileStates) : row.fileStates,
       metadata: row.metadata ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata) : undefined,
     }))
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to fetch checkpoints')
     return []
   }
@@ -193,7 +193,7 @@ export async function getCheckpointDiff(taskId: string, checkpointId?: string): 
 export async function updateCheckpointStatus(checkpointId: string, status: CheckpointEntry['status']): Promise<void> {
   try {
     await db.update(checkpoints).set({ status }).where(eq(checkpoints.id, checkpointId))
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to update checkpoint status')
   }
 }

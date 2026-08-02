@@ -1,10 +1,10 @@
 import { tool } from 'ai'
+import { and, asc, desc, eq, isNull, or } from 'drizzle-orm'
 import { z } from 'zod'
-import { db } from '@/lib/db/client'
-import { tasks, insertTaskSchema } from '@/lib/db/schema'
-import { eq, desc, asc, and, isNull, or, inArray } from 'drizzle-orm'
-import { generateId } from '@/lib/utils/id'
 import { getReadableTaskError } from '@/lib/api/job-errors'
+import { db } from '@/lib/db/client'
+import { tasks } from '@/lib/db/schema'
+import { generateId } from '@/lib/utils/id'
 import type { OrchestratorState } from './state'
 
 // ─── Query helpers ─────────────────────────────────────────────────────

@@ -238,7 +238,7 @@ export async function runOrchestrator(prompt: string, options: RunOrchestratorOp
       if (text) {
         state.appendContext(text)
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Orchestrator generation error')
       state.appendContext('Error during generation')
     }

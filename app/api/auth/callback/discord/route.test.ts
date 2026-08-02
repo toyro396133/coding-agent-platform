@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GET } from './route'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  createMockNextRequest,
   mockCookieStore,
-  mockValidateAuthorizationCode,
   mockCreateDiscordSession,
   mockSaveSession,
+  mockValidateAuthorizationCode,
   setMockCookie,
-  createMockNextRequest,
 } from '@/test-setup'
+import { GET } from './route'
 
 describe('GET /api/auth/callback/discord', () => {
   beforeEach(() => {

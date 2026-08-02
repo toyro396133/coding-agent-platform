@@ -1,11 +1,11 @@
 'use client'
 
+import { useSetAtom } from 'jotai'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
-import { useSetAtom } from 'jotai'
 import { sessionAtom } from '@/lib/atoms/session'
 
 export function SignInPassword({ onBack }: { onBack: () => void }) {

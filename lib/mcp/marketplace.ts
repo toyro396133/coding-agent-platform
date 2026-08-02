@@ -1,4 +1,4 @@
-import type { McpMarketplaceEntry, McpMarketplaceCategoryInfo } from './types'
+import type { McpMarketplaceCategoryInfo, McpMarketplaceEntry } from './types'
 
 /**
  * Category definitions for the MCP Marketplace UI.

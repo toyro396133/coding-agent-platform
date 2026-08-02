@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
-import { listSourceFiles, buildRepoMap } from './repo-map'
-import type { SandboxBridge } from '../runtime/sandbox-bridge'
+import { describe, expect, it, vi } from 'vitest'
 import type { CommandResult } from '@/lib/sandbox/commands'
+import type { SandboxBridge } from '../runtime/sandbox-bridge'
+import { buildRepoMap, listSourceFiles } from './repo-map'
 
 type RunInProjectArgs = { command: string; args: string[] }
 

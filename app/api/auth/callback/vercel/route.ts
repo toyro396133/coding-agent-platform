@@ -1,7 +1,7 @@
-import { type NextRequest } from 'next/server'
 import { OAuth2Client, type OAuth2Tokens } from 'arctic'
-import { createSession, saveSession } from '@/lib/session/create'
 import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
+import { createSession, saveSession } from '@/lib/session/create'
 
 export async function GET(req: NextRequest): Promise<Response> {
   const code = req.nextUrl.searchParams.get('code')

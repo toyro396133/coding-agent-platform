@@ -1,7 +1,7 @@
-import { db } from './client'
-import { memories, type InsertMemory } from './schema'
 import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+import { db } from './client'
+import { type InsertMemory, memories } from './schema'
 
 export async function createMemory(data: Omit<InsertMemory, 'id'> & { embedding: number[] }) {
   const id = nanoid()

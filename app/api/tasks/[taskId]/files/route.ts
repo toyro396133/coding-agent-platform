@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { and, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
 import { getOctokit } from '@/lib/github/client'
-import { getServerSession } from '@/lib/session/get-server-session'
 import { PROJECT_DIR } from '@/lib/sandbox/commands'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 interface FileChange {
   filename: string
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Parse GitHub repository URL to get owner and repo
-    const githubMatch = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\.]+)/)
+    const githubMatch = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/)
     if (!githubMatch) {
       console.error('Invalid GitHub URL format:', repoUrl)
       return NextResponse.json(
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           .filter((line) => line.trim())
 
         // First, check if remote branch exists to determine comparison base
-        const lsRemoteResult = await sandbox.runCommand({
+        const _lsRemoteResult = await sandbox.runCommand({
           cmd: 'git',
           args: ['ls-remote', '--heads', 'origin', task.branchName],
           cwd: PROJECT_DIR,
@@ -200,8 +200,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           for (const line of numstatLines) {
             const parts = line.split('\t')
             if (parts.length >= 3) {
-              const additions = parseInt(parts[0]) || 0
-              const deletions = parseInt(parts[1]) || 0
+              const additions = parseInt(parts[0], 10) || 0
+              const deletions = parseInt(parts[1], 10) || 0
               const filename = parts[2]
               diffStats[filename] = { additions, deletions }
             }
@@ -257,7 +257,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               })
               if (wcResult.exitCode === 0) {
                 const wcOutput = await wcResult.stdout()
-                const lineCount = parseInt(wcOutput.trim().split(/\s+/)[0]) || 0
+                const lineCount = parseInt(wcOutput.trim().split(/\s+/)[0], 10) || 0
                 stats = { additions: lineCount, deletions: 0 }
               }
             } catch (err) {

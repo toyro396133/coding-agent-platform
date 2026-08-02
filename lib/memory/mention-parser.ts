@@ -1,6 +1,6 @@
+import { and, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client'
-import { tasks, memories } from '../db/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { memories, tasks } from '../db/schema'
 
 export async function parseMentionsAndInjectContext(userId: string, prompt: string): Promise<string> {
   const taskMentions = prompt.match(/@task_([a-zA-Z0-9_-]+)/g) || []

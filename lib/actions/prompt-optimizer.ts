@@ -1,11 +1,11 @@
 'use server'
 
+import { createOpenAI } from '@ai-sdk/openai'
+import { embed, generateText } from 'ai'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '../db/client'
 import { memories } from '../db/schema'
-import { eq, sql } from 'drizzle-orm'
 import { getServerSession } from '../session/get-server-session'
-import { createOpenAI } from '@ai-sdk/openai'
-import { generateText, embed } from 'ai'
 
 /**
  * Enhances a user prompt using relevant memories and language-model guidance while preserving its original goal.

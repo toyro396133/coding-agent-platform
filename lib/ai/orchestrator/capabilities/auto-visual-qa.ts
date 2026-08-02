@@ -2,8 +2,8 @@ import type { Sandbox } from '@vercel/sandbox'
 import { runCommandInSandbox, runInProject } from '@/lib/sandbox/commands'
 import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
 import type { TaskLogger } from '@/lib/utils/task-logger'
-import { captureScreenshotInSandbox, critiqueScreenshot, extractVerdict } from './visual-qa-tools'
 import { saveVisualQaRun } from './visual-qa-store'
+import { captureScreenshotInSandbox, critiqueScreenshot, extractVerdict } from './visual-qa-tools'
 
 /**
  * Automatic Visual QA — runs at task completion when the task touched UI

@@ -1,32 +1,32 @@
 'use client'
 
-import { optimizePrompt } from '@/lib/actions/prompt-optimizer'
-import { TaskMessage, Task } from '@/lib/db/schema'
-import { useState, useEffect, useRef, useCallback, Children, isValidElement } from 'react'
-import { getDictionary, Locale } from '@/dictionaries'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { useAtom } from 'jotai'
 import {
+  AlertCircle,
   ArrowUp,
-  Wand2,
-  Loader2,
-  Copy,
   Check,
+  CheckCircle,
+  Copy,
+  Loader2,
+  MessageSquare,
+  MoreVertical,
+  RefreshCw,
   RotateCcw,
   Square,
-  CheckCircle,
-  AlertCircle,
+  Wand2,
   XCircle,
-  RefreshCw,
-  MoreVertical,
-  MessageSquare,
 } from 'lucide-react'
+import { Children, isValidElement, useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Streamdown } from 'streamdown'
-import { useAtom } from 'jotai'
-import { taskChatInputAtomFamily } from '@/lib/atoms/task'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Textarea } from '@/components/ui/textarea'
+import { getDictionary, type Locale } from '@/dictionaries'
+import { optimizePrompt } from '@/lib/actions/prompt-optimizer'
+import { taskChatInputAtomFamily } from '@/lib/atoms/task'
+import type { Task, TaskMessage } from '@/lib/db/schema'
 
 interface TaskChatProps {
   taskId: string
@@ -138,7 +138,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
         } else {
           setError(data.error || 'Failed to fetch messages')
         }
-      } catch (err) {
+      } catch (_err) {
         console.error('Error fetching messages')
         setError('Failed to fetch messages')
       } finally {
@@ -172,7 +172,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
         } else {
           setCommentsError(data.error || 'Failed to fetch comments')
         }
-      } catch (err) {
+      } catch (_err) {
         console.error('Error fetching PR comments')
         setCommentsError('Failed to fetch comments')
       } finally {
@@ -206,7 +206,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
         } else {
           setActionsError(data.error || 'Failed to fetch check runs')
         }
-      } catch (err) {
+      } catch (_err) {
         console.error('Error fetching check runs')
         setActionsError('Failed to fetch check runs')
       } finally {
@@ -238,7 +238,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
         } else {
           setDeploymentError(data.error || 'Failed to fetch deployment')
         }
-      } catch (err) {
+      } catch (_err) {
         console.error('Error fetching deployment')
         setDeploymentError('Failed to fetch deployment')
       } finally {
@@ -367,7 +367,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
 
     container.addEventListener('scroll', handleScroll)
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [isNearBottom])
 
   // Calculate heights for user messages to create proper sticky stacking
   useEffect(() => {
@@ -439,7 +439,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
 
     previousMessageCountRef.current = currentMessageCount
     previousMessagesHashRef.current = currentHash
-  }, [messages])
+  }, [messages, scrollToBottom])
 
   // Timer for duration display
   useEffect(() => {
@@ -480,7 +480,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
       const optimized = await optimizePrompt(newMessage)
       setNewMessage(optimized)
       toast.success('Prompt optimized!')
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to optimize prompt')
       toast.error('Failed to optimize prompt')
     } finally {
@@ -518,7 +518,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
         toast.error(data.error || 'Failed to send message')
         setNewMessage(messageToSend) // Restore the message on error
       }
-    } catch (err) {
+    } catch (_err) {
       console.error('Error sending message')
       toast.error('Failed to send message')
       setNewMessage(messageToSend) // Restore the message on error
@@ -539,7 +539,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
       await navigator.clipboard.writeText(content)
       setCopiedMessageId(messageId)
       setTimeout(() => setCopiedMessageId(null), 2000)
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to copy message')
       toast.error('Failed to copy message')
     }
@@ -569,7 +569,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
       } else {
         toast.error(data.error || 'Failed to resend message')
       }
-    } catch (err) {
+    } catch (_err) {
       console.error('Error resending message')
       toast.error('Failed to resend message')
     } finally {
@@ -596,7 +596,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
         const error = await response.json()
         toast.error(error.error || 'Failed to stop task')
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Error stopping task')
       toast.error('Failed to stop task')
     } finally {

@@ -1,6 +1,6 @@
-import { type NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
 import { Discord } from 'arctic'
+import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
 import { createDiscordSession, saveSession } from '@/lib/session/create-discord'
 
 export async function GET(req: NextRequest): Promise<Response> {

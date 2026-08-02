@@ -24,7 +24,7 @@ export const visibleEnvVarsAtom = atom<Set<number>>(new Set<number>())
 export const isEditingAtom = atom((get) => !!get(editingConnectorAtom))
 
 // Action atoms
-export const resetDialogStateAtom = atom(null, (get, set) => {
+export const resetDialogStateAtom = atom(null, (_get, set) => {
   set(connectorDialogViewAtom, 'list')
   set(editingConnectorAtom, null)
   set(selectedPresetAtom, null)
@@ -33,7 +33,7 @@ export const resetDialogStateAtom = atom(null, (get, set) => {
   set(visibleEnvVarsAtom, new Set<number>())
 })
 
-export const setEditingConnectorActionAtom = atom(null, (get, set, connector: Connector) => {
+export const setEditingConnectorActionAtom = atom(null, (_get, set, connector: Connector) => {
   set(editingConnectorAtom, connector)
   set(serverTypeAtom, connector.type)
 
@@ -49,7 +49,7 @@ export const setEditingConnectorActionAtom = atom(null, (get, set, connector: Co
   set(connectorDialogViewAtom, 'form')
 })
 
-export const startAddingConnectorAtom = atom(null, (get, set) => {
+export const startAddingConnectorAtom = atom(null, (_get, set) => {
   set(editingConnectorAtom, null)
   set(selectedPresetAtom, null)
   set(serverTypeAtom, 'remote')
@@ -58,7 +58,7 @@ export const startAddingConnectorAtom = atom(null, (get, set) => {
   set(connectorDialogViewAtom, 'presets')
 })
 
-export const selectPresetActionAtom = atom(null, (get, set, preset: PresetConfig) => {
+export const selectPresetActionAtom = atom(null, (_get, set, preset: PresetConfig) => {
   set(selectedPresetAtom, preset)
   set(serverTypeAtom, preset.type)
 
@@ -76,7 +76,7 @@ export const selectPresetActionAtom = atom(null, (get, set, preset: PresetConfig
   set(connectorDialogViewAtom, 'form')
 })
 
-export const addCustomServerAtom = atom(null, (get, set) => {
+export const addCustomServerAtom = atom(null, (_get, set) => {
   set(selectedPresetAtom, null)
   set(serverTypeAtom, 'remote')
   set(envVarsAtom, [])
@@ -105,19 +105,19 @@ export const goBackFromFormAtom = atom(null, (get, set) => {
   }
 })
 
-export const goBackFromPresetsAtom = atom(null, (get, set) => {
+export const goBackFromPresetsAtom = atom(null, (_get, set) => {
   set(connectorDialogViewAtom, 'list')
 })
 
-export const openMarketplaceAtom = atom(null, (get, set) => {
+export const openMarketplaceAtom = atom(null, (_get, set) => {
   set(connectorDialogViewAtom, 'marketplace')
 })
 
-export const goBackFromMarketplaceAtom = atom(null, (get, set) => {
+export const goBackFromMarketplaceAtom = atom(null, (_get, set) => {
   set(connectorDialogViewAtom, 'presets')
 })
 
-export const onSuccessActionAtom = atom(null, (get, set) => {
+export const onSuccessActionAtom = atom(null, (_get, set) => {
   // Go back to list view on success
   set(connectorDialogViewAtom, 'list')
   set(editingConnectorAtom, null)
@@ -127,7 +127,7 @@ export const onSuccessActionAtom = atom(null, (get, set) => {
   set(visibleEnvVarsAtom, new Set<number>())
 })
 
-export const clearPresetActionAtom = atom(null, (get, set) => {
+export const clearPresetActionAtom = atom(null, (_get, set) => {
   set(selectedPresetAtom, null)
   set(envVarsAtom, [])
   set(serverTypeAtom, 'remote')

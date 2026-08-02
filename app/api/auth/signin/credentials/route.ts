@@ -1,10 +1,10 @@
 import 'server-only'
 
+import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getUserByUsername } from '@/lib/db/users'
 import { saveSession } from '@/lib/session/create'
-import bcrypt from 'bcryptjs'
-import { z } from 'zod'
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const { username, password } = body
 
     const user = await getUserByUsername(username)
-    if (!user || !user.passwordHash) {
+    if (!user?.passwordHash) {
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
     }
 

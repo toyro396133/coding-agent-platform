@@ -1,7 +1,7 @@
+import crypto from 'node:crypto'
+import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { platformApiKeys } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import crypto from 'crypto'
 
 /**
  * Validates a Bearer token against platform API keys.
@@ -27,7 +27,7 @@ export async function validatePlatformApiKey(token: string): Promise<string | nu
     }
 
     return null
-  } catch (error) {
+  } catch (_error) {
     console.error('Error validating platform API key')
     return null
   }
@@ -37,7 +37,7 @@ export async function validatePlatformApiKey(token: string): Promise<string | nu
  * Extracts Bearer token from Authorization header
  */
 export function extractBearerToken(authHeader: string | null): string | null {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return null
   }
   return authHeader.substring(7)

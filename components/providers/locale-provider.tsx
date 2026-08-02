@@ -1,9 +1,9 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useMemo } from 'react'
-import { getDictionary, type Locale } from '@/dictionaries'
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { getDictionary, type Locale } from '@/dictionaries'
 
 export const localeAtom = atomWithStorage<Locale>('locale', 'he')
 

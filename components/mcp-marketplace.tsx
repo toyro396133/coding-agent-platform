@@ -1,17 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
+import { Check, ExternalLink, Loader2, Plus, Search, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Search, Check, Plus, ExternalLink, Sparkles } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import {
+  getEntriesByCategory,
   MARKETPLACE_CATEGORIES,
   MARKETPLACE_ENTRIES,
   searchMarketplace,
-  getEntriesByCategory,
 } from '@/lib/mcp/marketplace'
 import type { McpMarketplaceEntry } from '@/lib/mcp/types'
 
@@ -83,7 +83,7 @@ export function McpMarketplace({ installedConnectorNames, onInstalled, className
         const message = data.message || data.error || `Failed to install ${entry.name}`
         toast.error(message)
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error(`Failed to install ${entry.name}: Network error`)
     } finally {
       setInstallingId(null)

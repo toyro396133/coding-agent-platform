@@ -1,10 +1,10 @@
+import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db } from '@/lib/db/client'
-import { getServerSession } from '@/lib/session/get-server-session'
 import { expireMergeToken } from '@/lib/db/merge-identity'
 import { mergeTokens } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { z } from 'zod'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 const bodySchema = z.object({
   tokenId: z.string().min(1, 'Token ID is required'),

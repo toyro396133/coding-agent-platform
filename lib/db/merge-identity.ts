@@ -1,9 +1,9 @@
 import 'server-only'
 
-import { db } from '@/lib/db/client'
-import { users, accounts, mergeTokens, type InsertMergeToken } from '@/lib/db/schema'
-import { eq, and, or } from 'drizzle-orm'
+import { and, eq, or } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+import { db } from '@/lib/db/client'
+import { accounts, mergeTokens, users } from '@/lib/db/schema'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,7 +80,7 @@ export async function findExistingUserByEmail(email: string): Promise<typeof use
 export async function requestMerge(
   newProvider: 'github' | 'google' | 'discord',
   externalUserId: string,
-  accessToken: string,
+  _accessToken: string,
   encryptedAccessToken: string,
   encryptedRefreshToken: string | null | undefined,
   scope: string | null | undefined,

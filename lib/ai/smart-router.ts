@@ -44,7 +44,7 @@ export async function analyzePromptComplexity(
       complexity: object.complexity as TaskComplexity,
       reasoning: object.reasoning,
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to analyze prompt complexity, defaulting to level 3')
     return {
       complexity: 3,

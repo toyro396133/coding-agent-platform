@@ -1,8 +1,8 @@
-import { type NextRequest } from 'next/server'
+import { generateState } from 'arctic'
 import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
 import { getSessionFromReq } from '@/lib/session/server'
 import { isRelativeUrl } from '@/lib/utils/is-relative-url'
-import { generateState } from 'arctic'
 
 export async function GET(req: NextRequest): Promise<Response> {
   // Check if user is authenticated with Vercel first

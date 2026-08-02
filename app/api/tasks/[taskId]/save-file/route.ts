@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { Sandbox } from '@vercel/sandbox'
+import { and, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { getSandbox } from '@/lib/sandbox/sandbox-registry'
-import { Sandbox } from '@vercel/sandbox'
 import { PROJECT_DIR } from '@/lib/sandbox/commands'
+import { getSandbox } from '@/lib/sandbox/sandbox-registry'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     try {
       // Escape filename for safe shell interpolation
       // This prevents shell injection attacks when filename contains special characters
-      const escapedFilename = "'" + filename.replace(/'/g, "'\\''") + "'"
+      const escapedFilename = `'${filename.replace(/'/g, "'\\''")}'`
 
       // Encode content as base64 to safely handle arbitrary content including special characters
       // This prevents shell injection attacks when content contains sequences like 'EOF'

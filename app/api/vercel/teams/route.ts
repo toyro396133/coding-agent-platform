@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
 import { getOAuthToken } from '@/lib/session/get-oauth-token'
+import { getServerSession } from '@/lib/session/get-server-session'
 import { fetchTeams } from '@/lib/vercel-client/teams'
 import { fetchUser } from '@/lib/vercel-client/user'
 

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { updateDynamicRoute } from '@/lib/actions/routing'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { updateDynamicRoute } from '@/lib/actions/routing'
 
 interface Route {
   id: string

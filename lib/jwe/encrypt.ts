@@ -1,4 +1,4 @@
-import { EncryptJWT, base64url } from 'jose'
+import { base64url, EncryptJWT } from 'jose'
 
 export async function encryptJWE<T extends string | object = string | object>(
   payload: T,

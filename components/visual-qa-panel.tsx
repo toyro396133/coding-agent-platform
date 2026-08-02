@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
 import {
   CheckCircle2,
   ChevronDown,
@@ -13,7 +11,9 @@ import {
   ScanSearch,
   XCircle,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export interface VisualQaRunData {
   id: string
@@ -86,7 +86,7 @@ async function fetchVisualQaRuns(taskId: string): Promise<VisualQaRunData[] | nu
         return data.runs
       }
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to fetch visual QA runs')
   }
   return null

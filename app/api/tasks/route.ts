@@ -1,14 +1,10 @@
 import type { Sandbox } from '@vercel/sandbox'
-import { generateText, stepCountIs, tool } from 'ai'
 import { and, desc, eq, isNull, or } from 'drizzle-orm'
 import { after, type NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
-import { getModelClient } from '@/lib/ai/models'
 import { runOrchestrator } from '@/lib/ai/orchestrator/loop'
 import { autoDeployWorkerTeam } from '@/lib/ai/orchestrator/worker/auto-deploy'
 import type { WorkerSpec, WorkerTeamSpec } from '@/lib/ai/orchestrator/worker/types'
 import { deployWorkerTeam, mergeWorkerPatches } from '@/lib/ai/orchestrator/worker/worker-manager'
-import { getSubAgentModel, suggestModelForPrompt } from '@/lib/ai/router'
 import { routePromptWithLLM } from '@/lib/ai/smart-router'
 import { getUserApiKeys } from '@/lib/api-keys/user-keys'
 import { decrypt } from '@/lib/crypto'
@@ -22,11 +18,9 @@ import { parseMentionsAndInjectContext } from '@/lib/memory/mention-parser'
 import { extractAndStoreProjectRules, summarizeAndStoreTask } from '@/lib/memory/summarize'
 import { type AgentType, executeAgentInSandbox } from '@/lib/sandbox/agents'
 import { reviewChanges } from '@/lib/sandbox/code-review'
-import { PROJECT_DIR, runCommandInSandbox, runInProject } from '@/lib/sandbox/commands'
 import { createSandbox } from '@/lib/sandbox/creation'
 import { pushChangesToBranch, shutdownSandbox } from '@/lib/sandbox/git'
 import { checkLocalEnvironment } from '@/lib/sandbox/local-execution'
-import { detectPackageManager } from '@/lib/sandbox/package-manager'
 import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
 import { unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
 import { getServerSession } from '@/lib/session/get-server-session'
@@ -439,7 +433,7 @@ async function processTask(
 ) {
   let sandbox: Sandbox | null = null
   const logger = createTaskLogger(taskId)
-  const taskStartTime = Date.now()
+  const _taskStartTime = Date.now()
 
   try {
     console.log('Starting task processing')
@@ -740,7 +734,7 @@ async function processTask(
         const routingDecision = await routePromptWithLLM(prompt, selectedAgent)
         finalModel = routingDecision.model
         await logger.info('Routing decision completed')
-      } catch (error) {
+      } catch (_error) {
         console.error('Smart routing failed, defaulting to gpt-4o')
         finalModel = 'gpt-4o'
       }
@@ -925,7 +919,7 @@ async function processTask(
           const review = await reviewChanges(sandbox!, prompt)
           if (review.issues.length > 0) {
             await logger.info('Code review completed')
-            for (const issue of review.issues) {
+            for (const _issue of review.issues) {
               await logger.info('Issue found in code review')
             }
           }

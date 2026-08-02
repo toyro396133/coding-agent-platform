@@ -10,7 +10,7 @@ function patch(file, search, replace) {
     console.log('  !! MISSING:', file)
     return false
   }
-  let raw = fs.readFileSync(abs, 'utf8')
+  const raw = fs.readFileSync(abs, 'utf8')
   const eol = raw.includes('\r\n') ? '\r\n' : '\n'
   let src = raw.replace(/\r\n/g, '\n')
   if (!src.includes(search)) {
@@ -29,7 +29,7 @@ function patchAll(file, search, replace) {
     console.log('  !! MISSING:', file)
     return false
   }
-  let raw = fs.readFileSync(abs, 'utf8')
+  const raw = fs.readFileSync(abs, 'utf8')
   const eol = raw.includes('\r\n') ? '\r\n' : '\n'
   let src = raw.replace(/\r\n/g, '\n')
   if (!src.includes(search)) {
@@ -706,7 +706,7 @@ patch(
 {
   const file = 'lib/ai/orchestrator/capabilities/web-tools.ts'
   const abs = path.resolve(file)
-  let raw = fs.readFileSync(abs, 'utf8')
+  const raw = fs.readFileSync(abs, 'utf8')
   const eol = raw.includes('\r\n') ? '\r\n' : '\n'
   let s = raw.replace(/\r\n/g, '\n')
 

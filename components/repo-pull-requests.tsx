@@ -1,12 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Calendar, GitPullRequest, ListTodo, MessageSquare, MoreHorizontal, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Card } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import Claude from '@/components/logos/claude'
+import Codex from '@/components/logos/codex'
+import Copilot from '@/components/logos/copilot'
+import Cursor from '@/components/logos/cursor'
+import Gemini from '@/components/logos/gemini'
+import OpenCode from '@/components/logos/opencode'
 import { SkeletonCardList } from '@/components/skeleton-card-list'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +21,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -25,18 +33,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
-import { GitPullRequest, Calendar, MessageSquare, MoreHorizontal, X, ListTodo } from 'lucide-react'
-import { toast } from 'sonner'
-import Claude from '@/components/logos/claude'
-import Codex from '@/components/logos/codex'
-import Copilot from '@/components/logos/copilot'
-import Cursor from '@/components/logos/cursor'
-import Gemini from '@/components/logos/gemini'
-import OpenCode from '@/components/logos/opencode'
-import { CODING_AGENTS, AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AGENT_MODELS, CODING_AGENTS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
 const AGENT_ICONS = {
   claude: Claude,
@@ -445,7 +445,7 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
                   <Label htmlFor="max-duration" className="text-sm font-medium">
                     Maximum Duration
                   </Label>
-                  <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value))}>
+                  <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value, 10))}>
                     <SelectTrigger id="max-duration" className="w-full">
                       <SelectValue />
                     </SelectTrigger>

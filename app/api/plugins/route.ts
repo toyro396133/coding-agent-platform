@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { type NextRequest, NextResponse } from 'next/server'
 import {
+  listExternalPlugins,
   listRegisteredPacks,
   registerPack,
   unregisterPack,
-  listExternalPlugins,
 } from '@/lib/ai/orchestrator/runtime/plugin-registry'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export async function GET() {
   try {
@@ -25,7 +25,7 @@ export async function GET() {
         manifest: p.manifest,
       })),
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to list plugins')
     return NextResponse.json({ error: 'Failed to list plugins' }, { status: 500 })
   }
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Register with active state, using server-determined source only
     registerPack(name, (_ctx) => ({}), 'external')
     return NextResponse.json({ success: true, name })
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to register plugin')
     return NextResponse.json({ error: 'Failed to register plugin' }, { status: 500 })
   }
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest) {
 
     const result = unregisterPack(name)
     return NextResponse.json({ success: result })
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to unregister plugin')
     return NextResponse.json({ error: 'Failed to unregister plugin' }, { status: 500 })
   }

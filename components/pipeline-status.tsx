@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { cn } from '@/lib/utils'
-import { CheckCircle2, XCircle, Clock, Loader2, SkipForward, ChevronDown, ChevronRight } from 'lucide-react'
-
+import { CheckCircle2, ChevronDown, ChevronRight, Clock, Loader2, SkipForward, XCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { PipelineStageData } from '@/lib/types/pipeline'
+import { cn } from '@/lib/utils'
 
 interface PipelineStatusProps {
   stages: PipelineStageData[]
@@ -24,7 +23,6 @@ const StageIcon = ({ status }: { status: PipelineStageData['status'] }) => {
       return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
     case 'skipped':
       return <SkipForward className="h-4 w-4 text-muted-foreground" />
-    case 'pending':
     default:
       return <Clock className="h-4 w-4 text-muted-foreground/50" />
   }

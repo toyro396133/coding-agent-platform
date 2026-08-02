@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/vercel/api'
 import { getServerSession } from '@/lib/session/get-server-session'
+import { getCurrentUser } from '@/lib/vercel/api'
 
 export async function GET() {
   const session = await getServerSession()

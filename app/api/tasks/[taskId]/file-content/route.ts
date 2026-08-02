@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { Octokit } from '@octokit/rest'
+import { and, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
 import { getOctokit } from '@/lib/github/client'
-import { getServerSession } from '@/lib/session/get-server-session'
 import { PROJECT_DIR } from '@/lib/sandbox/commands'
-import type { Octokit } from '@octokit/rest'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 function getLanguageFromFilename(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase()
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Parse GitHub repository URL to get owner and repo
-    const githubMatch = task.repoUrl.match(/github\.com\/([^\/]+)\/([^\/\.]+)/)
+    const githubMatch = task.repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/)
     if (!githubMatch) {
       return NextResponse.json({ error: 'Invalid GitHub repository URL' }, { status: 400 })
     }

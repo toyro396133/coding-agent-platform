@@ -14,7 +14,7 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
 
   const result = await runInProject(sandbox, command, args)
 
-  if (result.output && result.output.trim()) {
+  if (result.output?.trim()) {
     await logger.info(redactSensitiveInfo(result.output.trim()))
   }
 
@@ -77,7 +77,7 @@ log_requests = true
     // Check if we need experimental RMCP client (for remote servers)
     const hasRemoteServers = mcpServers.some((s) => s.type === 'remote')
     if (hasRemoteServers) {
-      configToml = `experimental_use_rmcp_client = true\n\n` + configToml
+      configToml = `experimental_use_rmcp_client = true\n\n${configToml}`
     }
 
     for (const server of mcpServers) {
@@ -85,7 +85,7 @@ log_requests = true
 
       if (server.type === 'local') {
         // Local STDIO server - parse command string into command and args
-        const commandParts = server.command!.trim().split(/\s+/)
+        const commandParts = server.command?.trim().split(/\s+/)
         const executable = commandParts[0]
         const args = commandParts.slice(1)
 
@@ -122,7 +122,7 @@ export async function executeCodexInSandbox(
   selectedModel?: string,
   mcpServers?: Connector[],
   isResumed?: boolean,
-  sessionId?: string,
+  _sessionId?: string,
 ): Promise<AgentExecutionResult> {
   try {
     // Executing Codex CLI with instruction
@@ -195,7 +195,7 @@ export async function executeCodexInSandbox(
     }
 
     if (logger) {
-      const keyType = isVercelKey ? 'Vercel AI Gateway' : 'OpenAI'
+      const _keyType = isVercelKey ? 'Vercel AI Gateway' : 'OpenAI'
       await logger.info('Using API key for authentication')
     }
 
@@ -220,7 +220,7 @@ export async function executeCodexInSandbox(
     // or require specific authentication setup. Let's try a more comprehensive approach
 
     // First, check if we can get version info
-    const versionTestResult = await sandbox.runCommand({
+    const _versionTestResult = await sandbox.runCommand({
       cmd: 'codex',
       args: ['--version'],
       env: {
@@ -248,7 +248,7 @@ export async function executeCodexInSandbox(
       await logger.info('Creating Codex configuration file...')
     }
 
-    const configSetupResult = await sandbox.runCommand({
+    const _configSetupResult = await sandbox.runCommand({
       cmd: 'sh',
       args: ['-c', `mkdir -p ~/.codex && cat > ~/.codex/config.toml << 'EOF'\n${configToml}EOF`],
       env: {},
@@ -274,13 +274,13 @@ export async function executeCodexInSandbox(
     }
 
     // Debug: List files in the current directory before running Codex
-    const lsDebugResult = await runCommandInSandbox(sandbox, 'ls', ['-la'])
+    const _lsDebugResult = await runCommandInSandbox(sandbox, 'ls', ['-la'])
     if (logger) {
       await logger.info('Current directory contents retrieved')
     }
 
     // Debug: Show current working directory
-    const pwdResult = await runCommandInSandbox(sandbox, 'pwd', [])
+    const _pwdResult = await runCommandInSandbox(sandbox, 'pwd', [])
     if (logger) {
       await logger.info('Current working directory retrieved')
     }
@@ -321,7 +321,7 @@ export async function executeCodexInSandbox(
     const result = await runInProject(sandbox, 'sh', ['-c', fullCommand])
 
     // Log the output and error results (similar to Claude and Cursor)
-    if (result.output && result.output.trim()) {
+    if (result.output?.trim()) {
       const redactedOutput = redactSensitiveInfo(result.output.trim())
       await logger.info(redactedOutput)
       if (logger) {

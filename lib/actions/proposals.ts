@@ -1,10 +1,10 @@
 'use server'
 
+import { desc, eq } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
 import { db } from '../db/client'
 import { proposalsBank } from '../db/schema'
-import { eq, desc } from 'drizzle-orm'
 import { getServerSession } from '../session/get-server-session'
-import { revalidatePath } from 'next/cache'
 
 /**
  * Retrieves the most recent proposals for the authenticated user.

@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers'
 import { HomePageContent } from '@/components/home-page-content'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { getGitHubStars } from '@/lib/github-stars'
 import { getMaxSandboxDuration } from '@/lib/db/settings'
+import { getGitHubStars } from '@/lib/github-stars'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 interface NewRepoPageProps {
   params: Promise<{

@@ -1,9 +1,9 @@
-import { embed, cosineSimilarity } from 'ai'
 import { openai } from '@ai-sdk/openai'
-import { db } from '../db/client'
-import { memories } from '../db/schema'
+import { embed } from 'ai'
 import { eq, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+import { db } from '../db/client'
+import { memories } from '../db/schema'
 
 const embeddingModel = openai.embedding('text-embedding-3-small') as any
 

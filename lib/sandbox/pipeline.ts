@@ -11,19 +11,13 @@
  * 7. Triggers Vercel deployment preview
  */
 
-import { Sandbox } from '@vercel/sandbox'
-import { runInProject, runCommandInSandbox } from './commands'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { generateCommitMessage, createFallbackCommitMessage } from '@/lib/utils/commit-message-generator'
+import type { Sandbox } from '@vercel/sandbox'
 import { routePrompt } from '@/lib/ai/router'
-
-import { runAutoFixLoop, formatAutoFixSummary } from './auto-fix'
-import type { AutoFixResult } from './auto-fix'
-
-import {
-  type PipelineStageData as PipelineStage,
-  type PipelineResult as PipelineResultBase,
-} from '@/lib/types/pipeline'
+import type { PipelineResult as PipelineResultBase, PipelineStageData as PipelineStage } from '@/lib/types/pipeline'
+import { createFallbackCommitMessage, generateCommitMessage } from '@/lib/utils/commit-message-generator'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import { formatAutoFixSummary, runAutoFixLoop } from './auto-fix'
+import { runCommandInSandbox, runInProject } from './commands'
 
 export type { PipelineStage }
 export interface PipelineResult extends PipelineResultBase {}
@@ -248,7 +242,7 @@ export async function runVerificationPipeline(options: PipelineOptions): Promise
     } else {
       await logger.success('✅ Dependency audit clean')
     }
-  } catch (error) {
+  } catch (_error) {
     updateStage('Dependency Audit', { status: 'skipped' })
     await logger.info('⚠️  Dependency audit not available')
   }
@@ -279,7 +273,7 @@ export async function runVerificationPipeline(options: PipelineOptions): Promise
         // Check if Playwright is available
         const hasPlaywright = await runInProject(sandbox, 'sh', [
           '-c',
-          'npx playwright --version 2>/dev/null || node -e "require(\"playwright\");console.log(\"ok\")" 2>/dev/null',
+          'npx playwright --version 2>/dev/null || node -e "require("playwright");console.log("ok")" 2>/dev/null',
         ])
 
         if (hasPlaywright.success || hasPlaywright.output?.includes('ok')) {
@@ -332,7 +326,7 @@ export async function runVerificationPipeline(options: PipelineOptions): Promise
         updateStage('Visual Verification', { status: 'skipped' })
         await logger.info('⚠️  No dev server to verify visually')
       }
-    } catch (error) {
+    } catch (_error) {
       updateStage('Visual Verification', { status: 'skipped' })
       await logger.info('⚠️  Visual verification skipped')
     }
@@ -409,7 +403,7 @@ export async function runVerificationPipeline(options: PipelineOptions): Promise
         updateStage('Lint & Format', { status: 'passed', error: undefined })
       }
     }
-  } catch (error) {
+  } catch (_error) {
     updateStage('Lint & Format', { status: 'skipped' })
     await logger.info('⚠️  Lint check skipped')
   }

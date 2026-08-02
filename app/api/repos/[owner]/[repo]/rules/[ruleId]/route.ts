@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSessionFromReq } from '@/lib/session/server'
+import { and, eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { projectRules } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { getSessionFromReq } from '@/lib/session/server'
 import { normalizeRepoUrl } from '@/lib/utils/repo-url'
 
 export async function PATCH(
@@ -20,7 +20,7 @@ export async function PATCH(
   let body: any
   try {
     body = await request.json()
-  } catch (error) {
+  } catch (_error) {
     return new NextResponse('Invalid JSON body', { status: 400 })
   }
 

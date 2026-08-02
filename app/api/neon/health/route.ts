@@ -12,7 +12,7 @@ export async function GET() {
     const rows = await sql`SELECT version()`
     const row = rows[0] as { version: string }
     return NextResponse.json({ status: 'connected', version: row.version })
-  } catch (error) {
+  } catch (_error) {
     console.error('Neon health check failed')
     return NextResponse.json({ status: 'error', message: 'Neon health check failed' }, { status: 500 })
   }

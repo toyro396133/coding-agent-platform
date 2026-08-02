@@ -1,7 +1,7 @@
-import { semanticCodeSearchTool } from './semantic-code-search'
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext, ResearchResult } from './types'
+import { semanticCodeSearchTool } from './semantic-code-search'
+import type { ResearchResult, ToolContext } from './types'
 
 export function createResearchTools(ctx: ToolContext) {
   const results: ResearchResult[] = []

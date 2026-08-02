@@ -2,7 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import type { ToolContext } from './types'
 
-export function createWebTools(ctx: ToolContext) {
+export function createWebTools(_ctx: ToolContext) {
   const isValidUrl = (urlString: string): boolean => {
     try {
       const url = new URL(urlString)

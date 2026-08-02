@@ -1,6 +1,6 @@
-import { type NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
 import { Google } from 'arctic'
+import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
 import { createGoogleSession, saveSession } from '@/lib/session/create-google'
 
 export async function GET(req: NextRequest): Promise<Response> {

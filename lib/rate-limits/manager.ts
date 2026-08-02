@@ -7,28 +7,24 @@
  * It also exposes middleware-friendly methods for HTTP request throttling.
  */
 
-import type {
-  LlmProvider,
-  ThrottleDecision,
-  ThrottleAction,
-  ProviderStatus,
-  RateLimitStatus,
-  RequestPriority,
-  RateAwareModelOption,
-  KeyStatus,
-} from './types'
-import { MODEL_PROVIDER_MAP, PROVIDER_QUOTAS } from './types'
-import { PROVIDER_FALLBACK_ORDER } from './rotator'
-import { getProviderUsage, getProviderCapacity, recordUsage, markProviderExhausted } from './tracker'
 import {
-  selectBestKey,
-  resolveApiKey,
   exhaustKey,
+  getHealthyKeys,
+  PROVIDER_FALLBACK_ORDER,
   recordKeyUsage,
   resetExpiredKeys,
-  getHealthyKeys,
-  buildProviderPriority,
+  resolveApiKey,
 } from './rotator'
+import { getProviderCapacity, markProviderExhausted, recordUsage } from './tracker'
+import type {
+  LlmProvider,
+  ProviderStatus,
+  RateAwareModelOption,
+  RateLimitStatus,
+  RequestPriority,
+  ThrottleDecision,
+} from './types'
+import { MODEL_PROVIDER_MAP, PROVIDER_QUOTAS } from './types'
 
 // ─── Priority → threshold mapping ───────────────────────────────────────
 
@@ -82,7 +78,7 @@ export class RateLimitManager {
   async checkRequest(
     requestedModel: string,
     priority: RequestPriority = 'normal',
-    estimatedTokens: number = 4000,
+    _estimatedTokens: number = 4000,
   ): Promise<ThrottleDecision> {
     // 1. Find the provider for this model
     const provider = MODEL_PROVIDER_MAP[requestedModel]
@@ -187,7 +183,7 @@ export class RateLimitManager {
   private async tryRotateProvider(
     requestedModel: string,
     currentProvider: LlmProvider,
-    priority: RequestPriority,
+    _priority: RequestPriority,
   ): Promise<ThrottleDecision | null> {
     // Build a priority list that excludes the current exhausted provider
     const alternatives = this.preferredProviders.filter((p) => p !== currentProvider)
@@ -331,7 +327,7 @@ export class RateLimitManager {
     return DOWNGRADE_PATHS[model]
   }
 
-  private findEquivalentModel(sourceModel: string, targetProvider: LlmProvider): string | undefined {
+  private findEquivalentModel(_sourceModel: string, targetProvider: LlmProvider): string | undefined {
     // Simple heuristic: find any available model on the target provider
     const providerModels = Object.entries(MODEL_PROVIDER_MAP)
       .filter(([_, p]) => p === targetProvider)

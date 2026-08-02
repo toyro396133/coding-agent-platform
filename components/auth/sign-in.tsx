@@ -1,12 +1,12 @@
 'use client'
 
+import { useState } from 'react'
+import { GitHubIcon } from '@/components/icons/github-icon'
 import { useLocale } from '@/components/providers/locale-provider'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
-import { GitHubIcon } from '@/components/icons/github-icon'
-import { useState } from 'react'
 import { getEnabledAuthProviders } from '@/lib/auth/providers'
+import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
 import { SignInPassword } from './sign-in-password'
 
 export function SignIn() {

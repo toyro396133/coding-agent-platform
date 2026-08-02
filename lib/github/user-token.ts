@@ -1,12 +1,12 @@
 import 'server-only'
 
+import { and, eq } from 'drizzle-orm'
+import type { NextRequest } from 'next/server'
+import { decrypt } from '@/lib/crypto'
 import { db } from '@/lib/db/client'
-import { users, accounts } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { accounts, users } from '@/lib/db/schema'
 import { getServerSession } from '@/lib/session/get-server-session'
 import { getSessionFromReq } from '@/lib/session/server'
-import { decrypt } from '@/lib/crypto'
-import type { NextRequest } from 'next/server'
 
 /**
  * Get the GitHub access token for a user by their internal user ID.
@@ -40,7 +40,7 @@ export async function getUserGitHubTokenByUserId(userId: string): Promise<string
     }
 
     return null
-  } catch (error) {
+  } catch (_error) {
     console.error('Error fetching user GitHub token')
     return null
   }

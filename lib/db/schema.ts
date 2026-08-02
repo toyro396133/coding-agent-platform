@@ -1,18 +1,18 @@
 import {
+  boolean,
+  index,
+  integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
-  integer,
-  jsonb,
-  boolean,
-  uniqueIndex,
-  index,
-  vector,
   unique,
+  uniqueIndex,
+  vector,
 } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { planContentSchema, type PlanContent } from '@/lib/ai/orchestrator/capabilities/plan-tools'
+import { z } from 'zod'
+import { type PlanContent, planContentSchema } from '@/lib/ai/orchestrator/capabilities/plan-tools'
 
 // Worker team config type (stored as JSONB on tasks)
 export interface WorkerTeamConfigData {

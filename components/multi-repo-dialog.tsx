@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { X, Search, Lock, Loader2 } from 'lucide-react'
 import { useAtom, useAtomValue } from 'jotai'
-import { selectedReposAtom, type SelectedRepo } from '@/lib/atoms/multi-repo'
+import { Loader2, Lock, Search, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { githubOwnersAtom } from '@/lib/atoms/github-cache'
+import { type SelectedRepo, selectedReposAtom } from '@/lib/atoms/multi-repo'
 
 interface GitHubRepo {
   name: string

@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server'
+import { and, asc, eq } from 'drizzle-orm'
+import type { NextRequest } from 'next/server'
+import { buildJobDiffForTask, type JobDiffTaskRef } from '@/lib/api/job-diff'
+import { deriveErrorDetails } from '@/lib/api/job-errors'
 import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
 import { db } from '@/lib/db/client'
-import { tasks, taskMessages } from '@/lib/db/schema'
-import { eq, and, asc } from 'drizzle-orm'
-import { deriveErrorDetails } from '@/lib/api/job-errors'
-import { buildJobDiffForTask, type JobDiffTaskRef } from '@/lib/api/job-diff'
+import { taskMessages, tasks } from '@/lib/db/schema'
 import { subscribeJob } from '@/lib/jobs/event-bus'
 
 // Maximum polling duration in milliseconds (5 minutes)
@@ -134,7 +134,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
           if (isClosed) return
           try {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-          } catch (err) {
+          } catch (_err) {
             close()
           }
         }
@@ -149,7 +149,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
               controller.enqueue(encoder.encode('data: [DONE]\n\n'))
               controller.close()
             }
-          } catch (err) {
+          } catch (_err) {
             console.error('Error finalizing job stream')
           } finally {
             close()
@@ -300,7 +300,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
                 if (intervalId) clearInterval(intervalId)
               }
             }
-          } catch (e) {
+          } catch (_e) {
             console.error('Error polling task status')
           }
         }, 3000) // Poll every 3 seconds
@@ -318,7 +318,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
         Connection: 'keep-alive',
       },
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error in job stream endpoint')
     return new Response(
       JSON.stringify({

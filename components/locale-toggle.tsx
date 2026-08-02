@@ -1,8 +1,8 @@
 'use client'
 
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
-import { useLocale } from '@/components/providers/locale-provider'
 import { Languages } from 'lucide-react'
+import { useLocale } from '@/components/providers/locale-provider'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 export function LocaleToggle() {
   const { locale, setLocale } = useLocale()

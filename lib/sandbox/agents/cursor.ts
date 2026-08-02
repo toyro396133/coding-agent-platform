@@ -1,12 +1,12 @@
-import { Sandbox } from '@vercel/sandbox'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from '../commands'
-import { AgentExecutionResult } from '../types'
-import { redactSensitiveInfo } from '@/lib/utils/logging'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { connectors, taskMessages } from '@/lib/db/schema'
-import { db } from '@/lib/db/client'
+import type { Sandbox } from '@vercel/sandbox'
 import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { type connectors, taskMessages } from '@/lib/db/schema'
 import { generateId } from '@/lib/utils/id'
+import { redactSensitiveInfo } from '@/lib/utils/logging'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import { PROJECT_DIR, runCommandInSandbox, runInProject } from '../commands'
+import type { AgentExecutionResult } from '../types'
 
 type Connector = typeof connectors.$inferSelect
 
@@ -17,7 +17,7 @@ async function runAndLogCommandRoot(sandbox: Sandbox, command: string, args: str
 
   const result = await runCommandInSandbox(sandbox, command, args)
 
-  if (result.output && result.output.trim()) {
+  if (result.output?.trim()) {
     await logger.info(redactSensitiveInfo(result.output.trim()))
   }
 
@@ -35,7 +35,7 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
 
   const result = await runInProject(sandbox, command, args)
 
-  if (result.output && result.output.trim()) {
+  if (result.output?.trim()) {
     await logger.info(redactSensitiveInfo(result.output.trim()))
   }
 
@@ -196,7 +196,7 @@ export async function executeCursorInSandbox(
 
         if (server.type === 'local') {
           // Local STDIO server - parse command string into command and args
-          const commandParts = server.command!.trim().split(/\s+/)
+          const commandParts = server.command?.trim().split(/\s+/)
           const executable = commandParts[0]
           const args = commandParts.slice(1)
 
@@ -205,7 +205,7 @@ export async function executeCursorInSandbox(
           if (server.env) {
             try {
               envObject = JSON.parse(server.env)
-            } catch (e) {
+            } catch (_e) {
               await logger.info('Warning: Failed to parse env for MCP server')
             }
           }
@@ -312,17 +312,15 @@ EOF`
     let isCompleted = false
 
     // Create custom writable streams to capture the output
-    const { Writable } = await import('stream')
+    const { Writable } = await import('node:stream')
 
-    interface WriteCallback {
-      (error?: Error | null): void
-    }
+    type WriteCallback = (error?: Error | null) => void
 
     let accumulatedContent = ''
     let extractedSessionId: string | undefined
 
     const captureStdout = new Writable({
-      write(chunk: Buffer | string, encoding: BufferEncoding, callback: WriteCallback) {
+      write(chunk: Buffer | string, _encoding: BufferEncoding, callback: WriteCallback) {
         const data = chunk.toString()
 
         // Only capture raw output if we're NOT streaming to database
@@ -397,7 +395,7 @@ EOF`
                     .join('')
 
                   if (textContent) {
-                    accumulatedContent += '\n\n' + textContent
+                    accumulatedContent += `\n\n${textContent}`
                     // Update message in database (non-blocking)
                     db.update(taskMessages)
                       .set({ content: accumulatedContent })
@@ -428,7 +426,7 @@ EOF`
     })
 
     const captureStderr = new Writable({
-      write(chunk: Buffer | string, encoding: BufferEncoding, callback: WriteCallback) {
+      write(chunk: Buffer | string, _encoding: BufferEncoding, callback: WriteCallback) {
         capturedError += chunk.toString()
         callback()
       },
@@ -511,12 +509,12 @@ EOF`
 
     // Log the output and error results (similar to Claude)
     // Skip logging raw output when streaming to database (we've already built clean content there)
-    if (result.output && result.output.trim() && !agentMessageId) {
+    if (result.output?.trim() && !agentMessageId) {
       const redactedOutput = redactSensitiveInfo(result.output.trim())
       await logger.info(redactedOutput)
     }
 
-    if (result.error && result.error.trim()) {
+    if (result.error?.trim()) {
       const redactedError = redactSensitiveInfo(result.error)
       await logger.error(redactedError)
     }

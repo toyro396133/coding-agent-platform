@@ -124,10 +124,7 @@ describe('deriveErrorDetails', () => {
     const details = deriveErrorDetails({
       status: 'error',
       error: null,
-      logs: [
-        LOG_ENTRY('info', 'Stage 2/6: Running test suite...'),
-        LOG_ENTRY('error', 'Tests failed'),
-      ],
+      logs: [LOG_ENTRY('info', 'Stage 2/6: Running test suite...'), LOG_ENTRY('error', 'Tests failed')],
     })
     expect(details?.code).toBe('test_failed')
     expect(details?.stage).toBe('Tests')
@@ -273,7 +270,11 @@ describe('deriveErrorDetails', () => {
   })
 
   it('carries failedAt from the envelope for stopped (cancelled) jobs', () => {
-    const envelope = formatStructuredTaskError({ code: 'cancelled', stage: null }, 'Stopped by user', new Date('2026-01-02T03:04:05Z'))
+    const envelope = formatStructuredTaskError(
+      { code: 'cancelled', stage: null },
+      'Stopped by user',
+      new Date('2026-01-02T03:04:05Z'),
+    )
     const details = deriveErrorDetails({ status: 'stopped', error: envelope })
     expect(details?.code).toBe('cancelled')
     expect(details?.failedAt).toBe('2026-01-02T03:04:05.000Z')

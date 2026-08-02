@@ -1616,9 +1616,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
               )}
             </AlertTitle>
             <AlertDescription className="space-y-3 w-full">
-              {errorDetails.message && (
-                <p className="whitespace-pre-wrap break-words w-full">{errorDetails.message}</p>
-              )}
+              {errorDetails.message && <p className="whitespace-pre-wrap break-words w-full">{errorDetails.message}</p>}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs w-full">
                 <div>
@@ -1633,7 +1631,9 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                 )}
                 <div>
                   <p className="text-muted-foreground mb-0.5">{t.taskDetails.errorRetryable}</p>
-                  <p className={cn('font-medium', errorDetails.retryable ? 'text-emerald-600' : 'text-muted-foreground')}>
+                  <p
+                    className={cn('font-medium', errorDetails.retryable ? 'text-emerald-600' : 'text-muted-foreground')}
+                  >
                     {errorDetails.retryable ? t.taskDetails.retryableYes : t.taskDetails.retryableNo}
                   </p>
                 </div>

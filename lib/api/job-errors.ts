@@ -127,7 +127,16 @@ const RULES: ErrorRule[] = [
     stage: 'Dependencies',
     retryable: true,
     recovery_hint: 'Fix the dependency installation issue (registry access, lockfile) and resubmit.',
-    patterns: [/install.*dependenc/i, /dependenc.*install/i, /install failed/i, /npm error.*install/i, /pnpm.*error.*install/i, /pip install failed/i, /npm err!.*install/i, /package.*not found/i],
+    patterns: [
+      /install.*dependenc/i,
+      /dependenc.*install/i,
+      /install failed/i,
+      /npm error.*install/i,
+      /pnpm.*error.*install/i,
+      /pip install failed/i,
+      /npm err!.*install/i,
+      /package.*not found/i,
+    ],
     // Note: `/cannot find module/i` is intentionally excluded here — it is a
     // build/type-check signal (TS2307) that belongs to build_failed.
   },
@@ -137,7 +146,16 @@ const RULES: ErrorRule[] = [
     stage: 'Type Check',
     retryable: true,
     recovery_hint: 'Fix the reported TypeScript/build errors and resubmit.',
-    patterns: [/type check/i, /\btsc\b/, /build failed/i, /compilation/i, /error ts/i, /typescript error/i, /ts\d{4}/i, /cannot find module/i],
+    patterns: [
+      /type check/i,
+      /\btsc\b/,
+      /build failed/i,
+      /compilation/i,
+      /error ts/i,
+      /typescript error/i,
+      /ts\d{4}/i,
+      /cannot find module/i,
+    ],
     // `/cannot find module/i` (TS2307) is a missing-dependency symptom that
     // surfaces during type-check/build; classify it as a build failure so
     // clients get actionable guidance to fix the code rather than reinstall.
@@ -209,7 +227,14 @@ const RULES: ErrorRule[] = [
     stage: 'Orchestrator',
     retryable: true,
     recovery_hint: 'The orchestrator failed while planning/refining the request; resubmit or simplify the prompt.',
-    patterns: [/orchestrator.*fail/i, /fail.*orchestrator/i, /orchestrator.*error/i, /sub.?agent.*fail/i, /spawn.*agent.*fail/i, /orchestrator.*skipped/i],
+    patterns: [
+      /orchestrator.*fail/i,
+      /fail.*orchestrator/i,
+      /orchestrator.*error/i,
+      /sub.?agent.*fail/i,
+      /spawn.*agent.*fail/i,
+      /orchestrator.*skipped/i,
+    ],
   },
   {
     code: 'budget_exceeded',
@@ -225,7 +250,15 @@ const RULES: ErrorRule[] = [
     stage: 'Visual Verification',
     retryable: true,
     recovery_hint: 'Visual QA failed to verify the UI; check the screenshots/dev server and resubmit.',
-    patterns: [/visual qa.*fail/i, /visual.*verification.*fail/i, /screenshot.*fail/i, /playwright.*fail/i, /critique.*fail/i, /vision.*model.*fail/i, /visual qa.*error/i],
+    patterns: [
+      /visual qa.*fail/i,
+      /visual.*verification.*fail/i,
+      /screenshot.*fail/i,
+      /playwright.*fail/i,
+      /critique.*fail/i,
+      /vision.*model.*fail/i,
+      /visual qa.*error/i,
+    ],
   },
   {
     code: 'sandbox_creation_failed',
@@ -233,7 +266,13 @@ const RULES: ErrorRule[] = [
     stage: 'Sandbox',
     retryable: true,
     recovery_hint: 'Sandbox provisioning failed; retry in a moment.',
-    patterns: [/failed to create sandbox/i, /sandbox creation failed/i, /create sandbox/i, /sandbox.*fail/i, /failed to initialize git/i],
+    patterns: [
+      /failed to create sandbox/i,
+      /sandbox creation failed/i,
+      /create sandbox/i,
+      /sandbox.*fail/i,
+      /failed to initialize git/i,
+    ],
   },
   {
     code: 'agent_failed',
@@ -241,7 +280,14 @@ const RULES: ErrorRule[] = [
     stage: 'Agent Execution',
     retryable: true,
     recovery_hint: 'The coding agent failed; consider a different agent/model and resubmit.',
-    patterns: [/agent execution failed/i, /command execution failed/i, /cli failed/i, /execution failed/i, /no result returned/i, /unknown agent type/i],
+    patterns: [
+      /agent execution failed/i,
+      /command execution failed/i,
+      /cli failed/i,
+      /execution failed/i,
+      /no result returned/i,
+      /unknown agent type/i,
+    ],
   },
 ]
 
@@ -418,9 +464,8 @@ export function deriveErrorDetails(input: JobErrorInput): JobErrorDetails | null
   if (status !== 'error') return null
 
   // Fast path: a valid envelope (other than unknown_failure) is authoritative.
-  const rule = structured && structured.code !== 'unknown_failure'
-    ? RULES.find((r) => r.code === structured.code)
-    : undefined
+  const rule =
+    structured && structured.code !== 'unknown_failure' ? RULES.find((r) => r.code === structured.code) : undefined
   if (structured && rule) {
     return {
       code: rule.code,

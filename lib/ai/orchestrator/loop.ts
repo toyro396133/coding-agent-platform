@@ -16,6 +16,8 @@ import { createTaskLogger } from '@/lib/utils/task-logger'
 import { deployWorkerTeam, mergeWorkerPatches } from './worker/worker-manager'
 import type { WorkerSpec, WorkerTeamSpec } from './worker/types'
 import { getSandbox } from '@/lib/sandbox/sandbox-registry'
+import { SandboxBridge } from './runtime/sandbox-bridge'
+import { buildRepoMap } from './capabilities/repo-map'
 import { createTaskQueueTools, buildTaskQueueAwareness } from './task-queue'
 
 interface RunOrchestratorOptions {
@@ -237,6 +239,26 @@ Proceed without asking for each step. Use your judgment.`
     }
   }
 
+  // Aider-style repo map injected into the system prompt (best-effort): the
+  // compressed AST hierarchy gives the agent the codebase overview up front so
+  // it does not need to burn tokens reading every file or calling the repo-map
+  // tool on the first turn.
+  let repoMapContext = ''
+  if (getSandbox(options.taskId)) {
+    try {
+      const mapResult = await buildRepoMap(new SandboxBridge(options.taskId), {
+        maxFiles: 60,
+        maxTokens: 1024,
+        maxSymbolsPerFile: 10,
+      })
+      if (mapResult.text) {
+        repoMapContext = `\n\n=== REPOSITORY MAP (compressed, ${mapResult.filesIncluded}/${mapResult.totalFiles} files, ${mapResult.truncated ? 'truncated to token budget' : 'complete'}) ===\n${mapResult.text}`
+      }
+    } catch {
+      // Best-effort — repo map is an enhancement, never a blocker
+    }
+  }
+
   // Full-autonomy mandate: the agent controls the platform itself and never
   // pauses for approval. Applied after mode instructions so it takes precedence.
   let autonomyInstructions = ''
@@ -267,7 +289,8 @@ You may create a plan for human approval. When you call createPlan, the task
 will pause and wait for the user to approve before continuing.`
   }
 
-  const systemPrompt = baseSystemPrompt + modeInstructions + rulesText + taskQueueAwareness + autonomyInstructions
+  const systemPrompt =
+    baseSystemPrompt + modeInstructions + rulesText + taskQueueAwareness + autonomyInstructions + repoMapContext
 
   // Compose Agent Team for parallel execution
   const agentTeam = composeAgentTeam(prompt, options.repoUrl)

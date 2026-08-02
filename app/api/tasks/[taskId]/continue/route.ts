@@ -25,6 +25,8 @@ import { createFallbackCommitMessage, generateCommitMessage } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { createTaskLogger } from '@/lib/utils/task-logger'
+import { deriveErrorDetails, formatStructuredTaskError } from '@/lib/api/job-errors'
+import { runAutomaticVisualQa } from '@/lib/ai/orchestrator/capabilities/auto-visual-qa'
 
 export async function POST(req: NextRequest, context: { params: Promise<{ taskId: string }> }) {
   try {
@@ -400,6 +402,17 @@ async function continueTask(
           throw new Error('Failed to push worker team changes to repository')
         }
 
+        // Automatic visual QA for UI changes (best-effort)
+        await runAutomaticVisualQa({
+          sandbox,
+          taskId,
+          userId: currentTask.userId,
+          repoUrl,
+          prompt,
+          logger,
+          githubToken,
+        })
+
         await logger.updateStatus('completed')
         await logger.updateProgress(100, 'Worker team continuation completed successfully')
         return // ✅ Workers handled everything
@@ -496,6 +509,17 @@ async function continueTask(
           const pushResult = await pushChangesToBranch(sandbox, branchName, commitMessage, logger)
 
           if (!pushResult.pushFailed) {
+            // Automatic visual QA for UI changes (best-effort)
+            await runAutomaticVisualQa({
+              sandbox,
+              taskId,
+              userId: currentTask.userId,
+              repoUrl,
+              prompt,
+              logger,
+              githubToken,
+            })
+
             await logger.updateStatus('completed')
             await logger.updateProgress(100, 'Worker team completed successfully')
             return // ✅ Workers handled everything — skip standard execution
@@ -619,6 +643,17 @@ async function continueTask(
         await logger.error('Task failed: Unable to push changes to repository')
         throw new Error('Failed to push changes to repository')
       } else {
+        // Automatic visual QA for UI changes (best-effort)
+        await runAutomaticVisualQa({
+          sandbox,
+          taskId,
+          userId: currentTask.userId,
+          repoUrl,
+          prompt,
+          logger,
+          githubToken,
+        })
+
         await logger.updateStatus('completed')
         await logger.updateProgress(100, 'Task completed successfully')
         console.log('Task continuation completed successfully')
@@ -662,12 +697,38 @@ async function continueTask(
     // Error details are saved to the database for debugging
     console.error('Task error details:', errorMessage)
 
-    await db
-      .update(tasks)
-      .set({
+    // Persist the failure as a structured envelope (code + stage + message +
+    // failedAt) so the external API's error classification (Error details &
+    // codes) can report the exact continue-route stage (orchestrator / worker
+    // team / visual QA) and failure timing instead of re-deriving from text.
+    try {
+      const [failedTask] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
+      const details = deriveErrorDetails({
+        status: 'error',
         error: errorMessage,
-        updatedAt: new Date(),
+        logs: failedTask?.logs || undefined,
       })
-      .where(eq(tasks.id, taskId))
+      await db
+        .update(tasks)
+        .set({
+          error: formatStructuredTaskError(
+            { code: details?.code ?? 'unknown_failure', stage: details?.stage ?? null },
+            errorMessage,
+            new Date(),
+          ),
+          updatedAt: new Date(),
+        })
+        .where(eq(tasks.id, taskId))
+    } catch (persistError) {
+      // Fall back to the plain message if structured persistence fails
+      console.error('Failed to persist structured task error')
+      await db
+        .update(tasks)
+        .set({
+          error: errorMessage,
+          updatedAt: new Date(),
+        })
+        .where(eq(tasks.id, taskId))
+    }
   }
 }

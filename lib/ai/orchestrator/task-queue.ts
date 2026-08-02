@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client'
 import { tasks, insertTaskSchema } from '@/lib/db/schema'
 import { eq, desc, asc, and, isNull, or, inArray } from 'drizzle-orm'
 import { generateId } from '@/lib/utils/id'
+import { getReadableTaskError } from '@/lib/api/job-errors'
 import type { OrchestratorState } from './state'
 
 // ─── Query helpers ─────────────────────────────────────────────────────
@@ -120,7 +121,7 @@ The task queue is YOUR responsibility as the main agent. You can:
           lines.push(`   ID: \`${t.id}\` | Status: ${t.status}${progress} | Agent: ${t.selectedAgent || 'auto'}`)
           if (t.repoUrl) lines.push(`   Repo: ${t.repoUrl}`)
           if (t.createdAt) lines.push(`   Created: ${t.createdAt.toLocaleString()}`)
-          if (t.error) lines.push(`   Error: ${t.error}`)
+          if (t.error) lines.push(`   Error: ${getReadableTaskError(t.error)}`)
           lines.push('')
         }
 
@@ -329,7 +330,7 @@ The task is now in the queue and ready for execution.`
         if (task.previewUrl) lines.push(`- Preview: ${task.previewUrl}`)
         if (task.prUrl) lines.push(`- PR: ${task.prUrl} (${task.prStatus || 'unknown'})`)
         if (task.executionMode) lines.push(`- Mode: ${task.executionMode}`)
-        if (task.error) lines.push(`- Error: ${task.error}`)
+        if (task.error) lines.push(`- Error: ${getReadableTaskError(task.error)}`)
         if (task.createdAt) lines.push(`- Created: ${task.createdAt.toLocaleString()}`)
         if (task.completedAt) lines.push(`- Completed: ${task.completedAt.toLocaleString()}`)
 

@@ -2,293 +2,160 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import type { ToolContext } from './types'
 import { SandboxBridge } from '../runtime/sandbox-bridge'
+import { extractFileSymbols, buildAiderRepoMapText, type RepoMapFile, type AiderRepoMapResult } from './aider-repo-map'
+
+/** Extensions we can extract symbols from (AST or regex fallback). */
+const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.pyw', '.go']
+
+export interface BuildRepoMapOptions {
+  rootDir?: string
+  maxFiles?: number
+  maxTokens?: number
+  maxSymbolsPerFile?: number
+}
 
 /**
- * Repo Map — generates a structural overview of the codebase.
- * Inspired by Aider's repo map: provides a high-level view of
- * classes, functions, imports, and file structure, saving tokens
- * by avoiding reading every file.
+ * List source files in the sandbox, ranked so the most useful files land first
+ * within the token budget. Ranking heuristic (Aider uses pagerank; we
+ * approximate with): shallower files first (entry points, configs), then
+ * alphabetical — deterministic and cheap.
+ */
+export async function listSourceFiles(bridge: SandboxBridge, rootDir: string, maxFiles: number): Promise<string[]> {
+  // NOTE: runInProject escapes every arg and pipes the whole command through
+  // `sh -c`. A literal '|' arg would be quoted and NOT act as a pipe, so we run
+  // the pipeline via `sh -c` (matching the project's existing pattern) instead.
+  // Quote rootDir so paths with spaces/quotes stay intact inside the inner sh.
+  const quotedRoot = rootDir.replace(/'/g, "'\\''")
+  const findCmd = [
+    `find '${quotedRoot}'`,
+    '-type f',
+    "-not -path '*/node_modules/*'",
+    "-not -path '*/.git/*'",
+    "-not -path '*/dist/*'",
+    "-not -path '*/.next/*'",
+    "-not -path '*/build/*'",
+    "-not -path '*/coverage/*'",
+    "-not -path '*/package-lock.json'",
+    "-not -path '*/yarn.lock'",
+    "-not -path '*/pnpm-lock.yaml'",
+    "-not -path '*/.aider.tags.cache/*'",
+    `| head -${maxFiles * 20}`,
+  ].join(' ')
+
+  const dirsResult = await bridge.runInProject('sh', ['-c', findCmd])
+
+  const files = dirsResult.output ? dirsResult.output.trim().split('\n').filter(Boolean) : []
+
+  const sourceFiles = files.filter((f: string) => {
+    const lower = f.toLowerCase()
+    return SOURCE_EXTENSIONS.some((ext) => lower.endsWith(ext))
+  })
+
+  return sourceFiles
+    .map((f: string) => ({ f, depth: f.replace(rootDir, '').split('/').length - 1 }))
+    .sort((a, b) => a.depth - b.depth || a.f.localeCompare(b.f))
+    .map((x) => x.f)
+    .slice(0, maxFiles)
+}
+
+/**
+ * Build the compressed Aider-style repo map: list files (ranked), extract AST
+ * symbol signatures, render a token-budgeted tree. Shared by the on-demand
+ * tool and the system-prompt injection path.
+ *
+ * Semantics of the result: `totalFiles` is every listed source file (ranked),
+ * while `filesIncluded` counts only files that produced extractable symbols
+ * AND were rendered within the token budget — so `filesIncluded/totalFiles`
+ * may under-report when empty/unsupported files exist or the map is truncated.
+ */
+export async function buildRepoMap(
+  bridge: SandboxBridge,
+  options: BuildRepoMapOptions = {},
+): Promise<AiderRepoMapResult> {
+  const rootDir = (options.rootDir || '.').replace(/\/$/, '')
+  const maxFiles = options.maxFiles || 100
+  const maxTokens = options.maxTokens || 1024
+  const maxSymbolsPerFile = options.maxSymbolsPerFile ?? 12
+
+  if (!bridge.isAvailable()) {
+    return { text: '', filesIncluded: 0, totalFiles: 0, truncated: false }
+  }
+
+  try {
+    const files = await listSourceFiles(bridge, rootDir, maxFiles)
+    const totalFiles = files.length
+    const repoFiles: RepoMapFile[] = []
+
+    // Read files in parallel batches (bounded concurrency keeps the sandbox
+    // busy without overwhelming it)
+    const BATCH = 8
+    for (let i = 0; i < files.length; i += BATCH) {
+      const batch = files.slice(i, i + BATCH)
+      const results = await Promise.all(
+        batch.map(async (file) => {
+          try {
+            const content = await bridge.readFile(file)
+            if (!content) return null
+            const relPath = file
+              .replace(rootDir + '/', '')
+              .replace(rootDir, '.')
+              .replace(/^\.\//, '')
+            return { relPath, symbols: extractFileSymbols(content, file) } as RepoMapFile
+          } catch {
+            return null
+          }
+        }),
+      )
+      for (const r of results) if (r) repoFiles.push(r)
+    }
+
+    const rendered = buildAiderRepoMapText(repoFiles, { maxTokens, maxSymbolsPerFile })
+    return { ...rendered, totalFiles }
+  } catch {
+    return { text: '', filesIncluded: 0, totalFiles: 0, truncated: false }
+  }
+}
+
+/**
+ * Repo Map — generates a compressed, Aider-style structural overview of the
+ * codebase: a token-budgeted file hierarchy with AST symbol signatures.
+ *
+ * Inspired by Aider's `repomap`: the agent gets the same codebase understanding
+ * as reading every file, at a fraction of the tokens. The map can also be built
+ * ahead of time and injected into the system prompt (see loop.ts) — this pack
+ * provides the on-demand tools to refresh it.
  */
 export function createRepoMapTools(ctx: ToolContext) {
   const bridge = new SandboxBridge(ctx.taskId)
 
-  /**
-   * Generate a compact structural map of a file using basic parsing.
-   * Looks for function/class/interface/type declarations, imports, and exports.
-   */
-  async function generateFileMap(filePath: string): Promise<string> {
-    if (!bridge.isAvailable()) return 'No active sandbox — cannot read files'
-
-    const content = await bridge.readFile(filePath)
-    if (!content) return ''
-
-    const lines = content.split('\n')
-    const maxLines = 200
-    const relevantLines: string[] = []
-    let structuralCount = 0
-
-    // Collect all structural lines + up to 2 context lines around each
-    for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
-      const line = lines[i]
-      const trimmed = line.trim()
-
-      const isStructural =
-        trimmed.startsWith('export ') ||
-        trimmed.startsWith('import ') ||
-        trimmed.startsWith('function ') ||
-        trimmed.startsWith('class ') ||
-        trimmed.startsWith('interface ') ||
-        trimmed.startsWith('type ') ||
-        trimmed.startsWith('const ') ||
-        trimmed.startsWith('let ') ||
-        trimmed.startsWith('async function ') ||
-        trimmed.startsWith('export default ') ||
-        trimmed.startsWith('enum ') ||
-        /^\s*\/(\/|\*)/.test(line) ||
-        trimmed.startsWith('def ') ||
-        trimmed.startsWith('from ')
-
-      if (isStructural) {
-        // Include up to 2 lines of context before for readability
-        if (structuralCount === 0 && i >= 2) {
-          relevantLines.push(`  // ... ${lines[i - 2].trim()}`)
-          relevantLines.push(`  // ... ${lines[i - 1].trim()}`)
-        }
-        relevantLines.push(line)
-        structuralCount++
-      } else if (trimmed && structuralCount > 0) {
-        // Keep one-line context after a structural element
-        relevantLines.push(line)
-      }
-    }
-
-    if (lines.length > maxLines) {
-      relevantLines.push(`// ... (${lines.length - maxLines} more lines)`)
-    }
-
-    return relevantLines.join('\n')
-  }
-
-  const sourceExtensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.css', '.json']
-
   return {
     generateRepoMap: tool({
-      description: `Generate a structural map of the project repository. This provides a high-level overview of the codebase structure, including file organization, exported symbols, and key dependencies. Use this *first* before making any changes to understand the project structure. This saves tokens by summarizing the codebase instead of reading every file individually.`,
+      description: `Generate a compressed, Aider-style repo map of the project: a token-budgeted file hierarchy with AST symbol signatures (functions, classes + methods, interfaces, types, enums, exported consts). Use this *first* to understand the codebase structure. This saves tokens by summarizing the codebase instead of reading every file individually.`,
       inputSchema: z.object({
         rootDir: z.string().optional().default('.').describe('Root directory to map (relative to project root)'),
         maxFiles: z
           .number()
           .min(5)
-          .max(200)
+          .max(300)
           .optional()
-          .default(50)
-          .describe('Maximum number of files to include in the map'),
+          .default(100)
+          .describe('Maximum number of source files to include in the map'),
+        maxTokens: z
+          .number()
+          .min(256)
+          .max(8000)
+          .optional()
+          .default(1024)
+          .describe('Token budget for the rendered map (Aider map_max_tokens)'),
       }),
-      execute: async ({ rootDir, maxFiles }) => {
+      execute: async ({ rootDir, maxFiles, maxTokens }) => {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot read files'
 
         try {
-          // Step 1: Get directory structure (breadth-first)
-          const dirResult = await bridge.runInProject('find', [
-            rootDir,
-            '-type',
-            'd',
-            '-not',
-            '-path',
-            '*/node_modules/*',
-            '-not',
-            '-path',
-            '*/.git/*',
-            '-not',
-            '-path',
-            '*/dist/*',
-            '-not',
-            '-path',
-            '*/.next/*',
-            '-not',
-            '-path',
-            '*/build/*',
-            '-not',
-            '-path',
-            '*/coverage/*',
-            '|',
-            'head',
-            '-50',
-          ])
-
-          const dirs = dirResult.output
-            ? dirResult.output
-                .trim()
-                .split('\n')
-                .filter(Boolean)
-                .map((d: string) => d.replace(rootDir + '/', '').replace(rootDir, './'))
-            : []
-
-          // Step 2: Get file listing with sizes
-          const fileResult = await bridge.runInProject('find', [
-            rootDir,
-            '-type',
-            'f',
-            '-not',
-            '-path',
-            '*/node_modules/*',
-            '-not',
-            '-path',
-            '*/.git/*',
-            '-not',
-            '-path',
-            '*/dist/*',
-            '-not',
-            '-path',
-            '*/.next/*',
-            '-not',
-            '-path',
-            '*/build/*',
-            '-not',
-            '-path',
-            '*/coverage/*',
-            '-not',
-            '-path',
-            '*/package-lock.json',
-            '-not',
-            '-path',
-            '*/yarn.lock',
-            '-not',
-            '-path',
-            '*/pnpm-lock.yaml',
-            '|',
-            'head',
-            `-${maxFiles + 10}`,
-          ])
-
-          const allFiles = fileResult.output ? fileResult.output.trim().split('\n').filter(Boolean) : []
-
-          // Filter by include patterns
-          const sourceFiles = allFiles.filter((f: string) => {
-            const lower = f.toLowerCase()
-            return (
-              lower.endsWith('.ts') ||
-              lower.endsWith('.tsx') ||
-              lower.endsWith('.js') ||
-              lower.endsWith('.jsx') ||
-              lower.endsWith('.py') ||
-              lower.endsWith('.go') ||
-              lower.endsWith('.css') ||
-              lower.endsWith('.json')
-            )
-          })
-
-          const filesToMap = sourceFiles.slice(0, maxFiles)
-
-          // Step 3: Generate map for each source file (in parallel batches)
-          const mapLines: string[] = []
-          mapLines.push('='.repeat(60))
-          mapLines.push(`📁 REPO MAP: ${rootDir}`)
-          mapLines.push(
-            `📊 ${dirs.length} directories, ${allFiles.length} total files, ${filesToMap.length} source files`,
-          )
-          mapLines.push('='.repeat(60))
-
-          // List directory structure
-          if (dirs.length > 0) {
-            mapLines.push('')
-            mapLines.push('📂 DIRECTORY STRUCTURE:')
-            for (const dir of dirs.slice(0, 30)) {
-              const depth = dir.split('/').length
-              const indent = '  '.repeat(depth)
-              mapLines.push(`${indent}📁 ${dir.split('/').pop() || dir}/`)
-            }
-            if (dirs.length > 30) {
-              mapLines.push(`  ... (${dirs.length - 30} more directories)`)
-            }
-          }
-
-          // List files with structural info
-          if (filesToMap.length > 0) {
-            mapLines.push('')
-            mapLines.push('📄 SOURCE FILES:')
-            for (const file of filesToMap) {
-              const relativePath = file.replace(rootDir + '/', '').replace(rootDir, '.')
-              mapLines.push('')
-              mapLines.push(`  📄 ${relativePath}`)
-
-              // Add structural summary
-              try {
-                const fileMap = await generateFileMap(file)
-                if (fileMap) {
-                  const summaryLines = fileMap.split('\n').slice(0, 15)
-                  for (const sl of summaryLines) {
-                    mapLines.push(`    ${sl}`)
-                  }
-                  if (fileMap.split('\n').length > 15) {
-                    mapLines.push(`    // ... structural summary truncated`)
-                  }
-                }
-              } catch {
-                mapLines.push(`    // (could not parse)`)
-              }
-            }
-          }
-
-          // Step 4: Read package.json for project info
-          try {
-            const pkgResult = await bridge.readFile(`${rootDir}/package.json`)
-            if (pkgResult) {
-              try {
-                const pkg = JSON.parse(pkgResult)
-                mapLines.push('')
-                mapLines.push('='.repeat(60))
-                mapLines.push('📦 PROJECT INFO:')
-                mapLines.push(`  Name: ${pkg.name || 'unnamed'}`)
-                if (pkg.description) mapLines.push(`  Description: ${pkg.description}`)
-                if (pkg.scripts) {
-                  mapLines.push(`  Scripts:`)
-                  for (const [name, script] of Object.entries(pkg.scripts)) {
-                    mapLines.push(`    ${name}: ${script}`)
-                  }
-                }
-                if (pkg.dependencies) {
-                  const deps = Object.keys(pkg.dependencies)
-                  mapLines.push(`  Dependencies: ${deps.length} packages`)
-                  for (const dep of deps.slice(0, 20)) {
-                    mapLines.push(`    ${dep}@${pkg.dependencies[dep]}`)
-                  }
-                  if (deps.length > 20) {
-                    mapLines.push(`    ... (${deps.length - 20} more dependencies)`)
-                  }
-                }
-                if (pkg.devDependencies) {
-                  mapLines.push(`  Dev Dependencies: ${Object.keys(pkg.devDependencies).length} packages`)
-                }
-              } catch {
-                mapLines.push(`  // (could not parse package.json)`)
-              }
-            }
-          } catch {
-            // No package.json, try requirements.txt for Python
-            try {
-              const reqResult = await bridge.readFile(`${rootDir}/requirements.txt`)
-              if (reqResult) {
-                mapLines.push('')
-                mapLines.push('='.repeat(60))
-                mapLines.push('🐍 PYTHON DEPENDENCIES:')
-                const reqs = reqResult.split('\n').filter(Boolean)
-                for (const req of reqs.slice(0, 30)) {
-                  mapLines.push(`  ${req}`)
-                }
-                if (reqs.length > 30) {
-                  mapLines.push(`  ... (${reqs.length - 30} more dependencies)`)
-                }
-              }
-            } catch {
-              // Nothing
-            }
-          }
-
-          mapLines.push('')
-          mapLines.push('='.repeat(60))
-
-          return mapLines.join('\n')
+          const result = await buildRepoMap(bridge, { rootDir, maxFiles, maxTokens })
+          if (!result.text) return 'No source files found in repository.'
+          const header = `🧭 REPO MAP (${result.filesIncluded}/${result.totalFiles} files, ${result.truncated ? 'truncated to budget' : 'complete'})`
+          return `${header}\n${result.text}`
         } catch (error) {
           return `Error generating repo map: ${error instanceof Error ? error.message : 'Unknown error'}`
         }
@@ -296,7 +163,7 @@ export function createRepoMapTools(ctx: ToolContext) {
     }),
 
     getFileStructure: tool({
-      description: `Get a compact structural overview of a specific file: exported symbols, imports, and key declarations. Use this when you need to understand a specific file's API without reading its entire content.`,
+      description: `Get a compact AST summary of a specific file: function/class/interface/type/enum/const signatures. Use this to understand a specific file's API without reading its entire content.`,
       inputSchema: z.object({
         filePath: z.string().describe('Path to the file (relative to project root)'),
       }),
@@ -304,9 +171,21 @@ export function createRepoMapTools(ctx: ToolContext) {
         if (!bridge.isAvailable()) return 'No active sandbox — cannot read files'
 
         try {
-          const fileMap = await generateFileMap(filePath)
-          if (!fileMap) return `File not found or empty: ${filePath}`
-          return `📄 FILE STRUCTURE: ${filePath}\n\n${fileMap}`
+          const content = await bridge.readFile(filePath)
+          if (!content) return `File not found or empty: ${filePath}`
+          const symbols = extractFileSymbols(content, filePath)
+          if (symbols.length === 0) {
+            return `📄 FILE STRUCTURE: ${filePath}\n(no extractable symbols — empty or unsupported file type)`
+          }
+          const lines = symbols.map((s) => {
+            const base = `  ├── ${s.signature}`
+            if (s.methods && s.methods.length > 0) {
+              const methods = s.methods.map((m) => `  │       ├── ${m}`).join('\n')
+              return `${base}\n${methods}`
+            }
+            return base
+          })
+          return `📄 FILE STRUCTURE: ${filePath}\n\n${lines.join('\n')}`
         } catch (error) {
           return `Error reading file structure: ${error instanceof Error ? error.message : 'Unknown error'}`
         }

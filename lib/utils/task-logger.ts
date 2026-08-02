@@ -2,6 +2,7 @@ import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createInfoLog, createCommandLog, createErrorLog, createSuccessLog, LogEntry } from './logging'
+import { deriveErrorDetails, formatStructuredTaskError } from '@/lib/api/job-errors'
 
 export class TaskLogger {
   private taskId: string
@@ -110,6 +111,7 @@ export class TaskLogger {
         status: 'pending' | 'processing' | 'completed' | 'error'
         updatedAt: Date
         logs?: LogEntry[]
+        error?: string
       } = {
         status,
         updatedAt: new Date(),
@@ -120,6 +122,18 @@ export class TaskLogger {
         const currentTask = await db.select().from(tasks).where(eq(tasks.id, this.taskId)).limit(1)
         const existingLogs = currentTask[0]?.logs || []
         updates.logs = [...existingLogs, logEntry]
+        // Persist the failure as a structured envelope (code + stage + message
+        // + failedAt) so the external API's error classification (Error details
+        // & codes) can read the exact failure location and timing instead of
+        // re-deriving them from free text.
+        if (status === 'error') {
+          const details = deriveErrorDetails({ status: 'error', error: message, logs: existingLogs })
+          updates.error = formatStructuredTaskError(
+            { code: details?.code ?? 'unknown_failure', stage: details?.stage ?? null },
+            message,
+            new Date(),
+          )
+        }
       }
 
       await db.update(tasks).set(updates).where(eq(tasks.id, this.taskId))

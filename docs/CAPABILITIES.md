@@ -1,6 +1,6 @@
 # יכולות הפלטפורמה — מסמך רשמי (Capabilities)
 
-> **תאריך עדכון אחרון:** 31 ביולי 2026
+> **תאריך עדכון אחרון:** 2 באוגוסט 2026
 > **מסמך זה הוא "מקור האמת" הרשמי** לכל היכולות של הפלטפורמה. כל רעיון חדש או פיצ'ר שמומש חייב להתעדכן כאן באותו ה-PR/commit שבו הוא מומש.
 
 ---
@@ -206,16 +206,43 @@ State Machine: **Analyze → Plan → Execute → Verify → Done** עם self-he
 | Endpoint | פונקציה |
 |----------|---------|
 | `POST /api/agent/v1/chat/completions` | תאימות OpenAI (streaming + non-streaming) |
-| `GET /api/agent/v1/jobs/[jobId]` | פרטי משימה |
+| `GET /api/agent/v1/jobs/[jobId]` | פרטי משימה — תיעוד מלא: [`docs/api/jobs-get.md`](../docs/api/jobs-get.md) |
 | `GET /api/agent/v1/jobs/[jobId]/stream` | SSE בזמן אמת (event-bus) |
 | `POST /api/agent/v1/jobs/[jobId]/cancel` | עצירת משימה + הריגת sandbox |
 
-### 8.2 יכולות
+### 8.2 חוזה ה-SSE — `GET /api/agent/v1/jobs/[jobId]/stream`
+
+הזרמת Server-Sent Events (SSE) בזמן אמת של מצב משימה, עם אימות `Bearer <PLATFORM_API_KEY>`.
+
+**סוגי אירועים:**
+
+| `object` | תיאור |
+|----------|-------|
+| `platform.job.status` | עדכון סטטוס/התקדמות (אירוע התחלתי + על כל שינוי) — כולל `error_code` ו-`error_details` |
+| `platform.job.cancelled` | ביטול המשימה — מיידית דרך event-bus (מ-`POST .../cancel`) או גיבוי ב-polling |
+| `platform.job.diff` | ה-patch המבני (חוזה JobDiff) — רק על `completed` |
+| `platform.job.messages` | הודעות הסיכום (עד 100) לפני `done` |
+| `{ done: true }` + `data: [DONE]` | סיום הזרם |
+| `: ping` | Heartbeat כל 15 שניות |
+
+**סדר הפליטה:** `status` (התחלתי) → `status` (עדכונים) → אירוע טרמינלי → (`diff` אם `completed` / `cancelled` אם `stopped`) → `messages` → `done` → `[DONE]` → סגירת הזרם.
+
+**טיפול בשגיאות:** `401` (חסר/לא חוקי API key), `404` (Job not found), `500` (פנימי) — כג'ייסון לפני פתיחת הזרם. המשימה שנמחקה/חריגת 5 דקות → סגירה עם `[DONE]`.
+
+**תיעוד מלא:** [`docs/api/job-stream-sse.md`](../docs/api/job-stream-sse.md) — כולל דוגמאות JSON לכל אירוע ודוגמת לקוח.
+
+---
+
+### 8.3 יכולות
 
 - **API Key Management** — מפתחות פלטפורמה עם middleware אימות (`lib/auth/api-key.ts`, `platform-api-keys.tsx`).
 - **Idempotency Keys** — כותרת `Idempotency-Key` → מניעת משימות כפולות (`deterministicTaskId`).
 - **Real-time streaming** — pub/sub `lib/jobs/event-bus.ts` במקום polling.
 - **Metrics** — `app/api/metrics/` + `lib/ai/router-metrics.ts`.
+- **פורמט Diff/Patch מבני** — `GET /api/agent/v1/jobs/[jobId]` מחזיר ב-`platform_metadata.diff` חוזה JSON מחמיר: `files[]` (filename, status, additions, deletions, patch unified, language, is_binary), `summary`, `truncated`. לקוחות שכבר קיבלו את ה-patch דרך ה-SSE יכולים לדלג על החישוב (וקריאות ה-GitHub) עם `?include_diff=false` — אז `diff` הוא `null` ו-`diff_included` הוא `false` (ברירת מחדל `true`, תאימות לאחור).
+- **מבנה שגיאות מפורט (Error details & codes)** — ב-`platform_metadata`: `error_code` מחזיר קוד שגיאה ספציפי (`build_failed`, `sandbox_timeout`, `auth_error`, `git_push_failed`, `rate_limited`, `cancelled`, `unknown_failure` ועוד) ו-`error_details` מחזיר מבנה מלא: `code`, `category`, `stage` (שלב ה-pipeline שנכשל), `message`, `retryable`, `recovery_hint`. הסיווג מתבסס על `task.error` + לוגי ה-pipeline (`lib/api/job-errors.ts` → `deriveErrorDetails`). `stopped` → `cancelled` תמיד.
+
+    **קבצים:** `lib/api/job-diff.ts` (חישוב + מטמון TTL 5 דקות), `lib/api/job-errors.ts` (סיווג שגיאות), `lib/jobs/event-bus.ts` (pub/sub SSE), `lib/utils/file-language.ts` (זיהוי שפה/בינארי משותף), `lib/github/user-token.ts` (`getUserGitHubTokenByUserId`).
 
 ---
 

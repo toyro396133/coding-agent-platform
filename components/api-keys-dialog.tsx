@@ -206,11 +206,11 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
                     value={apiKeys[provider.id]}
                     onChange={(e) => setApiKeys((prev) => ({ ...prev, [provider.id]: e.target.value }))}
                     disabled={loading || isInputDisabled}
-                    className="pr-9 h-8 text-sm"
+                    className="pe-9 h-8 text-sm"
                   />
                   <button
                     onClick={() => toggleShowKey(provider.id)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     type="button"
                     disabled={loading || isInputDisabled}
                   >

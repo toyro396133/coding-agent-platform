@@ -1,4 +1,4 @@
-import type { AgentType } from '@/lib/sandbox/agents'
+import type { AgentApiKeys, AgentType } from '@/lib/sandbox/agents'
 
 /**
  * A single worker specification — one agent in a parallel team.
@@ -26,13 +26,7 @@ export interface WorkerTeamSpec {
   repoUrl: string
   branchName: string
   githubToken?: string | null
-  apiKeys?: {
-    OPENAI_API_KEY?: string
-    GEMINI_API_KEY?: string
-    CURSOR_API_KEY?: string
-    ANTHROPIC_API_KEY?: string
-    AI_GATEWAY_API_KEY?: string
-  }
+  apiKeys?: AgentApiKeys
   gitAuthorName?: string
   gitAuthorEmail?: string
   /** Total timeout for all workers combined (ms) */

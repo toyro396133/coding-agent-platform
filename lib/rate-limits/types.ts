@@ -3,61 +3,17 @@
  *
  * Tracks API usage across providers, rotates keys automatically,
  * and informs the Smart Router which models are available.
+ *
+ * Model→provider mapping now lives in the shared Model Registry
+ * (ADR-0001) — re-exported here for backward compatibility.
  */
 
+import { type LlmProvider, MODEL_PROVIDER_MAP } from '@/lib/ai/model-registry'
+
+export type { LlmProvider }
+export { MODEL_PROVIDER_MAP }
+
 // ─── Provider Identification ───────────────────────────────────────────
-
-export type LlmProvider = 'openai' | 'anthropic' | 'gemini' | 'cursor' | 'deepseek' | 'aigateway'
-
-/** Every known model mapped to its provider family */
-export const MODEL_PROVIDER_MAP: Record<string, LlmProvider> = {
-  // OpenAI
-  'gpt-5': 'openai',
-  'gpt-5-codex': 'openai',
-  'gpt-5-pro': 'openai',
-  'gpt-5-mini': 'openai',
-  'gpt-5-nano': 'openai',
-  'gpt-4o': 'openai',
-  'gpt-4o-mini': 'openai',
-  'openai/gpt-5.1': 'openai',
-  'openai/gpt-5.1-codex': 'openai',
-  'openai/gpt-5.1-codex-mini': 'openai',
-  'openai/gpt-4.1': 'openai',
-  'openai/o3': 'openai',
-  'openai/o3-mini': 'openai',
-  'openai/o4-mini': 'openai',
-  'openai/gpt-4.5-preview': 'openai',
-
-  // Anthropic
-  'claude-sonnet-4-5': 'anthropic',
-  'claude-opus-4-5': 'anthropic',
-  'claude-haiku-4-5': 'anthropic',
-  'claude-sonnet-4': 'anthropic',
-  'claude-3-5-sonnet': 'anthropic',
-  'claude-3-5-haiku': 'anthropic',
-  'anthropic/claude-opus-4.6': 'anthropic',
-  'anthropic/claude-opus-4.5': 'anthropic',
-  'anthropic/claude-sonnet-4': 'anthropic',
-  'anthropic/claude-3.5-sonnet': 'anthropic',
-
-  // Google
-  'gemini-2.5-pro': 'gemini',
-  'gemini-2.5-flash': 'gemini',
-  'gemini-3-pro-preview': 'gemini',
-  'gemini-3-flash': 'gemini',
-  'google-gla/gemini-2.5-flash': 'gemini',
-
-  // Cursor
-  'composer-1': 'cursor',
-  'sonnet-4.5': 'cursor',
-  'sonnet-4.5-thinking': 'cursor',
-  'opus-4.5': 'cursor',
-  'opus-4.1': 'cursor',
-
-  // DeepSeek
-  'deepseek-chat': 'deepseek',
-  'deepseek-coder': 'deepseek',
-}
 
 // ─── Usage Record ──────────────────────────────────────────────────────
 

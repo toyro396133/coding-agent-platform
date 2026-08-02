@@ -148,7 +148,7 @@ export function PlatformApiKeys() {
               />
             </div>
             <Button type="submit" disabled={!newKeyName.trim() || creating}>
-              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
+              {creating ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Key className="me-2 h-4 w-4" />}
               Create new key
             </Button>
           </form>

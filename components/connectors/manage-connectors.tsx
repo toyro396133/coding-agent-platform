@@ -599,7 +599,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                         : '(optional)'}
                     </Label>
                     <Button type="button" size="sm" variant="outline" onClick={addEnvVar}>
-                      <Plus className="h-4 w-4 mr-1" />
+                      <Plus className="h-4 w-4 me-1" />
                       Add Variable
                     </Button>
                   </div>
@@ -626,7 +626,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="absolute right-0 top-0 h-full hover:bg-transparent"
+                              className="absolute end-0 top-0 h-full hover:bg-transparent"
                               onClick={() => toggleEnvVarVisibility(index)}
                             >
                               {visibleEnvVars.has(index) ? (
@@ -702,7 +702,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                     <Button type="submit" disabled={pending || isDeleting}>
                       {pending ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="me-2 h-4 w-4 animate-spin" />
                           {isEditing ? 'Saving...' : 'Creating...'}
                         </>
                       ) : isEditing ? (
@@ -736,7 +736,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                   Deleting...
                 </>
               ) : (

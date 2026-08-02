@@ -9,52 +9,12 @@
 
 // Re-export types for the UI
 import type { PipelineStageData } from '@/lib/types/pipeline'
+
 export type { PipelineStageData }
 
-// Model pricing per 1M tokens (in USD) as of mid-2026
-const MODEL_PRICING: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
-  // OpenAI models
-  'gpt-5': { input: 10, output: 40, cacheRead: 2.5, cacheWrite: 10 },
-  'gpt-5-codex': { input: 15, output: 60, cacheRead: 3.75, cacheWrite: 15 },
-  'gpt-5-pro': { input: 20, output: 80, cacheRead: 5, cacheWrite: 20 },
-  'gpt-5-mini': { input: 2, output: 8, cacheRead: 0.5, cacheWrite: 2 },
-  'gpt-5-nano': { input: 0.5, output: 2, cacheRead: 0.125, cacheWrite: 0.5 },
-  'gpt-4o': { input: 5, output: 15, cacheRead: 1.25, cacheWrite: 5 },
-  'gpt-4o-mini': { input: 0.5, output: 2, cacheRead: 0.125, cacheWrite: 0.5 },
-  'openai/gpt-4.1': { input: 3, output: 12, cacheRead: 0.75, cacheWrite: 3 },
-  'openai/o3': { input: 15, output: 60, cacheRead: 3.75, cacheWrite: 15 },
-  'openai/o3-mini': { input: 2, output: 8, cacheRead: 0.5, cacheWrite: 2 },
-  'openai/o4-mini': { input: 1, output: 4, cacheRead: 0.25, cacheWrite: 1 },
-  'openai/gpt-5.1': { input: 8, output: 32, cacheRead: 2, cacheWrite: 8 },
-  'openai/gpt-5.1-codex': { input: 12, output: 48, cacheRead: 3, cacheWrite: 12 },
-  'openai/gpt-5.1-codex-mini': { input: 3, output: 12, cacheRead: 0.75, cacheWrite: 3 },
-
-  // Anthropic models
-  'claude-sonnet-4-5': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-opus-4-5': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-haiku-4-5': { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite: 1 },
-  'claude-sonnet-4': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-3-5-sonnet': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'anthropic/claude-opus-4.6': { input: 20, output: 100, cacheRead: 2, cacheWrite: 25 },
-  'anthropic/claude-opus-4.5': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'anthropic/claude-sonnet-4': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'anthropic/claude-3.5-sonnet': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-
-  // Google models
-  'gemini-2.5-pro': { input: 1.25, output: 5, cacheRead: 0.125, cacheWrite: 1.25 },
-  'gemini-2.5-flash': { input: 0.15, output: 0.6, cacheRead: 0.015, cacheWrite: 0.15 },
-  'gemini-3-pro-preview': { input: 2, output: 8, cacheRead: 0.2, cacheWrite: 2 },
-  'gemini-3-flash': { input: 0.2, output: 0.8, cacheRead: 0.02, cacheWrite: 0.2 },
-
-  // Open source / other
-  'deepseek-chat': { input: 0.5, output: 2, cacheRead: 0.05, cacheWrite: 0.5 },
-  'deepseek-coder': { input: 0.5, output: 2, cacheRead: 0.05, cacheWrite: 0.5 },
-  'qwen-3.5-235b-a3b': { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.3 },
-  grok: { input: 2, output: 8, cacheRead: 0.5, cacheWrite: 2 },
-}
-
-// Default pricing for unknown models
-const DEFAULT_PRICING = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }
+// Pricing lives in the shared Model Registry (ADR-0001) so the catalog
+// can never drift between the router, rate-limits and cost estimation.
+import { getModelPricing } from '@/lib/ai/model-registry'
 
 /**
  * Rough token estimation based on character count.
@@ -62,7 +22,7 @@ const DEFAULT_PRICING = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75
  */
 function estimateTokens(text: string): number {
   // More accurate estimation for code: count words + special chars
-  const codePatterns = text.match(/[a-zA-Z0-9_]+|[{}()\[\]<>;:=+\-*/%&|^~!@#$%^&*(),.?":{}|<>]/g)
+  const codePatterns = text.match(/[a-zA-Z0-9_]+|[{}()[\]<>;:=+\-*/%&|^~!@#$%^&*(),.?":{}|<>]/g)
   if (!codePatterns) return Math.ceil(text.length / 4)
 
   // Code has more tokens per character due to special chars
@@ -71,15 +31,9 @@ function estimateTokens(text: string): number {
 }
 
 /**
- * Get pricing info for a model, with fallback to defaults.
- */
-function getPricing(model: string) {
-  return MODEL_PRICING[model] || DEFAULT_PRICING
-}
-
-/**
  * Estimate the cost of a complete agent session.
  */
+
 export function estimateAgentCost(params: {
   systemPrompt: string
   userPrompt: string
@@ -93,7 +47,7 @@ export function estimateAgentCost(params: {
   breakdown: string
 } {
   const { systemPrompt, userPrompt, model, contextFiles, estimatedTurns = 5, estimatedOutputTokens = 2000 } = params
-  const pricing = getPricing(model)
+  const pricing = getModelPricing(model)
 
   // Estimate total input tokens
   const systemTokens = estimateTokens(systemPrompt || '')
@@ -155,7 +109,7 @@ export function quickCostEstimate(
   costLevel: 'free' | 'cheap' | 'moderate' | 'expensive'
 } {
   const promptTokens = estimateTokens(prompt)
-  const pricing = getPricing(model)
+  const pricing = getModelPricing(model)
 
   // Assume 1 turn with 1K output
   const inputCost = (promptTokens / 1_000_000) * pricing.input

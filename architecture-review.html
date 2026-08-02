@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>סריקת אדריכלות עמוקה — Coding Agent Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'dark', flowchart: { curve: 'basis' } });</script>
+<style>
+  body { font-family: 'Segoe UI', 'Heebo', system-ui, sans-serif; }
+  .card { transition: transform .25s ease, box-shadow .25s ease; }
+  .card:hover { transform: translateY(-4px); }
+  .badge { letter-spacing: .03em; }
+  .accent-grad { background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899); }
+  .mermaid-ltr { direction: ltr; text-align: center; }
+  .code { direction: ltr; text-align: left; font-family: 'Cascadia Code', 'Consolas', monospace; }
+  .scanline { background: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 12px, transparent 12px 24px); }
+</style>
+</head>
+<body class="bg-[#0b0f1a] text-slate-200 min-h-screen">
+
+<!-- Hero -->
+<header class="relative overflow-hidden accent-grad">
+  <div class="absolute inset-0 scanline opacity-40"></div>
+  <div class="relative max-w-6xl mx-auto px-6 py-16 text-white">
+    <p class="text-sm font-semibold tracking-widest uppercase opacity-80 mb-3">Improve Codebase Architecture · דוח מס׳ 1</p>
+    <h1 class="text-4xl md:text-5xl font-extrabold leading-tight mb-4">סריקה עמוקה וניתוח אדריכלות<br class="hidden md:block"> של כל הפרויקט</h1>
+    <p class="text-lg opacity-90 max-w-3xl">
+      שמונה מודולים אומתו מול <b>מבחן המחיקה</b> — איפה מחיקה תרכז מורכבות (סימן לעומק), ואיפה רק תזיז אותה (סימן לרדידות).
+      הדוח מציג 4 מועמדים להעמקה, עם דיאגרמות before/after והמלצות.
+    </p>
+    <div class="flex flex-wrap gap-3 mt-8 text-sm">
+      <span class="px-4 py-2 rounded-full bg-white/15 backdrop-blur font-medium">🔥 Hot spots לפי היסטוריית commits</span>
+      <span class="px-4 py-2 rounded-full bg-white/15 backdrop-blur font-medium">4 מועמדים להעמקה</span>
+      <span class="px-4 py-2 rounded-full bg-white/15 backdrop-blur font-medium">0 ADRs · 0 CONTEXT.md</span>
+    </div>
+  </div>
+</header>
+
+<!-- Hot spots -->
+<section class="max-w-6xl mx-auto px-6 py-12">
+  <h2 class="text-2xl font-bold mb-2">🔍 אזורי חום (Hot spots) לפי 40 ה-commits האחרונים</h2>
+  <p class="text-slate-400 mb-6">הקבצים שמופיעים שוב ושוב בהיסטוריה — אלה החלקים שמשתנים הכי הרבה, ולכן העמקתם משתלמת ביותר.</p>
+  <div class="grid md:grid-cols-3 gap-4">
+    <div class="card p-5 rounded-2xl bg-slate-800/50 border border-slate-700">
+      <div class="text-3xl mb-2">🤖</div>
+      <h3 class="font-bold mb-1">Orchestrator / Worker</h3>
+      <p class="text-sm text-slate-400">loop.ts, worker-manager, auto-deploy, capabilities, task-queue — 6 פיצ׳רים רצופים נגעו כאן (PRs #32–#37).</p>
+    </div>
+    <div class="card p-5 rounded-2xl bg-slate-800/50 border border-slate-700">
+      <div class="text-3xl mb-2">🔀</div>
+      <h3 class="font-bold mb-1">נתיבי Routing</h3>
+      <p class="text-sm text-slate-400">router.ts, smart-router.ts, models.ts, rate-limits, router-cache — שינויי כיוונון חוזרים ונשנים.</p>
+    </div>
+    <div class="card p-5 rounded-2xl bg-slate-800/50 border border-slate-700">
+      <div class="text-3xl mb-2">🏗️</div>
+      <h3 class="font-bold mb-1">Pipeline + Sandbox</h3>
+      <p class="text-sm text-slate-400">pipeline.ts, sandbox/agents/*, creation, commands — כל מסלול ביצוע עובר דרכם.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Candidate 1 -->
+<section class="max-w-6xl mx-auto px-6 pb-6">
+  <div class="card rounded-3xl bg-slate-800/40 border border-slate-700 overflow-hidden">
+    <div class="px-8 py-6 flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <span class="badge px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">Strong</span>
+        <h2 class="text-2xl font-bold mt-2">מועמד 1 · רוטר כפול עם שפות דוגמנות שונות</h2>
+      </div>
+    </div>
+    <div class="px-8 pb-8 space-y-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-bold text-rose-300 mb-2">קבצים</h3>
+          <ul class="code text-xs space-y-1 text-slate-300">
+            <li>lib/ai/router.ts — <span class="text-slate-400">~460 שורות, heuristic</span></li>
+            <li>lib/ai/smart-router.ts — <span class="text-slate-400">~110 שורות, LLM-based</span></li>
+            <li>lib/ai/models.ts — <span class="text-slate-400">client factory</span></li>
+            <li>lib/ai/model-definitions.ts, cost-estimator.ts, rate-limits/types.ts</li>
+          </ul>
+          <h3 class="font-bold text-rose-300 mt-4 mb-2">הבעיה</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            שני מודולים קוראים לאותו שם — <span class="code">routePrompt</span> — אבל עם חתימות, שפות מודלים ומנועי החלטה שונים לגמרי.
+            <b>router.ts</b> (synchrone, keyword-heuristics, מודלים חדשים כמו <span class="code">claude-sonnet-4-5</span>) לעומת
+            <b>smart-router.ts</b> (async, LLM complexity, מודלים ישנים כמו <span class="code">claude-3-5-sonnet-20241022</span>).
+            כל קורא בוחר בגורל: <span class="code">tasks/route.ts</span> משתמש ב-smart-router,
+            <span class="code">loop.ts</span>, <span class="code">pipeline.ts</span> ו-<span class="code">auto-deploy.ts</span> ב-router.ts.
+            הבנה של "איך בוחרים מודל" דורשת קפיצה בין 5 מודולים שכל אחד מגדיר את קטלוג המודלים מחדש.
+          </p>
+          <h3 class="font-bold text-rose-300 mt-4 mb-2">הפתרון</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            למזג ל<b>מודול רוטר אחד עמוק</b>: ממשק אחד (<span class="code">route(prompt, opts) → {model, complexity, systemPrompt}</span>),
+            עם מאחורי התפר שתי אסטרטגיות (heuristic מהיר + LLM מדויק) שנבחרות פנימית. קטלוג המודלים (שמות, ספק, מחיר, tier) נאסף
+            למודול יחיד שממנו cost-estimator ו-rate-limits צורכים.
+          </p>
+          <h3 class="font-bold text-rose-300 mt-4 mb-2">יתרונות</h3>
+          <ul class="text-sm text-slate-300 list-disc pr-5 space-y-1">
+            <li><b>Locality:</b> החלטת routing = מקום אחד; סתירת השם routePrompt נעלמת.</li>
+            <li><b>Leverage:</b> שינוי בקטלוג המודלים משפיע פעם אחת (cost, rate, rotation).</li>
+            <li><b>Testability:</b> בדיקות fixture על קטגוריזציה בלי לרקוד סביב שני ממשקים.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold mb-3">Before / After</h3>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700 mb-4">
+            <div class="text-xs text-rose-300 mb-2">BEFORE — 5 מקורות אמת, 2 ממשקים סותרים</div>
+            <pre class="mermaid">
+flowchart LR
+  A[caller: tasks route] -->|routePrompt async| S[smart-router.ts<br/>LLM · old models]
+  B[caller: loop.ts] -->|routePrompt sync| R[router.ts<br/>heuristics · new models]
+  C[caller: pipeline.ts] --> R
+  D[auto-deploy] --> R
+  S --> M1[models.ts]
+  R --> M2[models.ts]
+  S -.-> E1[cost-estimator]
+  R -.-> E2[rate-limits/types]
+            </pre>
+          </div>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700">
+            <div class="text-xs text-emerald-300 mb-2">AFTER — תפר אחד, אסטרטגיות פנימיות, קטלוג יחיד</div>
+            <pre class="mermaid">
+flowchart LR
+  A[כל הקוראים] -->|route prompt, opts| R[Routing module<br/>heuristic | LLM internals]
+  R --> C[Model Registry<br/>names · provider · cost · tier]
+  C --> E1[cost-estimator]
+  C --> E2[rate-limits]
+  C --> E3[rotation]
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Candidate 2 -->
+<section class="max-w-6xl mx-auto px-6 pb-6">
+  <div class="card rounded-3xl bg-slate-800/40 border border-slate-700 overflow-hidden">
+    <div class="px-8 py-6">
+      <span class="badge px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">Strong</span>
+      <h2 class="text-2xl font-bold mt-2">מועמד 2 · אדפטר הסוכנים משוכפל ב-worker-manager</h2>
+    </div>
+    <div class="px-8 pb-8 space-y-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-bold text-rose-300 mb-2">קבצים</h3>
+          <ul class="code text-xs space-y-1 text-slate-300">
+            <li>lib/sandbox/agents/index.ts — <span class="text-slate-400">executeAgentInSandbox (1 אדפטר)</span></li>
+            <li>lib/ai/orchestrator/worker/worker-manager.ts — <span class="text-slate-400">runClaudeWorker, runCodexWorker… (2 אדפטר)</span></li>
+            <li>lib/sandbox/agents/claude.ts, codex.ts, cursor.ts, gemini.ts</li>
+          </ul>
+          <h3 class="font-bold text-rose-300 mt-4 mb-2">הבעיה</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            הכלל: <i>"one adapter = hypothetical seam, two = real"</i>. כאן יש <b>שני מימושים מקבילים</b> של "להריץ סוכן CLI בארגז חול":
+            <span class="code">executeAgentInSandbox</span> (עם env-override, MCP, התקנת CLI) — ובתוך worker-manager פונקציות
+            <span class="code">run*Worker</span> שמשכפלות את אותו ידע (env vars, base URLs, config.toml ל-codex) בקוד משלהן.
+            השינויים חייבים להיעשות פעמיים, וכל סטייה (למשל טיפול שונה במפתחות) היא באג נסתר.
+          </p>
+          <h3 class="font-bold text-rose-300 mt-4 mb-2">הפתרון</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            להעמיק את <b>מודול סוכני הארגז</b>: worker-manager הופך לאורכיסטרטור רזה שקורא ל-<span class="code">executeAgentInSandbox</span>
+            עם spec של עובד (model, instructions, apiKeys). כל הלוגיקה הספציפית-לסוכן (התקנה, env, config) חיה במקום אחד.
+          </p>
+          <h3 class="font-bold text-rose-300 mt-4 mb-2">יתרונות</h3>
+          <ul class="text-sm text-slate-300 list-disc pr-5 space-y-1">
+            <li><b>Deletion test עובר:</b> מחיקת העותק ב-worker-manager מרכזת מורכבות באדפטר, לא מזיזה אותה.</li>
+            <li><b>Locality:</b> "איך מריצים claude בארגז" = תשובה אחת.</li>
+            <li><b>Testability:</b> האדפטר היחיד הופך למשטח בדיקה אמיתי (mock ל-Sandbox).</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold mb-3">Before / After</h3>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700 mb-4">
+            <div class="text-xs text-rose-300 mb-2">BEFORE — לוגיקת סוכן משוכפלת בשני מקומות</div>
+            <pre class="mermaid">
+flowchart LR
+  A[Task pipeline] --> B[executeAgentInSandbox]
+  B --> C1[claude.ts]
+  B --> C2[codex.ts]
+  B --> C3[cursor.ts]
+  D[worker-manager] --> W1[runClaudeWorker<br/>duplicates claude logic]
+  D --> W2[runCodexWorker<br/>duplicates config.toml]
+  D --> W3[runCursorWorker]
+  C1 -.same knowledge.-> W1
+  C2 -.same knowledge.-> W2
+            </pre>
+          </div>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700">
+            <div class="text-xs text-emerald-300 mb-2">AFTER — אדפטר יחיד עמוק, worker-manager רזה</div>
+            <pre class="mermaid">
+flowchart LR
+  A[Task pipeline] --> B[Agent Adapter<br/>executeAgentInSandbox]
+  D[worker-manager] --> B
+  B --> C1[claude.ts]
+  B --> C2[codex.ts]
+  B --> C3[cursor.ts]
+  B --> C4[gemini.ts]
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Candidate 3 -->
+<section class="max-w-6xl mx-auto px-6 pb-6">
+  <div class="card rounded-3xl bg-slate-800/40 border border-slate-700 overflow-hidden">
+    <div class="px-8 py-6">
+      <span class="badge px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">Worth exploring</span>
+      <h2 class="text-2xl font-bold mt-2">מועמד 3 · runOrchestrator — מונולית של 400 שורות</h2>
+    </div>
+    <div class="px-8 pb-8 space-y-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-bold text-amber-300 mb-2">קבצים</h3>
+          <ul class="code text-xs space-y-1 text-slate-300">
+            <li>lib/ai/orchestrator/loop.ts — <span class="text-slate-400">runOrchestrator, composeAgentTeam</span></li>
+            <li>lib/ai/orchestrator/state.ts, modes.ts, tools.ts</li>
+          </ul>
+          <h3 class="font-bold text-amber-300 mt-4 mb-2">הבעיה</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            <span class="code">runOrchestrator</span> צובר חמש אחריויות נפרדות: הרכבת system prompt (mode + autonomy + rules + repo-map + queue awareness),
+            הרכבת צוות, הגדרת כלי deployWorkerTeam מוטבע, לולאת ה-steps עם polling ל-DB, ו-checkpointing. ה-inline tool הגדול
+            מקשה על בדיקות יחידה — הלוגיקה הקריטית (מיזוג patches, ניהול קונפליקטים) אינה נגישה דרך ממשק צר.
+          </p>
+          <h3 class="font-bold text-amber-300 mt-4 mb-2">הפתרון</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            לפצל ל-3 תפרים: <b>PromptAssembler</b> (בונה system prompt מ-6 מקורות), <b>ToolAssembler</b> (מרכיב packs לפי level/autonomy),
+            ו-<b>LoopRunner</b> (לולאת steps + בדיקת ביטול + checkpoint). כל אחד עמוק בפני עצמו וניתן לבדיקה.
+          </p>
+          <h3 class="font-bold text-amber-300 mt-4 mb-2">יתרונות</h3>
+          <ul class="text-sm text-slate-300 list-disc pr-5 space-y-1">
+            <li><b>Locality:</b> שינוי בהנחיות autonomy נוגע רק ב-PromptAssembler.</li>
+            <li><b>Testability:</b> הרכבת prompt ניתנת ל-snapshot test בלי מודל חי.</li>
+            <li>מוריד את חסם הכניסה ל-1000+ השורות הכי חמות בקוד.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold mb-3">Before / After</h3>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700 mb-4">
+            <div class="text-xs text-amber-300 mb-2">BEFORE — פונקציה אחת ענקית, בדיקות רק דרך מודל חי</div>
+            <pre class="mermaid">
+flowchart TD
+  O[runOrchestrator<br/>400 lines] --> P[build system prompt<br/>6 sources inline]
+  O --> T[assemble tools<br/>inline]
+  O --> W[deployWorkerTeam tool<br/>inline definition]
+  O --> L[step loop + DB poll]
+  O --> C[checkpoint]
+  O -. hard to unit test .-> X[?]
+            </pre>
+          </div>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700">
+            <div class="text-xs text-emerald-300 mb-2">AFTER — שלושה תפרים עמוקים וניתנים לבדיקה</div>
+            <pre class="mermaid">
+flowchart TD
+  R[LoopRunner] --> A[PromptAssembler]
+  R --> B[ToolAssembler]
+  R --> L[steps + cancel]
+  A --> A1[snapshot tests]
+  B --> B1[unit tests]
+  W[WorkerTeam module] --> W1[merge tests]
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Candidate 4 -->
+<section class="max-w-6xl mx-auto px-6 pb-6">
+  <div class="card rounded-3xl bg-slate-800/40 border border-slate-700 overflow-hidden">
+    <div class="px-8 py-6">
+      <span class="badge px-3 py-1 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40">Speculative</span>
+      <h2 class="text-2xl font-bold mt-2">מועמד 4 · schema.ts עם 3,000 שורות של Zod ידני</h2>
+    </div>
+    <div class="px-8 pb-8 space-y-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-bold text-sky-300 mb-2">קבצים</h3>
+          <ul class="code text-xs space-y-1 text-slate-300">
+            <li>lib/db/schema.ts — <span class="text-slate-400">~20 טבלאות × 3 סכמות ידניות (insert/select/type)</span></li>
+            <li>36 קבצי migration ידניים + snapshots</li>
+          </ul>
+          <h3 class="font-bold text-sky-300 mt-4 mb-2">הבעיה</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            כל טבלת Drizzle מלווה בשלוש הגדרות Zod ידניות (insert, select, type) שמשכפלות את השמות והסוגים. הוספת עמודה =
+            עריכת 4 מקומות (טבלה + 3 סכמות). התוצאה: שורות רבות של קוד שטחי שמספק מעט מידע — בדיוק ההגדרה של מודול רדוד
+            (ממשק מורכב כמו מימוש).
+          </p>
+          <h3 class="font-bold text-sky-300 mt-4 mb-2">הפתרון</h3>
+          <p class="text-sm leading-relaxed text-slate-300">
+            שימוש ב-<span class="code">drizzle-zod</span> (או גנרטור דומה) להפקת הסכמות מהטבלאות, עם שכבת refinement אחת
+            למשמעויות עסקיות (enums, constraints). ספקנות: פורמט הקוד הנוכחי נצרך על ידי הקומפוננטות, והמגירה גדולה —
+            נדרשת בדיקת כיסוי טובה לפני.
+          </p>
+          <h3 class="font-bold text-sky-300 mt-4 mb-2">יתרונות</h3>
+          <ul class="text-sm text-slate-300 list-disc pr-5 space-y-1">
+            <li><b>Leverage:</b> שינוי סכמה = מקור אמת אחד → schema מופק.</li>
+            <li><b>Deletion test:</b> מחיקת 2/3 מהשורות מרכזת מורכבות, לא מזיזה.</li>
+            <li>מקטין את אחד הקבצים הגדולים בפרויקט בכ-60%.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold mb-3">Before / After</h3>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700 mb-4">
+            <div class="text-xs text-sky-300 mb-2">BEFORE — שלוש הגדרות ידניות לכל טבלה</div>
+            <pre class="mermaid">
+flowchart LR
+  T[pgTable task] --> Z1[insertTaskSchema<br/>60 lines]
+  T --> Z2[selectTaskSchema<br/>60 lines]
+  T --> Z3[type Task]
+  Z1 -.duplication.-> Z2
+            </pre>
+          </div>
+          <div class="mermaid-ltr rounded-2xl bg-slate-900/70 p-4 border border-slate-700">
+            <div class="text-xs text-emerald-300 mb-2">AFTER — סכמות מופקות + refinement יחיד</div>
+            <pre class="mermaid">
+flowchart LR
+  T[pgTable task] --> G[drizzle-zod<br/>createInsertSchema / createSelectSchema]
+  G --> Z1[insertSchema]
+  G --> Z2[selectSchema]
+  G --> R[business refinements<br/>single layer]
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Top recommendation -->
+<section class="max-w-6xl mx-auto px-6 pb-16">
+  <div class="card rounded-3xl accent-grad p-8 text-white">
+    <h2 class="text-2xl font-bold mb-3">🏆 ההמלצה המובילה</h2>
+    <p class="text-lg leading-relaxed">
+      להתחיל ב<b>מועמד 2 — איחוד אדפטר הסוכנים</b>. הוא הקונקרטי ביותר: מחיקה אמיתית של שכפול ידע,
+      סיכון נמוך (התנהגות אחידה במקום שני מקורות אמת), והוא מחזיק את הליבה של מה שהפלטפורמה עושה —
+      להריץ סוכנים. מיד אחריו, <b>מועמד 1</b> יפתור את סתירת ה-<span class="code">routePrompt</span> שעלולה להוביל
+      לבחירת מודלים שגויה (model names מיושנים ב-smart-router מול חדשים ב-router).
+    </p>
+    <p class="mt-4 text-white/80 text-sm">
+      <b>ערב רבה:</b> בפרויקט אין CONTEXT.md (גלוסר דומיין) ואין ADRs. לאורך הסריקה הבחנתי ששפות הדוגמנות של
+      "משימה", "עובד", "תור" משתנות בין המודולים — מסמך דומיין יחיד ישפר את הניווט של כל סוכן עתידי.
+    </p>
+  </div>
+</section>
+
+<footer class="border-t border-slate-800 py-8 text-center text-slate-500 text-sm">
+  נוצר על ידי סקיל Improve Codebase Architecture · מבוסס על היסטוריית git, קריאת ~30 קבצים ובדיקת מבחן המחיקה
+</footer>
+
+</body>
+</html>

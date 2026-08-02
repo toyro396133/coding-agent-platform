@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { ArrowDown, ArrowUp, Bot, Combine, ListOrdered, Loader2, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLocale } from '@/components/providers/locale-provider'
+import { SkeletonCardList } from '@/components/skeleton-card-list'
 import { cn } from '@/lib/utils'
 
 interface QueueItem {
@@ -261,7 +262,7 @@ export function QueuePanel({ className }: { className?: string }) {
                 onClick={() => setMergeTargetId(selectedItems[0]?.id || null)}
                 disabled={isMutating === 'merge'}
               >
-                <Combine className="h-3.5 w-3.5 mr-1" />
+                <Combine className="h-3.5 w-3.5 me-1" />
                 {t.queue.mergeSelected}
               </Button>
             </div>
@@ -269,10 +270,7 @@ export function QueuePanel({ className }: { className?: string }) {
         )}
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            {t.common.loading}
-          </div>
+          <SkeletonCardList count={3} />
         ) : items.length === 0 ? (
           <div className="py-8 text-center">
             <p className="text-sm text-muted-foreground">{t.queue.empty}</p>
@@ -407,7 +405,7 @@ export function QueuePanel({ className }: { className?: string }) {
               {t.common.cancel}
             </Button>
             <Button onClick={saveEdit} disabled={isSaving || !editPrompt.trim()}>
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
               {t.common.save}
             </Button>
           </DialogFooter>
@@ -456,9 +454,9 @@ export function QueuePanel({ className }: { className?: string }) {
               disabled={isMutating === 'merge' || !mergeTargetId || selectedItems.length < 2}
             >
               {isMutating === 'merge' ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin me-2" />
               ) : (
-                <Combine className="h-4 w-4 mr-2" />
+                <Combine className="h-4 w-4 me-2" />
               )}
               {t.queue.merge}
             </Button>

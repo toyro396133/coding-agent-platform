@@ -90,7 +90,7 @@ export function CapabilitiesPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             {t.capabilities.metaTitle}
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{t.capabilities.heroTitle}</h1>
+          <h1 className="text-h1">{t.capabilities.heroTitle}</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">{t.capabilities.heroSubtitle}</p>
 
           {/* Stats */}
@@ -108,18 +108,18 @@ export function CapabilitiesPage() {
 
           {/* Search */}
           <div className="relative max-w-md mx-auto pt-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t.capabilities.searchPlaceholder}
-              className="pl-9 pr-9 h-10"
+              className="ps-9 pe-9 h-10"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 aria-label={t.capabilities.clearSearch}
               >
                 <X className="h-4 w-4" />
@@ -150,7 +150,7 @@ export function CapabilitiesPage() {
                       <h2 className="text-xl font-semibold tracking-tight">{catText.title}</h2>
                       <p className="text-sm text-muted-foreground mt-0.5">{catText.desc}</p>
                     </div>
-                    <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    <span className="ms-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                       {category.features.length}
                     </span>
                   </div>

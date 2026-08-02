@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 5 — Skeletons &amp; Stagger Preview</title>
+<style>
+  :root {
+    --radius: 0.625rem;
+    --background: oklch(0.985 0.003 240);
+    --foreground: oklch(0.175 0.005 255);
+    --card: oklch(0.975 0.004 250);
+    --card-foreground: oklch(0.175 0.005 255);
+    --primary: oklch(0.62 0.185 65);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.945 0.006 250);
+    --muted: oklch(0.95 0.005 245);
+    --muted-foreground: oklch(0.48 0.008 250);
+    --accent: oklch(0.94 0.025 80);
+    --border: oklch(0.905 0.008 250);
+    --input: oklch(0.905 0.008 250);
+    --ring: oklch(0.62 0.185 65);
+    --destructive: oklch(0.53 0.22 20);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 720px; margin: 0 auto; }
+
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .sub { font-size: 0.85rem; color: var(--muted-foreground); margin-bottom: 24px; }
+
+  .controls {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 28px;
+    font-size: 0.85rem;
+  }
+  .controls button {
+    border: 1px solid var(--border); background: var(--card); color: var(--foreground);
+    border-radius: 8px; padding: 6px 14px; font-size: 0.85rem; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .controls button:hover { background: var(--accent); }
+  .controls .badge {
+    font-size: 0.75rem; padding: 4px 10px; border-radius: 999px;
+    background: var(--secondary); color: var(--muted-foreground);
+  }
+
+  section { margin-bottom: 32px; }
+  .section-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); margin-bottom: 12px; }
+
+  .sk-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;
+  }
+  .sk-avatar {
+    width: 40px; height: 40px; border-radius: 999px; background: var(--muted);
+    animation: pulse 1.6s ease-in-out infinite; flex-shrink: 0;
+  }
+  .sk-body { flex: 1; min-width: 0; }
+  .sk-line { border-radius: 6px; background: var(--muted); height: 14px; margin-bottom: 8px; animation: pulse 1.6s ease-in-out infinite; }
+  .sk-line.w75 { width: 75%; }
+  .sk-line.w50 { width: 50%; background: color-mix(in oklch, var(--muted) 70%, transparent); }
+  .sk-line.w66 { width: 66%; background: color-mix(in oklch, var(--muted) 50%, transparent); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
+  /* ===== Stagger (mirrors .card-in + inline animationDelay) ===== */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .task-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+    transition: background 0.15s, box-shadow 0.2s, border-color 0.15s;
+    animation: fadeIn 0.3s ease-out both;
+  }
+  .task-card:hover {
+    background: var(--accent); border-color: color-mix(in oklch, var(--foreground) 20%, transparent);
+    box-shadow: 0 2px 8px -2px color-mix(in oklch, var(--foreground) 8%, transparent);
+  }
+  .task-card .row { display: flex; align-items: center; gap: 8px; }
+  .task-card .title { font-size: 0.9rem; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .task-card .meta { font-size: 0.75rem; color: var(--muted-foreground); margin-top: 6px; }
+  .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); flex-shrink: 0; }
+  .badge.amber { background: color-mix(in oklch, var(--primary) 15%, transparent); color: color-mix(in oklch, var(--primary) 90%, black); }
+  .badge.emerald { background: oklch(0.9 0.1 155); color: oklch(0.45 0.15 155); }
+  .badge.red { background: oklch(0.94 0.03 20); color: oklch(0.53 0.22 20); }
+
+  .arrow { margin-inline-start: auto; opacity: 0; transform: translateX(-4px); transition: all 0.2s; color: var(--muted-foreground); font-size: 0.9rem; }
+  .task-card:hover .arrow { opacity: 1; transform: translateX(0); }
+
+  /* ===== Reduced motion override (mirrors the global globals.css block) ===== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Class-driven reduced-motion toggle for the demo (simulates the OS setting) */
+  body.no-motion *, body.no-motion *::before, body.no-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <h1>שלב 5 — סקלטונים ו-Stagger</h1>
+    <p class="sub">תצוגה סטטית נאמנה של מצבי הטעינה וההופעה החדשים עם ה-tokens האמיתיים (RTL)</p>
+
+    <div class="controls">
+      <button id="replayBtn">הפעל שוב את ה-stagger</button>
+      <button id="motionBtn">simulate reduced-motion</button>
+      <span class="badge" id="motionBadge">motion: מלא</span>
+    </div>
+
+    <!-- 1. Queue skeleton (SkeletonCardList count=3) -->
+    <section>
+      <div class="section-title">תור (SkeletonCardList · 3)</div>
+      <div class="sk-card"><div class="sk-body"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+      <div class="sk-card"><div class="sk-body"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+      <div class="sk-card"><div class="sk-body"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+    </section>
+
+    <!-- 2. Repo list skeleton (showAvatar) -->
+    <section>
+      <div class="section-title">רשימת commits (SkeletonCardList · showAvatar)</div>
+      <div class="sk-card"><div class="sk-avatar"></div><div class="sk-body"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+      <div class="sk-card"><div class="sk-avatar"></div><div class="sk-body"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+    </section>
+
+    <!-- 3. Metrics dashboard skeleton (grid of 4, lines=3) -->
+    <section>
+      <div class="section-title">דשבורד metrics (grid · 4 · 3 שורות)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
+        <div class="sk-card" style="flex-direction:column;margin:0;"><div class="sk-body" style="width:100%;"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+        <div class="sk-card" style="flex-direction:column;margin:0;"><div class="sk-body" style="width:100%;"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+        <div class="sk-card" style="flex-direction:column;margin:0;"><div class="sk-body" style="width:100%;"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+        <div class="sk-card" style="flex-direction:column;margin:0;"><div class="sk-body" style="width:100%;"><div class="sk-line w75"></div><div class="sk-line w50"></div><div class="sk-line w66"></div></div></div>
+      </div>
+    </section>
+
+    <!-- 4. Task cards stagger -->
+    <section>
+      <div class="section-title">כרטיסי משימה — stagger (35ms · תקרה 400ms)</div>
+      <div id="staggerList">
+        <div class="task-card"><div class="row"><span class="title">יצירת תבנית הקומפוננטה החדשה</span><span class="badge emerald">הושלם</span><span class="arrow">←</span></div><div class="meta">repo-owner/repo · לפני 5 דקות</div></div>
+        <div class="task-card"><div class="row"><span class="title">תיקון באג בחישוב הניהול של ה-queue</span><span class="badge amber">בהרצה</span><span class="arrow">←</span></div><div class="meta">repo-owner/repo · לפני 12 דקות</div></div>
+        <div class="task-card"><div class="row"><span class="title">הוספת RTL לתצוגת ה-preview</span><span class="badge emerald">הושלם</span><span class="arrow">←</span></div><div class="meta">repo-owner/repo · לפני שעה</div></div>
+        <div class="task-card"><div class="row"><span class="title">שדרוג הסוכן למודל החדש</span><span class="badge red">נכשל</span><span class="arrow">←</span></div><div class="meta">repo-owner/repo · אתמול</div></div>
+        <div class="task-card"><div class="row"><span class="title">סקריפט העברת נתונים לבסיס הנתונים</span><span class="badge amber">בהרצה</span><span class="arrow">←</span></div><div class="meta">repo-owner/repo · לפני 3 שעות</div></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Re-apply inline animation delays to stagger cards (mirrors the app's
+    // style={{ animationDelay: Math.min(index*35, 400)+'ms' }})
+    function applyStagger() {
+      const cards = document.querySelectorAll('.task-card')
+      cards.forEach((card, i) => {
+        card.style.animation = 'none'
+        // Force reflow so the animation replays
+        void card.offsetWidth
+        card.style.animation = `fadeIn 0.3s ease-out both`
+        card.style.animationDelay = `${Math.min(i * 35, 400)}ms`
+      })
+    }
+
+    document.getElementById('replayBtn').addEventListener('click', applyStagger)
+
+    const motionBtn = document.getElementById('motionBtn')
+    const motionBadge = document.getElementById('motionBadge')
+    motionBtn.addEventListener('click', () => {
+      const reduced = document.body.classList.toggle('no-motion')
+      motionBadge.textContent = reduced ? 'motion: מופחת' : 'motion: מלא'
+      if (reduced) {
+        // With reduced motion the delays are killed — jump straight to visible.
+        document.querySelectorAll('.task-card').forEach((card) => {
+          card.style.animation = 'none'
+          card.style.opacity = '1'
+          card.style.transform = 'none'
+        })
+      } else {
+        applyStagger()
+      }
+    })
+
+    // Initial stagger on load
+    applyStagger()
+  </script>
+</body>
+</html>

@@ -438,7 +438,7 @@ export function RepoSelector({
 
   const ownerTriggerClassName =
     size === 'sm'
-      ? 'w-auto min-w-[32px] sm:min-w-[100px] border-0 bg-transparent shadow-none focus:ring-0 h-8 text-xs pl-2 pr-1 sm:px-3'
+      ? 'w-auto min-w-[32px] sm:min-w-[100px] border-0 bg-transparent shadow-none focus:ring-0 h-8 text-xs ps-2 pe-1 sm:px-3'
       : 'w-auto min-w-[140px] border-0 bg-transparent shadow-none focus:ring-0 h-8'
 
   const repoTriggerClassName =

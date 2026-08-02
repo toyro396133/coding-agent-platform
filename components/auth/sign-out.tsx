@@ -136,12 +136,12 @@ export function SignOut({ user, authProvider }: Pick<Session, 'user' | 'authProv
         <ThemeToggle />
 
         <DropdownMenuItem onClick={() => setShowApiKeysDialog(true)} className="cursor-pointer">
-          <Key className="h-4 w-4 mr-2" />
+          <Key className="h-4 w-4 me-2" />
           API Keys
         </DropdownMenuItem>
 
         <DropdownMenuItem onClick={() => setShowSandboxesDialog(true)} className="cursor-pointer">
-          <Server className="h-4 w-4 mr-2" />
+          <Server className="h-4 w-4 me-2" />
           Sandboxes
         </DropdownMenuItem>
 
@@ -150,7 +150,7 @@ export function SignOut({ user, authProvider }: Pick<Session, 'user' | 'authProv
           <>
             {githubConnection.connected ? (
               <DropdownMenuItem onClick={handleGitHubDisconnect} className="cursor-pointer">
-                <GitHubIcon className="h-4 w-4 mr-2" />
+                <GitHubIcon className="h-4 w-4 me-2" />
                 Disconnect
               </DropdownMenuItem>
             ) : (
@@ -158,7 +158,7 @@ export function SignOut({ user, authProvider }: Pick<Session, 'user' | 'authProv
                 onClick={() => (window.location.href = '/api/auth/github/signin')}
                 className="cursor-pointer"
               >
-                <GitHubIcon className="h-4 w-4 mr-2" />
+                <GitHubIcon className="h-4 w-4 me-2" />
                 Connect
               </DropdownMenuItem>
             )}
@@ -170,12 +170,12 @@ export function SignOut({ user, authProvider }: Pick<Session, 'user' | 'authProv
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
           {authProvider === 'github' ? (
             <>
-              <GitHubIcon className="h-4 w-4 mr-2" />
+              <GitHubIcon className="h-4 w-4 me-2" />
               Log Out
             </>
           ) : (
             <>
-              <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
+              <svg viewBox="0 0 76 65" className="h-3 w-3 me-2" fill="currentColor">
                 <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
               </svg>
               Log Out

@@ -114,7 +114,7 @@ export function PlanReview({ taskId, onReviewed }: PlanReviewProps) {
           onClick={() => handleAction(activePlan.id, 'reject')}
           disabled={isSubmitting || !feedback.trim()}
         >
-          {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <X className="w-4 h-4 mr-2" />}
+          {isSubmitting ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <X className="w-4 h-4 me-2" />}
           Reject & Revise
         </Button>
         <Button
@@ -122,7 +122,7 @@ export function PlanReview({ taskId, onReviewed }: PlanReviewProps) {
           onClick={() => handleAction(activePlan.id, 'approve')}
           disabled={isSubmitting}
         >
-          {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+          {isSubmitting ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Check className="w-4 h-4 me-2" />}
           Approve & Execute
         </Button>
       </CardFooter>

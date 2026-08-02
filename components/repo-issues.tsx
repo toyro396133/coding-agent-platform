@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
+import { SkeletonCardList } from '@/components/skeleton-card-list'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -178,14 +179,7 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading issues...</p>
-        </div>
-      </div>
-    )
+    return <SkeletonCardList count={5} showAvatar className="pb-6" />
   }
 
   if (error) {
@@ -214,8 +208,12 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
   return (
     <>
       <div className="space-y-3 pb-6">
-        {issues.map((issue) => (
-          <Card key={issue.number} className="p-4 hover:bg-muted/50 transition-colors">
+        {issues.map((issue, index) => (
+          <Card
+            key={issue.number}
+            className="card-in p-4 hover:bg-muted/50 transition-colors"
+            style={{ animationDelay: `${Math.min(index * 35, 400)}ms` }}
+          >
             <div className="flex items-start gap-3">
               <img
                 src={issue.user.avatar_url}
@@ -274,7 +272,7 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleCreateTaskFromIssue(issue)}>
-                          <ListTodo className="h-4 w-4 mr-2" />
+                          <ListTodo className="h-4 w-4 me-2" />
                           Create Task
                         </DropdownMenuItem>
                       </DropdownMenuContent>

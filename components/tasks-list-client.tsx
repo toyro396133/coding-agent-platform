@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Task } from '@/lib/db/schema'
 import { SharedHeader } from '@/components/shared-header'
 import { useTasks } from '@/components/app-layout'
@@ -18,7 +18,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertCircle, Trash2, Square, StopCircle, CheckSquare, X, Clock } from 'lucide-react'
+import {
+  AlertCircle,
+  Trash2,
+  Square,
+  StopCircle,
+  CheckSquare,
+  X,
+  Clock,
+  ListPlus,
+  Plus,
+  ChevronRight,
+} from 'lucide-react'
+import { ErrorState } from '@/components/error-state'
+import { useLocale } from '@/components/providers/locale-provider'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -53,11 +66,19 @@ function getTimeAgo(date: Date): string {
   return new Date(date).toLocaleDateString()
 }
 
+async function fetchTasksList(): Promise<{ tasks: Task[] }> {
+  const response = await fetch('/api/tasks')
+  if (!response.ok) throw new Error('Failed to fetch tasks')
+  return response.json()
+}
+
 export function TasksListClient({ user, authProvider, initialStars = 1200 }: TasksListClientProps) {
   const { toggleSidebar, refreshTasks } = useTasks()
+  const { t } = useLocale()
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set())
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -65,24 +86,39 @@ export function TasksListClient({ user, authProvider, initialStars = 1200 }: Tas
   const [isDeleting, setIsDeleting] = useState(false)
   const [isStopping, setIsStopping] = useState(false)
 
-  useEffect(() => {
-    fetchTasks()
-  }, [])
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
-      const response = await fetch('/api/tasks')
-      if (response.ok) {
-        const data = await response.json()
-        setTasks(data.tasks)
-      }
-    } catch (error) {
-      console.error('Error fetching tasks:', error)
-      toast.error('Failed to fetch tasks')
+      const data = await fetchTasksList()
+      setTasks(data.tasks)
+      setLoadError(false)
+    } catch {
+      console.error('Error fetching tasks')
+      setLoadError(true)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await fetchTasksList()
+        if (!cancelled) {
+          setTasks(data.tasks)
+          setLoadError(false)
+        }
+      } catch {
+        console.error('Error fetching tasks')
+        if (!cancelled) setLoadError(true)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const filteredTasks = useMemo(() => {
     if (statusFilter === 'all') return tasks
@@ -229,12 +265,12 @@ export function TasksListClient({ user, authProvider, initialStars = 1200 }: Tas
               <Button variant="outline" size="sm" onClick={handleSelectAll} disabled={filteredTasks.length === 0}>
                 {selectedTasks.size === filteredTasks.length && filteredTasks.length > 0 ? (
                   <>
-                    <CheckSquare className="h-4 w-4 mr-2" />
+                    <CheckSquare className="h-4 w-4 me-2" />
                     Deselect All
                   </>
                 ) : (
                   <>
-                    <Square className="h-4 w-4 mr-2" />
+                    <Square className="h-4 w-4 me-2" />
                     Select All
                   </>
                 )}
@@ -243,7 +279,7 @@ export function TasksListClient({ user, authProvider, initialStars = 1200 }: Tas
               {selectedTasks.size > 0 && (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setSelectedTasks(new Set())}>
-                    <X className="h-4 w-4 mr-2" />
+                    <X className="h-4 w-4 me-2" />
                     Clear Selection
                   </Button>
                   <span className="text-sm text-muted-foreground">{selectedTasks.size} selected</span>
@@ -295,26 +331,80 @@ export function TasksListClient({ user, authProvider, initialStars = 1200 }: Tas
 
           {/* Tasks List */}
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-muted-foreground">Loading tasks...</div>
+            <div className="space-y-2" aria-label="Loading tasks">
+              {[0, 1, 2, 3].map((i) => (
+                <Card key={i} className="p-0">
+                  <CardContent className="px-3 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 w-4 rounded bg-muted animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3.5 w-3/4 rounded bg-muted animate-pulse" />
+                        <div className="h-3 w-1/2 rounded bg-muted/70 animate-pulse" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          ) : loadError ? (
+            <Card>
+              <CardContent>
+                <ErrorState
+                  title={t.tasks.loadFailedTitle}
+                  description={t.tasks.loadFailedDesc}
+                  retryLabel={t.common.retry}
+                  onRetry={async () => {
+                    setIsLoading(true)
+                    setLoadError(false)
+                    await fetchTasks()
+                  }}
+                />
+              </CardContent>
+            </Card>
           ) : filteredTasks.length === 0 ? (
             <Card>
-              <CardContent className="p-8 text-center">
-                <div className="text-muted-foreground">
-                  {statusFilter === 'all' ? 'No tasks yet. Create your first task!' : `No ${statusFilter} tasks.`}
-                </div>
+              <CardContent className="p-8">
+                {statusFilter === 'all' ? (
+                  <div className="flex flex-col items-center justify-center gap-3 text-center py-6">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                      <ListPlus className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-base font-semibold">{t.tasks.noTasksTitle}</h3>
+                    <p className="max-w-md text-sm text-muted-foreground">{t.tasks.noTasksDesc}</p>
+                    <Button className="mt-2 gap-2" onClick={() => router.push('/')}>
+                      <Plus className="h-4 w-4" />
+                      {t.tasks.createFirstTask}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-3 text-center py-6">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                      <Clock className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-base font-semibold">
+                      {t.tasks.noFilteredTasks.replace(
+                        '{status}',
+                        t.tasks.status[statusFilter as keyof typeof t.tasks.status] || statusFilter,
+                      )}
+                    </h3>
+                    <p className="max-w-md text-sm text-muted-foreground">{t.tasks.noFilteredTasksDesc}</p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => setStatusFilter('all')}>
+                      {t.tasks.clearFilter}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-2">
-              {filteredTasks.map((task) => (
+              {filteredTasks.map((task, index) => (
                 <Card
                   key={task.id}
                   className={cn(
-                    'transition-colors hover:bg-accent cursor-pointer p-0',
+                    'card-in group transition-all hover:bg-accent hover:shadow-sm hover:shadow-foreground/5 cursor-pointer p-0',
                     selectedTasks.has(task.id) && 'ring-2 ring-primary',
                   )}
+                  style={{ animationDelay: `${Math.min(index * 35, 400)}ms` }}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('input[type="checkbox"]')) {
                       return
@@ -382,6 +472,8 @@ export function TasksListClient({ user, authProvider, initialStars = 1200 }: Tas
                           </div>
                         </div>
                       </div>
+                      {/* Arrow affordance — fades in on hover; mirrored for RTL */}
+                      <ChevronRight className="h-4 w-4 shrink-0 self-center text-muted-foreground opacity-0 -translate-x-1 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 rtl:rotate-180 rtl:translate-x-1 rtl:group-hover:translate-x-0" />
                     </div>
                   </CardContent>
                 </Card>

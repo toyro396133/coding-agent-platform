@@ -1438,7 +1438,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   className="h-7 md:h-8 px-2 md:px-3 flex-shrink-0"
                   title={t.taskDetails.createPR}
                 >
-                  <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
+                  <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 me-1.5" />
                   <span className="text-xs md:text-sm">{t.taskDetails.createPR}</span>
                 </Button>
               )}
@@ -1471,17 +1471,17 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                     >
                       {isClosingPR ? (
                         <>
-                          <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 me-1.5 animate-spin" />
                           <span className="text-xs md:text-sm">Closing...</span>
                         </>
                       ) : isMergingPR ? (
                         <>
-                          <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 me-1.5 animate-spin" />
                           <span className="text-xs md:text-sm">Merging...</span>
                         </>
                       ) : (
                         <>
-                          <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
+                          <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 me-1.5" />
                           <span className="text-xs md:text-sm">{t.taskDetails.mergePR}</span>
                         </>
                       )}
@@ -1499,7 +1499,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={handleClosePR} disabled={isClosingPR || isMergingPR}>
-                          <XCircle className="h-4 w-4 mr-2" />
+                          <XCircle className="h-4 w-4 me-2" />
                           Close PR
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -1524,12 +1524,12 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   >
                     {isReopeningPR ? (
                       <>
-                        <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 me-1.5 animate-spin" />
                         <span className="text-xs md:text-sm">Reopening...</span>
                       </>
                     ) : (
                       <>
-                        <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
+                        <GitPullRequest className="h-3.5 w-3.5 md:h-4 md:w-4 me-1.5" />
                         <span className="text-xs md:text-sm">Reopen PR</span>
                       </>
                     )}
@@ -1567,16 +1567,16 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   router.push(`/?${params.toString()}`)
                 }}
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 me-2" />
                 New Task
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setShowTryAgainDialog(true)}>
-                <RotateCcw className="h-4 w-4 mr-2" />
+                <RotateCcw className="h-4 w-4 me-2" />
                 Try Again
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="h-4 w-4 me-2" />
                 Delete Task
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1655,7 +1655,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
               {errorDetails.retryable && (
                 <div className="flex justify-end pt-1">
                   <Button size="sm" onClick={() => setShowTryAgainDialog(true)} className="h-8">
-                    <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                    <RotateCcw className="h-3.5 w-3.5 me-1.5" />
                     {t.taskDetails.tryAgain}
                   </Button>
                 </div>
@@ -2017,7 +2017,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                           if (filteredFiles.length === 0) return null
 
                           return (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-y-auto z-50">
+                            <div className="absolute inset-x-0 top-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-y-auto z-50">
                               {filteredFiles.map((file) => (
                                 <button
                                   key={file}
@@ -2154,7 +2154,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                               <DropdownMenuItem onClick={handleStartSandbox} disabled={isStartingSandbox}>
                                 {isStartingSandbox ? (
                                   <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                     Starting...
                                   </>
                                 ) : (
@@ -2165,7 +2165,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                               <DropdownMenuItem onClick={handleStopSandbox} disabled={isStoppingSandbox}>
                                 {isStoppingSandbox ? (
                                   <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                     Stopping...
                                   </>
                                 ) : (
@@ -2181,7 +2181,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                             <DropdownMenuItem onClick={handleRestartDevServer} disabled={isRestartingDevServer}>
                               {isRestartingDevServer ? (
                                 <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                   Restarting...
                                 </>
                               ) : (
@@ -2286,7 +2286,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
           </div>
 
           {/* Mobile Layout */}
-          <div className="md:hidden flex flex-col flex-1 min-h-0 relative pb-14">
+          <div className="md:hidden flex flex-col flex-1 min-h-0 relative pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]">
             {/* Content Area */}
             <div className="flex-1 overflow-hidden">
               {/* Code Tab */}
@@ -2427,7 +2427,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                               <DropdownMenuItem onClick={handleStopSandbox} disabled={isStoppingSandbox}>
                                 {isStoppingSandbox ? (
                                   <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                     Stopping...
                                   </>
                                 ) : (
@@ -2438,7 +2438,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                               <DropdownMenuItem onClick={handleStartSandbox} disabled={isStartingSandbox}>
                                 {isStartingSandbox ? (
                                   <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                     Starting...
                                   </>
                                 ) : (
@@ -2454,7 +2454,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                             <DropdownMenuItem onClick={handleRestartDevServer} disabled={isRestartingDevServer}>
                               {isRestartingDevServer ? (
                                 <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                   Restarting...
                                 </>
                               ) : (
@@ -2527,7 +2527,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                           <Button size="sm" onClick={handleStartSandbox} disabled={isStartingSandbox} className="mt-2">
                             {isStartingSandbox ? (
                               <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                 Starting...
                               </>
                             ) : (
@@ -2542,8 +2542,8 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
               </div>
             </div>
 
-            {/* Bottom Tab Bar */}
-            <div className="absolute bottom-0 left-0 right-0 border-t bg-background">
+            {/* Bottom Tab Bar — safe-area aware so the home indicator doesn't overlap on iOS */}
+            <div className="absolute inset-x-0 bottom-0 border-t bg-background pb-[env(safe-area-inset-bottom)]">
               <div className="flex h-14">
                 <button
                   onClick={() => setActiveTab('code')}

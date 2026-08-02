@@ -343,29 +343,29 @@ export function HomePageContent({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={handleNewRepo}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 me-2" />
                 New Repo
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowOpenRepoDialog(true)}>
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <ExternalLink className="h-4 w-4 me-2" />
                 Open Repo URL
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleRefreshOwners} disabled={isRefreshing}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 me-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh Owners
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleRefreshRepos} disabled={isRefreshing}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 me-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh Repos
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleReconfigureGitHub}>
-                <Settings className="h-4 w-4 mr-2" />
+                <Settings className="h-4 w-4 me-2" />
                 Manage Access
               </DropdownMenuItem>
               {!isGitHubAuthUser && (
                 <DropdownMenuItem onClick={handleDisconnectGitHub}>
-                  <Unlink className="h-4 w-4 mr-2" />
+                  <Unlink className="h-4 w-4 me-2" />
                   Disconnect GitHub
                 </DropdownMenuItem>
               )}
@@ -374,7 +374,7 @@ export function HomePageContent({
         </>
       ) : user ? (
         <Button onClick={handleConnectGitHub} variant="outline" size="sm" className="h-8 flex-shrink-0">
-          <GitHubIcon className="h-4 w-4 mr-2" />
+          <GitHubIcon className="h-4 w-4 me-2" />
           Connect GitHub
         </Button>
       ) : selectedOwner || selectedRepo ? (
@@ -860,7 +860,7 @@ export function HomePageContent({
                 {loadingVercel ? (
                   <>
                     <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      className="animate-spin -ms-1 me-2 h-4 w-4"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -883,7 +883,7 @@ export function HomePageContent({
                   </>
                 ) : (
                   <>
-                    <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
+                    <svg viewBox="0 0 76 65" className="h-3 w-3 me-2" fill="currentColor">
                       <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
                     </svg>
                     Sign in with Vercel
@@ -903,7 +903,7 @@ export function HomePageContent({
                 {loadingGitHub ? (
                   <>
                     <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      className="animate-spin -ms-1 me-2 h-4 w-4"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -926,7 +926,7 @@ export function HomePageContent({
                   </>
                 ) : (
                   <>
-                    <GitHubIcon className="h-4 w-4 mr-2" />
+                    <GitHubIcon className="h-4 w-4 me-2" />
                     Sign in with GitHub
                   </>
                 )}

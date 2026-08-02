@@ -243,7 +243,7 @@ export function LandingPage() {
                 {displayed}
                 <span
                   className={cn(
-                    'inline-block w-[2px] h-[1.1em] align-text-bottom ml-0.5',
+                    'inline-block w-[2px] h-[1.1em] align-text-bottom ms-0.5',
                     cursor ? 'bg-amber-400' : 'bg-transparent',
                   )}
                 />

@@ -145,7 +145,7 @@ export function AdminUsers() {
               {loading ? 'Saving...' : selectedUserId ? 'Set Password' : 'Create User'}
             </Button>
             {selectedUserId && (
-              <Button type="button" variant="ghost" className="ml-2" onClick={() => setSelectedUserId('')}>
+              <Button type="button" variant="ghost" className="ms-2" onClick={() => setSelectedUserId('')}>
                 Cancel
               </Button>
             )}

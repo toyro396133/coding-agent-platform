@@ -347,8 +347,8 @@ function InstructionsEditor({
       {/* Toolbar with variable insertion */}
       {showVariableToolbar && (
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] text-muted-foreground font-medium mr-1 shrink-0">
-            <Variable className="h-3 w-3 inline mr-0.5" />
+          <span className="text-[10px] text-muted-foreground font-medium me-1 shrink-0">
+            <Variable className="h-3 w-3 inline me-0.5" />
             Variables:
           </span>
           {TEMPLATE_VARIABLES.map((v) => (
@@ -684,7 +684,7 @@ function PresetManager({ currentWorkers, onLoadPreset }: PresetManagerProps) {
                   className="flex-1 text-xs text-left truncate hover:text-foreground"
                 >
                   <span className="font-medium">{preset.name}</span>
-                  <span className="text-[10px] text-muted-foreground ml-1.5">
+                  <span className="text-[10px] text-muted-foreground ms-1.5">
                     ({preset.config.length} worker{preset.config.length > 1 ? 's' : ''})
                   </span>
                 </button>
@@ -727,7 +727,7 @@ function PresetManager({ currentWorkers, onLoadPreset }: PresetManagerProps) {
               onClick={handleSave}
               disabled={!presetName.trim()}
             >
-              <Download className="h-3 w-3 mr-1" />
+              <Download className="h-3 w-3 me-1" />
               Save
             </Button>
             <Button
@@ -1081,7 +1081,7 @@ export function WorkerTeamBuilder({ value, onChange, maxWorkers = 8 }: WorkerTea
                                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
                               )}
                             >
-                              <Code className="h-2.5 w-2.5 inline mr-0.5" />
+                              <Code className="h-2.5 w-2.5 inline me-0.5" />
                               Edit
                             </button>
                             <button
@@ -1094,7 +1094,7 @@ export function WorkerTeamBuilder({ value, onChange, maxWorkers = 8 }: WorkerTea
                                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
                               )}
                             >
-                              <Sparkles className="h-2.5 w-2.5 inline mr-0.5" />
+                              <Sparkles className="h-2.5 w-2.5 inline me-0.5" />
                               NL
                             </button>
                           </div>

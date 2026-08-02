@@ -149,11 +149,11 @@ export function MultiRepoDialog({ open, onOpenChange }: MultiRepoDialogProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedRepos.map((repo) => (
-                  <Badge key={repo.full_name} variant="secondary" className="gap-1 pr-1">
+                  <Badge key={repo.full_name} variant="secondary" className="gap-1 pe-1">
                     <span>{repo.full_name}</span>
                     <button
                       onClick={() => handleRemoveRepo(repo.full_name)}
-                      className="ml-1 rounded-full hover:bg-muted p-0.5"
+                      className="ms-1 rounded-full hover:bg-muted p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -165,7 +165,7 @@ export function MultiRepoDialog({ open, onOpenChange }: MultiRepoDialogProps) {
 
           {/* Search input */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               ref={inputRef}
               placeholder="Search all repositories..."
@@ -175,14 +175,14 @@ export function MultiRepoDialog({ open, onOpenChange }: MultiRepoDialogProps) {
                 setShowDropdown(true)
               }}
               onFocus={() => setShowDropdown(true)}
-              className="pl-9"
+              className="ps-9"
             />
 
             {/* Dropdown */}
             {showDropdown && (
               <div
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto z-50"
+                className="absolute inset-x-0 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto z-50"
               >
                 {loadingRepos ? (
                   <div className="p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">

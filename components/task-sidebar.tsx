@@ -575,18 +575,18 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           {/* Search input */}
           {githubConnection.connected && (repos.length > 0 || repoSearchQuery) && (
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder={t.sidebar.searchRepos}
                 value={repoSearchQuery}
                 onChange={(e) => setRepoSearchQuery(e.target.value)}
-                className="h-8 pl-7 pr-7 text-xs"
+                className="h-8 ps-7 pe-7 text-xs"
               />
               {repoSearchQuery && (
                 <button
                   onClick={() => setRepoSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-3 w-3" />
                 </button>

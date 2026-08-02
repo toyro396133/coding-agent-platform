@@ -358,7 +358,7 @@ export function TaskForm({
   return (
     <div className="w-full max-w-2xl">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4">Coding Agent Template</h1>
+        <h1 className="text-h1 mb-4">Coding Agent Template</h1>
         <p className="text-lg text-muted-foreground mb-2">
           Multi-agent AI coding platform powered by{' '}
           <a
@@ -465,7 +465,7 @@ export function TaskForm({
                             return (
                               <div
                                 key={fullValue}
-                                className="relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                className="relative flex cursor-pointer select-none items-center rounded-sm py-1.5 ps-8 pe-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                                 onClick={(e) => {
                                   e.preventDefault()
                                   setSelectedModels((prev) =>
@@ -473,7 +473,7 @@ export function TaskForm({
                                   )
                                 }}
                               >
-                                <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                                <span className="absolute start-2 flex h-3.5 w-3.5 items-center justify-center">
                                   {isSelected && (
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path
@@ -592,7 +592,7 @@ export function TaskForm({
                           {workerTeamConfig.workers.length > 0 && (
                             <Badge
                               variant="secondary"
-                              className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full"
+                              className="absolute -top-1 -end-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full"
                             >
                               {workerTeamConfig.workers.length}
                             </Badge>
@@ -615,7 +615,7 @@ export function TaskForm({
                         >
                           <Globe className="h-4 w-4" />
                           {enableBrowser && (
-                            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-green-500" />
+                            <span className="absolute top-1 end-1 h-1.5 w-1.5 rounded-full bg-green-500" />
                           )}
                         </Button>
                       </TooltipTrigger>
@@ -637,7 +637,7 @@ export function TaskForm({
                           {connectors.filter((c) => c.status === 'connected').length > 0 && (
                             <Badge
                               variant="secondary"
-                              className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full"
+                              className="absolute -top-1 -end-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full"
                             >
                               {connectors.filter((c) => c.status === 'connected').length}
                             </Badge>
@@ -669,7 +669,7 @@ export function TaskForm({
                                 return customOptionsCount > 0 ? (
                                   <Badge
                                     variant="secondary"
-                                    className="absolute -top-1 -right-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full sm:hidden"
+                                    className="absolute -top-1 -end-1 h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full sm:hidden"
                                   >
                                     {customOptionsCount}
                                   </Badge>
@@ -738,7 +738,7 @@ export function TaskForm({
                                 {t.taskForm.keepAlive} ({maxSandboxDuration}m max)
                               </Label>
                             </div>
-                            <p className="text-xs text-muted-foreground pl-6">{t.taskForm.keepAliveHint}</p>
+                            <p className="text-xs text-muted-foreground ps-6">{t.taskForm.keepAliveHint}</p>
                           </div>
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">{t.taskForm.capabilityLevel}</Label>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Design Audit — States Preview</title>
+<style>
+  :root {
+    --background: oklch(0.985 0.003 240);
+    --foreground: oklch(0.175 0.005 255);
+    --card: oklch(0.975 0.004 250);
+    --card-foreground: oklch(0.175 0.005 255);
+    --popover: oklch(0.985 0.003 240);
+    --primary: oklch(0.62 0.185 65);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.945 0.006 250);
+    --secondary-foreground: oklch(0.22 0.008 250);
+    --muted: oklch(0.95 0.005 245);
+    --muted-foreground: oklch(0.48 0.008 250);
+    --accent: oklch(0.94 0.025 80);
+    --accent-foreground: oklch(0.175 0.005 255);
+    --border: oklch(0.905 0.008 250);
+    --input: oklch(0.905 0.008 250);
+    --ring: oklch(0.62 0.185 65);
+    --destructive: oklch(0.53 0.22 20);
+    --radius: 0.625rem;
+    --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    padding: 24px;
+  }
+  .page { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+  /* ── Section labels ── */
+  .section-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--muted-foreground); text-transform: uppercase;
+  }
+  .section-label .dot { width: 8px; height: 8px; border-radius: 999px; }
+  .dot-blue   { background: oklch(0.55 0.15 210); }
+  .dot-amber  { background: var(--primary); }
+  .dot-green  { background: oklch(0.55 0.15 160); }
+  .dot-red    { background: var(--destructive); }
+  .section-sub { font-size: 13px; color: var(--muted-foreground); margin-top: 2px; }
+
+  /* ── App shell ── */
+  .app-shell {
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 2px);
+    background: var(--background);
+    overflow: hidden;
+    box-shadow: 0 1px 3px oklch(0.2 0.02 250 / 0.04);
+  }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border);
+  }
+  .header .title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border: none; border-radius: 6px;
+    background: transparent; color: var(--foreground); cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--accent); }
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+    height: 32px; padding: 0 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--card); color: var(--foreground);
+    cursor: pointer; transition: background-color 0.15s, border-color 0.15s;
+  }
+  .btn:hover { background: var(--accent); border-color: oklch(0.83 0.02 250); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn svg { flex-shrink: 0; }
+  .select {
+    display: inline-flex; align-items: center; justify-content: space-between;
+    width: 190px; height: 34px; padding: 0 12px; font-size: 13px;
+    border: 1px solid var(--input); border-radius: 6px; background: var(--card);
+    color: var(--foreground); cursor: pointer;
+  }
+  .select svg { color: var(--muted-foreground); }
+
+  /* ── Task cards (context) ── */
+  .list { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .task-card {
+    display: flex; align-items: flex-start; gap: 12px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--card); padding: 10px 12px; cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .task-card:hover { background: var(--accent); border-color: oklch(0.83 0.02 250); }
+  .checkbox {
+    width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--input);
+    background: var(--card); margin-top: 2px; flex-shrink: 0;
+  }
+  .task-title { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .task-repo { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+  .task-meta { font-size: 12px; color: var(--muted-foreground); margin-top: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .badge-status { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+  .badge-err { background: oklch(0.53 0.22 20 / 0.1); color: var(--destructive); }
+  .badge-done { background: oklch(0.55 0.15 160 / 0.12); color: oklch(0.42 0.14 160); }
+
+  /* ── Loading skeleton ── */
+  .skeleton-card {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--card); padding: 10px 12px;
+  }
+  .sk { background: var(--muted); border-radius: 4px; animation: pulse 1.6s ease-in-out infinite; }
+  .sk-box { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+  .sk-line { height: 13px; border-radius: 4px; }
+  .sk-sub { height: 11px; border-radius: 4px; background: color-mix(in oklch, var(--muted) 70%, transparent); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* ── Empty states ── */
+  .empty-wrap { padding: 12px 16px 16px; }
+  .empty-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 20px; }
+  .empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; text-align: center; padding: 24px 8px;
+  }
+  .empty-icon {
+    width: 48px; height: 48px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .empty-icon-primary { background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
+  .empty-icon-muted { background: var(--muted); color: var(--muted-foreground); }
+  .empty-title { font-size: 15px; font-weight: 600; }
+  .empty-desc { font-size: 13px; color: var(--muted-foreground); max-width: 420px; line-height: 1.55; }
+  .btn-primary {
+    background: var(--primary); color: var(--primary-foreground); border: none;
+    margin-top: 4px; padding: 0 16px; height: 36px; font-weight: 500;
+  }
+  .btn-primary:hover { background: color-mix(in oklch, var(--primary) 92%, black); }
+
+  /* ── Error state ── */
+  .error-wrap { padding: 12px 16px 16px; }
+  .error-card { border: 1px solid var(--border); border-radius: var(--radius); }
+  .error {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; text-align: center; padding: 56px 16px;
+  }
+  .error-icon {
+    width: 48px; height: 48px; border-radius: 999px;
+    background: color-mix(in oklch, var(--destructive) 10%, transparent);
+    color: var(--destructive); display: flex; align-items: center; justify-content: center;
+  }
+  .error-title { font-size: 15px; font-weight: 600; }
+  .error-desc { font-size: 13px; color: var(--muted-foreground); max-width: 420px; line-height: 1.55; }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .muted { color: var(--muted-foreground); }
+  .flex { display: flex; align-items: center; gap: 8px; }
+  .mt { margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ═══ 1. Loading skeleton ═══ -->
+  <div class="section-label"><span class="dot dot-amber"></span> 1 · מצב טעינה — Loading skeleton</div>
+  <div class="section-sub">סקלטונים עקביים במקום ריקות בזמן טעינת רשימת המשימות</div>
+  <div class="app-shell">
+    <div class="header">
+      <div class="title">
+        <button class="icon-btn" aria-label="menu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        משימות
+      </div>
+      <span class="muted" style="font-size:12px">טוען…</span>
+    </div>
+    <div class="list" aria-label="Loading tasks">
+      <div class="skeleton-card"><div class="sk sk-box"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk sk-line" style="width:70%"></div><div class="sk sk-sub" style="width:45%"></div></div></div>
+      <div class="skeleton-card"><div class="sk sk-box"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk sk-line" style="width:80%"></div><div class="sk sk-sub" style="width:55%"></div></div></div>
+      <div class="skeleton-card"><div class="sk sk-box"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk sk-line" style="width:60%"></div><div class="sk sk-sub" style="width:40%"></div></div></div>
+      <div class="skeleton-card"><div class="sk sk-box"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk sk-line" style="width:75%"></div><div class="sk sk-sub" style="width:50%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ 2. Empty state — all tasks ═══ -->
+  <div class="section-label"><span class="dot dot-blue"></span> 2 · מצב ריק מלא — Empty state (0 tasks)</div>
+  <div class="section-sub">מנחה לפעולה ראשונה עם CTA בולט במקום רשימה ריקה</div>
+  <div class="app-shell">
+    <div class="header">
+      <div class="title">
+        <button class="icon-btn" aria-label="menu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        משימות
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        בחירת הכל
+      </button>
+      <div class="select">
+        כל המשימות
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="empty-wrap">
+      <div class="empty-card">
+        <div class="empty">
+          <div class="empty-icon empty-icon-primary">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>
+          </div>
+          <div class="empty-title">אין עדיין משימות</div>
+          <div class="empty-desc">צור את המשימה הראשונה ותן לסוכן ה-AI לעשות את העבודה — בלי התקנה מראש.</div>
+          <button class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            צור את המשימה הראשונה
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. Empty state — filtered ═══ -->
+  <div class="section-label"><span class="dot dot-green"></span> 3 · מצב ריק עם פילטר — Filtered empty state</div>
+  <div class="section-sub">תווית סטטוס מתורגמת + כפתור "הצג את כל המשימות"</div>
+  <div class="app-shell">
+    <div class="toolbar">
+      <button class="btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        בחירת הכל
+      </button>
+      <div class="select">
+        בהרצה
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="empty-wrap">
+      <div class="empty-card">
+        <div class="empty">
+          <div class="empty-icon empty-icon-muted">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="empty-title">אין משימות במצב בהרצה</div>
+          <div class="empty-desc">אין כרגע משימות במצב זה.</div>
+          <button class="btn" style="margin-top:4px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+            הצג את כל המשימות
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. Error state ═══ -->
+  <div class="section-label"><span class="dot dot-red"></span> 4 · מצב שגיאה — Error state + retry</div>
+  <div class="section-sub">קומפוננטת ErrorState משותפת עם כפתור "נסה שוב"</div>
+  <div class="app-shell">
+    <div class="toolbar">
+      <button class="btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        בחירת הכל
+      </button>
+      <div class="select">
+        כל המשימות
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="error-wrap">
+      <div class="error-card">
+        <div class="error">
+          <div class="error-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="error-title">נכשל בטעינת המשימות</div>
+          <div class="error-desc">לא הצלחנו לטעון את המשימות שלך. בדוק את החיבור ונסה שוב.</div>
+          <button class="btn" style="margin-top:4px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+            נסה שוב
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. Context: real list with status badges (sanity check) ═══ -->
+  <div class="section-label"><span class="dot dot-blue"></span> 5 · הקשר — רשימת משימות אמיתית (reference)</div>
+  <div class="section-sub">רשימה רגילה עם כרטיסים — כדי להשוות את ההיררכיה מול המצבים החדשים</div>
+  <div class="app-shell">
+    <div class="toolbar">
+      <button class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        בחירת הכל
+      </button>
+      <div class="select">
+        כל המשימות
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="list">
+      <div class="task-card">
+        <div class="checkbox"></div>
+        <div style="flex:1;min-width:0">
+          <div class="task-title">הוסף מערכת אימות עם NextAuth ו-Postgres <span class="badge-status badge-err">נכשל</span></div>
+          <div class="task-repo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+            toyro396133/coding-agent-platform
+          </div>
+          <div class="task-meta"><span>Claude · Sonnet 4.5</span><span class="muted">לפני 5 דקות</span></div>
+        </div>
+      </div>
+      <div class="task-card">
+        <div class="checkbox"></div>
+        <div style="flex:1;min-width:0">
+          <div class="task-title">בנה API לרשימת משימות עם Express <span class="badge-status badge-done">הושלם</span></div>
+          <div class="task-repo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+            toyro396133/api-todo
+          </div>
+          <div class="task-meta"><span>Codex · gpt-5.2</span><span class="muted">לפני שעה</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

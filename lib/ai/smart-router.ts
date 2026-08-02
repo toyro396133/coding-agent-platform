@@ -56,8 +56,12 @@ export async function analyzePromptComplexity(
 /**
  * Routes the prompt to the most appropriate model based on its complexity.
  * Optionally respects agent type to ensure model compatibility.
+ *
+ * NOTE (ADR-0001): this is the LLM-based strategy. The canonical sync
+ * `routePrompt` lives in `lib/ai/router.ts`; this function was renamed to
+ * `routePromptWithLLM` so the two strategies can never collide by name.
  */
-export async function routePrompt(prompt: string, agentType?: string): Promise<RoutingDecision> {
+export async function routePromptWithLLM(prompt: string, agentType?: string): Promise<RoutingDecision> {
   const analysis = await analyzePromptComplexity(prompt)
 
   let recommendedModel = 'gpt-4o-mini' // Default to cheap model

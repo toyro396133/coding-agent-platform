@@ -227,7 +227,7 @@ export function CheckpointViewer({
                         onAccept?.(cp.id)
                       }}
                     >
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      <CheckCircle2 className="h-3 w-3 me-1" />
                       Accept
                     </Button>
                     <Button
@@ -239,7 +239,7 @@ export function CheckpointViewer({
                         onReject?.(cp.id)
                       }}
                     >
-                      <XCircle className="h-3 w-3 mr-1" />
+                      <XCircle className="h-3 w-3 me-1" />
                       Reject
                     </Button>
                     <Button
@@ -251,7 +251,7 @@ export function CheckpointViewer({
                         onViewDiff?.(cp.id)
                       }}
                     >
-                      <Eye className="h-3 w-3 mr-1" />
+                      <Eye className="h-3 w-3 me-1" />
                       View Diff
                     </Button>
                   </div>
@@ -268,7 +268,7 @@ export function CheckpointViewer({
                       onRollback?.(cp.id)
                     }}
                   >
-                    <RotateCcw className="h-3 w-3 mr-1" />
+                    <RotateCcw className="h-3 w-3 me-1" />
                     Rollback to here
                   </Button>
                 )}

@@ -158,7 +158,7 @@ export function SandboxesDialog({ open, onOpenChange }: SandboxesDialogProps) {
                       {sandbox.sandboxUrl && (
                         <Link href={sandbox.sandboxUrl} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" size="sm" className="h-7 text-xs">
-                            <ExternalLink className="h-3 w-3 mr-1" />
+                            <ExternalLink className="h-3 w-3 me-1" />
                             Preview
                           </Button>
                         </Link>
@@ -171,9 +171,9 @@ export function SandboxesDialog({ open, onOpenChange }: SandboxesDialogProps) {
                         className="h-7 text-xs ml-auto"
                       >
                         {stoppingId === sandbox.taskId ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          <Loader2 className="h-3 w-3 me-1 animate-spin" />
                         ) : (
-                          <StopCircle className="h-3 w-3 mr-1" />
+                          <StopCircle className="h-3 w-3 me-1" />
                         )}
                         Stop
                       </Button>

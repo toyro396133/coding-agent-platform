@@ -1333,7 +1333,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                   type="button"
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || isSending}
-                  className="absolute bottom-2 end-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute bottom-2 end-2 rounded-full h-5 w-5 bg-primary text-primary-foreground hover:bg-primary/90 transition-transform duration-150 hover:scale-110 active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send message"
                 >
                   {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3 w-3" />}

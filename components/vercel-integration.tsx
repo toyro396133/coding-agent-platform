@@ -161,7 +161,7 @@ function ProjectItem({
         </Button>
       </div>
       {projectDeployments.length > 0 && (
-        <div className="space-y-1 pl-2 border-l-2 border-muted">
+        <div className="space-y-1 ps-2 border-s-2 border-muted">
           {projectDeployments.slice(0, 5).map((d) => (
             <div key={d.id} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">

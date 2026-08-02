@@ -94,12 +94,12 @@ export function McpMarketplace({ installedConnectorNames, onInstalled, className
     <div className={`space-y-4 ${className || ''}`}>
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search MCP servers..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-9"
+          className="ps-9 h-9"
         />
       </div>
 
@@ -174,7 +174,7 @@ export function McpMarketplace({ installedConnectorNames, onInstalled, className
                             variant="secondary"
                             className="text-[10px] h-4 px-1.5 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                           >
-                            <Check className="h-2.5 w-2.5 mr-0.5" />
+                            <Check className="h-2.5 w-2.5 me-0.5" />
                             Installed
                           </Badge>
                         )}
@@ -213,7 +213,7 @@ export function McpMarketplace({ installedConnectorNames, onInstalled, className
                           variant="secondary"
                           className="h-7 px-2 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                         >
-                          <Check className="h-3 w-3 mr-1" />
+                          <Check className="h-3 w-3 me-1" />
                           Added
                         </Badge>
                       ) : (
@@ -228,7 +228,7 @@ export function McpMarketplace({ installedConnectorNames, onInstalled, className
                           {installing ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            <Plus className="h-3 w-3 mr-1" />
+                            <Plus className="h-3 w-3 me-1" />
                           )}
                           {installing ? 'Adding…' : 'Add'}
                         </Button>

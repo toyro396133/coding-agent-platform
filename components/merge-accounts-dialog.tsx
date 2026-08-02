@@ -168,7 +168,7 @@ export function MergeAccountsDialog() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">{t.dialogs.mergeAccounts.whatHappens}</p>
-                  <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                  <ul className="list-disc ps-5 text-sm text-muted-foreground space-y-1">
                     <li>{t.dialogs.mergeAccounts.benefit1}</li>
                     <li>{t.dialogs.mergeAccounts.benefit2}</li>
                     <li>{t.dialogs.mergeAccounts.benefit3}</li>
@@ -203,7 +203,7 @@ export function MergeAccountsDialog() {
           >
             {isMerging ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 {t.dialogs.mergeAccounts.merging}
               </>
             ) : (

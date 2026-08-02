@@ -64,14 +64,25 @@
     2.  אחסון המפתחות באופן מאובטח (Hashed) במסד הנתונים Neon בטבלת `api_keys` ייעודית.
     3.  כתיבת Middleware (או שיפור הקיים) שיבדוק את ה-`Authorization: Bearer <token>` בכל קריאת API נכנסת ויוודא הרשאות.
 
-### 2.3 סנכרון עם ארגז החול והחזרת Diffs אוטומטית 🚧 (In Progress)
+### 2.3 סנכרון עם ארגז החול והחזרת Diffs אוטומטית ✅
 
 *   **הקשר:** בניגוד לצ'אט טקסטואלי רגיל, ה-API שלנו מריץ קוד. הלקוח (החיצוני) שואל שאלה ומצפה לקבל את השינויים שבוצעו בקוד.
 *   **תתי-שלבים:**
     1.  בניית לוגיקה שמקימה Vercel Sandbox אסינכרונית מייד עם קבלת בקשת ה-API. ✅
     2.  הפעלת הסוכן (Native Agent) בתוך ה-Sandbox ואיסוף התוצאות מהמסוף הווירטואלי. ✅
     3.  הגדרת חוזה API חד-משמעי: תיעוד סכמות אירועי ה-SSE, מזהה העבודה (Job ID), וסטטוסי ההתקדמות (לדוגמה `started`, `processing`, `completed`, `failed`). ✅
-    4.  החזרת התוצרים: בניית פורמט JSON מחמיר להחזרת ה-Diff (מבנה Patch ברור), מבנה שגיאות מפורט (Error details & codes), תמיכה בביטול משימות (Cancellation), ותמיכה ב-Idempotency (למניעת ביצוע כפול של אותה בקשה) כך שלקוחות יוכלו לממש את הממשק ללא פרשנות. 🚧 (Diff/Patch format and Cancellation/Idempotency remain as next-phase goals)
+    4.  החזרת התוצרים: בניית פורמט JSON מחמיר להחזרת ה-Diff (מבנה Patch ברור), מבנה שגיאות מפורט (Error details & codes), תמיכה בביטול משימות (Cancellation), ותמיכה ב-Idempotency (למניעת ביצוע כפול של אותה בקשה) כך שלקוחות יוכלו לממש את הממשק ללא פרשנות. ✅
+
+    **פורמט ה-Diff/Patch המבני** (`GET /api/agent/v1/jobs/[jobId]` → `platform_metadata.diff`):
+    - `base_ref` / `head_ref` — הענפים אל מול חשבו את ההשוואה (עבור PR שמוזג, `head_ref` הוא ה-merge commit SHA).
+    - `files[]` — לכל קובץ: `filename`, `status` (added/modified/deleted/renamed...), `additions`, `deletions`, `changes`, `patch` (unified diff), `language`, `is_binary`, `previous_filename`.
+    - `summary` — `files_changed` / `additions` / `deletions` מצטברים.
+    - `truncated` — האם GitHub קיצץ את ה-diff (דיפים גדולים במיוחד).
+    - `error_code` — קוד שגיאה מבני מפורט (`build_failed` / `sandbox_timeout` / `auth_error` / `git_push_failed` / `rate_limited` / `cancelled` / `unknown_failure` ועוד) לצד הודעת ה-`error`.
+    - `error_details` — מבנה שגיאות מלא: `code`, `category`, `stage` (שלב ה-pipeline שנכשל — Type Check, Tests, Lint & Format, Push...), `message`, `retryable`, `recovery_hint`.
+    - הסיווג מתבסס על `task.error` + לוגי ה-pipeline (שלבים, אימות, push) — מחליף את ה-`job_failed`/`cancelled` הגנרי מהגרסה הקודמת. `stopped` → `cancelled` תמיד.
+
+    **קבצים:** `lib/api/job-diff.ts` (חישוב + מטמון TTL 5 דקות), `lib/api/job-errors.ts` (סיווג שגיאות מפורט + `deriveErrorDetails`), `lib/utils/file-language.ts` (זיהוי שפה/בינארי משותף), `lib/github/user-token.ts` (`getUserGitHubTokenByUserId`).
 
 ---
 

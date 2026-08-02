@@ -330,7 +330,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                     else if (view === 'marketplace') goBackFromMarketplace()
                     else goBackFromPresets()
                   }}
-                  className="mr-2 -ml-2"
+                  className="me-2 -ms-2"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -354,7 +354,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <Card key={i} className="flex flex-row items-center justify-between p-4">
-                      <div className="flex items-start space-x-4 flex-1">
+                      <div className="flex items-start gap-4 flex-1">
                         <div className="w-full space-y-2">
                           <div className="h-4 bg-muted animate-pulse rounded w-1/4"></div>
                           <div className="h-3 bg-muted animate-pulse rounded w-3/4"></div>
@@ -371,7 +371,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
               ) : (
                 connectors.map((connector) => (
                   <Card key={connector.id} className="flex flex-row items-center justify-between p-3">
-                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       {getConnectorIcon(connector)}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-sm">{connector.name}</h4>
@@ -540,13 +540,13 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                       value={serverType}
                       onValueChange={(value) => setServerType(value as 'local' | 'remote')}
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-2">
                         <RadioGroupItem value="remote" id="remote" />
                         <Label htmlFor="remote" className="font-normal cursor-pointer">
                           Remote (HTTP/SSE)
                         </Label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-2">
                         <RadioGroupItem value="local" id="local" />
                         <Label htmlFor="local" className="font-normal cursor-pointer">
                           Local (STDIO)
@@ -686,7 +686,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                       Delete
                     </Button>
                   )}
-                  <div className={`flex space-x-2 ${isEditing ? 'ml-auto' : 'w-full justify-end'}`}>
+                  <div className={`flex gap-2 ${isEditing ? 'ms-auto' : 'w-full justify-end'}`}>
                     <Button
                       type="button"
                       variant="outline"

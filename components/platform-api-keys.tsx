@@ -215,7 +215,7 @@ export function PlatformApiKeys() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center space-x-2 my-4">
+          <div className="flex items-center gap-2 my-4">
             <div className="grid flex-1 gap-2">
               <Input
                 id="raw-key"

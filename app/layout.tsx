@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import { cookies } from 'next/headers'
 import { Toaster } from '@/components/ui/sonner'
@@ -14,14 +14,16 @@ import type { Session } from '@/lib/session/types'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: '--font-ibm-plex-sans',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: '--font-ibm-plex-mono',
   subsets: ['latin'],
+  weight: ['400', '500', '600'],
 })
 
 export const metadata: Metadata = {
@@ -37,17 +39,18 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies()
   const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value
-  let initialLocale: 'en' | 'he' | undefined
+  let initialLocale: 'en' | 'he' = 'he'
   if (sessionCookie) {
     const session = await decryptJWE<Session>(sessionCookie)
     if (session?.user?.locale) {
-      initialLocale = session.user.locale
+      initialLocale = session.user.locale as 'en' | 'he'
     }
   }
+  const isRtl = initialLocale === 'he'
 
   return (
-    <html lang="he" dir="rtl" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang={initialLocale} dir={isRtl ? 'rtl' : 'ltr'} suppressHydrationWarning>
+      <body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}>
         <JotaiProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <LocaleProvider initialLocale={initialLocale}>

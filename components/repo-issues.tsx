@@ -340,7 +340,7 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-3">Task Options</h3>
               <div className="space-y-4">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <Checkbox
                     id="install-deps"
                     checked={installDeps}
@@ -377,7 +377,7 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
                   </Select>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <Checkbox
                     id="keep-alive"
                     checked={keepAlive}

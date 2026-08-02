@@ -5,11 +5,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * ─── Freebuff "Compiler" Design System ───
+ * Chromatic grays with a cool steel undertone (light) or warm charcoal (dark).
+ * Amber accent used ONLY for focus, selection, progress — never decoration.
+ * Signature: "Pipeline Glow" — an amber edge-glow on active interactive states.
+ */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -45,73 +52,126 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+ * ─── Light Mode: Cool Precision ───
+ * Surfaces carry a barely-perceptible steel-blue undertone.
+ * The amber accent appears only at interactive boundaries.
+ */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0.008 250);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0.008 250);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0.008 250);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0.008 250);
-  --input: oklch(0.922 0.008 250);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0.008 250);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0.008 250);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Surfaces — cool off-white with blue undertone, like fresh paper in shadow */
+  --background: oklch(0.985 0.003 240);
+  --foreground: oklch(0.175 0.005 255);
+
+  /* Cards & popovers — slightly recessed */
+  --card: oklch(0.975 0.004 250);
+  --card-foreground: oklch(0.175 0.005 255);
+  --popover: oklch(0.985 0.003 240);
+  --popover-foreground: oklch(0.175 0.005 255);
+
+  /* Primary — warm amber, the signature */
+  --primary: oklch(0.62 0.185 65);
+  --primary-foreground: oklch(0.99 0 0);
+
+  /* Secondary — cool steel */
+  --secondary: oklch(0.945 0.006 250);
+  --secondary-foreground: oklch(0.22 0.008 250);
+
+  /* Muted surfaces */
+  --muted: oklch(0.95 0.005 245);
+  --muted-foreground: oklch(0.48 0.008 250);
+
+  /* Accent — subtle amber warmth, reserved for hover states */
+  --accent: oklch(0.94 0.025 80);
+  --accent-foreground: oklch(0.175 0.005 255);
+
+  /* Structure */
+  --border: oklch(0.905 0.008 250);
+  --input: oklch(0.905 0.008 250);
+
+  /* The pipeline glow — amber focus ring */
+  --ring: oklch(0.62 0.185 65);
+
+  /* Destructive — rust/vermilion */
+  --destructive: oklch(0.53 0.22 20);
+
+  /* Charts */
+  --chart-1: oklch(0.62 0.185 65);
+  --chart-2: oklch(0.55 0.15 210);
+  --chart-3: oklch(0.45 0.18 170);
+  --chart-4: oklch(0.65 0.2 40);
+  --chart-5: oklch(0.5 0.12 280);
+
+  /* Sidebar — slightly darker than background */
+  --sidebar: oklch(0.975 0.004 250);
+  --sidebar-foreground: oklch(0.175 0.005 255);
+  --sidebar-primary: oklch(0.62 0.185 65);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.945 0.006 250);
+  --sidebar-accent-foreground: oklch(0.22 0.008 250);
+  --sidebar-border: oklch(0.905 0.008 250);
+  --sidebar-ring: oklch(0.62 0.185 65);
 }
 
+/*
+ * ─── Dark Mode: Warm Charcoal ───
+ * Deep surfaces with blue-green undertone. Warm amber glows against the cool dark.
+ * Think: a terminal window that's been running for hours, warm phosphor on dark glass.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Surfaces — deep charcoal with blue undertone */
+  --background: oklch(0.15 0.01 255);
+  --foreground: oklch(0.92 0.005 90);
+
+  /* Cards — slightly lifted */
+  --card: oklch(0.175 0.012 255);
+  --card-foreground: oklch(0.92 0.005 90);
+  --popover: oklch(0.175 0.012 255);
+  --popover-foreground: oklch(0.92 0.005 90);
+
+  /* Primary — brighter amber for dark surfaces */
+  --primary: oklch(0.72 0.17 70);
+  --primary-foreground: oklch(0.15 0.01 255);
+
+  /* Secondary — dark steel */
+  --secondary: oklch(0.22 0.01 250);
+  --secondary-foreground: oklch(0.92 0.005 90);
+
+  /* Muted */
+  --muted: oklch(0.22 0.01 250);
+  --muted-foreground: oklch(0.58 0.008 250);
+
+  /* Accent — warm amber tint on hover, just visible against muted */
+  --accent: oklch(0.26 0.06 80);
+  --accent-foreground: oklch(0.92 0.005 90);
+
+  /* Structure */
+  --border: oklch(0.25 0.01 250);
+  --input: oklch(0.25 0.01 250);
+
+  /* Pipeline glow — brighter amber ring on dark */
+  --ring: oklch(0.72 0.17 70);
+
+  /* Destructive — warmer rust on dark */
+  --destructive: oklch(0.62 0.22 20);
+
+  /* Charts — brighter for dark mode */
+  --chart-1: oklch(0.72 0.17 70);
+  --chart-2: oklch(0.65 0.14 200);
+  --chart-3: oklch(0.55 0.17 160);
+  --chart-4: oklch(0.75 0.18 35);
+  --chart-5: oklch(0.6 0.12 275);
+
+  /* Sidebar */
+  --sidebar: oklch(0.165 0.012 255);
+  --sidebar-foreground: oklch(0.92 0.005 90);
+  --sidebar-primary: oklch(0.72 0.17 70);
+  --sidebar-primary-foreground: oklch(0.15 0.01 255);
+  --sidebar-accent: oklch(0.22 0.01 250);
+  --sidebar-accent-foreground: oklch(0.92 0.005 90);
+  --sidebar-border: oklch(0.25 0.01 250);
+  --sidebar-ring: oklch(0.72 0.17 70);
 }
 
 @layer base {
@@ -120,11 +180,29 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-ibm-plex-sans), system-ui, sans-serif;
   }
 }
 
 @layer utilities {
-  /* Type scale */
+  /*
+   * ─── Signature: Pipeline Glow ───
+   * The single memorable element. An amber edge-glow on active/focused states.
+   * Use on .selected, .active, [data-active], [data-selected], or :focus-visible.
+   * In dark mode it's a warm halo; in light mode it's a subtle golden edge.
+   */
+  .pipeline-glow {
+    box-shadow:
+      0 0 0 1px var(--ring),
+      0 0 16px -6px var(--ring);
+  }
+  .pipeline-glow-subtle {
+    box-shadow:
+      0 0 0 1px oklch(0.62 0.185 65 / 0.3),
+      0 0 8px -4px oklch(0.62 0.185 65 / 0.2);
+  }
+
+  /* ─── Type Scale ─── */
   .text-h1 {
     @apply text-4xl md:text-5xl font-bold tracking-tight text-balance;
   }
@@ -133,6 +211,13 @@
   }
   .text-h3 {
     @apply text-xl font-medium;
+  }
+  .text-caption {
+    @apply text-xs text-muted-foreground;
+    font-family: var(--font-ibm-plex-mono), monospace;
+  }
+  .text-mono {
+    font-family: var(--font-ibm-plex-mono), monospace;
   }
 }
 
@@ -182,18 +267,15 @@ button {
   overflow-x: auto;
 }
 
-/* Make diff viewer more mobile-friendly */
 @media (max-width: 768px) {
   .git-diff-view-container {
     font-size: 11px;
   }
 
-  /* Ensure horizontal scrolling works on mobile */
   .git-diff-view-container > div {
     min-width: max-content;
   }
 
-  /* Adjust line numbers and content for mobile */
   .git-diff-view-container .diff-line-num {
     padding: 2px 4px;
     font-size: 10px;

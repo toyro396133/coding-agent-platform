@@ -3,7 +3,7 @@
 import { Task } from '@/lib/db/schema'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Plus, Sparkles, Trash2, GitBranch, Loader2, Search, X } from 'lucide-react'
+import { AlertCircle, Plus, Sparkles, Trash2, GitBranch, Loader2, Search, X, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -361,6 +361,11 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   <Sparkles className="h-4 w-4" />
                 </Button>
               </Link>
+              <Link href="/metrics" onClick={handleLinkClick}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.metrics}>
+                  <BarChart3 className="h-4 w-4" />
+                </Button>
+              </Link>
               <Link href="/" onClick={handleLinkClick}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.newTask}>
                   <Plus className="h-4 w-4" />
@@ -438,6 +443,11 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
             <Link href="/capabilities" onClick={handleLinkClick}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.capabilities.metaTitle}>
                 <Sparkles className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/metrics" onClick={handleLinkClick}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.metrics}>
+                <BarChart3 className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/" onClick={handleLinkClick}>
@@ -678,7 +688,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           </AlertDialogHeader>
           <div className="py-4">
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
                   id="delete-completed"
                   checked={deleteCompleted}
@@ -691,7 +701,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   {t.sidebar.deleteCompleted}
                 </label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
                   id="delete-failed"
                   checked={deleteFailed}
@@ -704,7 +714,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
                   {t.sidebar.deleteFailed}
                 </label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
                   id="delete-stopped"
                   checked={deleteStopped}

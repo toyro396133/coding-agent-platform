@@ -333,6 +333,7 @@ const _en = {
   sidebar: {
     tasks: 'Tasks',
     repos: 'Repos',
+    metrics: 'Router Metrics',
     newTask: 'New Task',
     deleteTasks: 'Delete Tasks',
     viewAllTasks: 'View All Tasks',

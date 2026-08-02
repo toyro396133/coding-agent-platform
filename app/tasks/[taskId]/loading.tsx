@@ -1,7 +1,7 @@
 'use client'
 
-import { SharedHeader } from '@/components/shared-header'
 import { Loader2 } from 'lucide-react'
+import { SharedHeader } from '@/components/shared-header'
 
 export default function TaskLoading() {
   return (

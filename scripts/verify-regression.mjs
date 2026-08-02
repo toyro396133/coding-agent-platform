@@ -16,9 +16,9 @@ const MODEL_PRICING = {
 const DEFAULT_PRICING = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }
 
 function estimateTokens(text) {
-  const codePatterns = text.match(/[a-zA-Z0-9_]+|[{}()\[\]<>;:=+\-*/%&|^~!@#$%^&*(),.?":{}|<>]/g)
+  const codePatterns = text.match(/[a-zA-Z0-9_]+|[{}()[\]<>;:=+\-*/%&|^~!@#$%^&*(),.?":{}|<>]/g)
   if (!codePatterns) return Math.ceil(text.length / 4)
-  const codeTokenRatio = text.includes('\n') || /[{}()\[\];]/.test(text) ? 3.5 : 4
+  const codeTokenRatio = text.includes('\n') || /[{}()[\];]/.test(text) ? 3.5 : 4
   return Math.ceil(text.length / codeTokenRatio)
 }
 
@@ -114,7 +114,7 @@ function extractPaths(errorOutput) {
   let match
   while ((match = regex.exec(errorOutput)) !== null) {
     let path = match[1]
-    if (path.startsWith(projectPrefix + '/')) path = path.slice(projectPrefix.length + 1)
+    if (path.startsWith(`${projectPrefix}/`)) path = path.slice(projectPrefix.length + 1)
     path = path.replace(/^\/+/, '')
     if (path && !path.includes('node_modules') && !path.includes('..')) {
       matchedPaths.add(path)
@@ -481,7 +481,7 @@ const emptyCount = (''.match(/✗|✖|FAIL|failed/g) || []).length
 assert(emptyCount === 0, 'empty output = 0 failures')
 
 // 5h. Dependency audit check (should NOT match "found 0 vulnerabilities")
-const cleanAudit = 'found 0 vulnerabilities'
+const _cleanAudit = 'found 0 vulnerabilities'
 const hasVulnerabilities = !true // The fix: only check exit code, not string includes
 assert(!hasVulnerabilities, 'clean audit with 0 vulnerabilities is not flagged')
 

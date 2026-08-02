@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { listDeployments } from '@/lib/vercel/api'
+import { type NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/session/get-server-session'
+import { listDeployments } from '@/lib/vercel/api'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession()

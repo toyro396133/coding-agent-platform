@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useLocale } from '@/components/providers/locale-provider'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,8 +16,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
 
 interface CreatePRDialogProps {
   taskId: string

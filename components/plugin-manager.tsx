@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Puzzle, Plus, Trash2, Loader2 } from 'lucide-react'
+import { Loader2, Plus, Puzzle, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useLocale } from '@/components/providers/locale-provider'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 interface Plugin {
   name: string
@@ -34,7 +34,7 @@ export function PluginManager({ className }: PluginManagerProps) {
       }
       const data = await res.json()
       setPlugins(data.plugins || [])
-    } catch (e) {
+    } catch (_e) {
       console.error('Plugin fetch failed')
     } finally {
       setLoading(false)
@@ -44,7 +44,7 @@ export function PluginManager({ className }: PluginManagerProps) {
   useEffect(() => {
     fetchPlugins()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchPlugins])
 
   const addPlugin = async () => {
     if (!pluginName.trim() || !pluginSource.trim()) return
@@ -62,7 +62,7 @@ export function PluginManager({ className }: PluginManagerProps) {
       setPluginName('')
       setPluginSource('')
       await fetchPlugins()
-    } catch (e) {
+    } catch (_e) {
       console.error('Plugin add failed')
     } finally {
       setAdding(false)
@@ -77,7 +77,7 @@ export function PluginManager({ className }: PluginManagerProps) {
         return
       }
       await fetchPlugins()
-    } catch (e) {
+    } catch (_e) {
       console.error('Plugin removal failed')
     }
   }

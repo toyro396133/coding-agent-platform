@@ -1,17 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { fetchProposals, updateProposalStatus } from '@/lib/actions/proposals'
-import { fetchBackgroundTests, toggleTestEnabled, fetchBackgroundTestExecutionsByTaskId } from '@/lib/actions/tests'
-import { Proposal, BackgroundTest } from '@/lib/db/schema'
+import { Check, Loader2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Check, X, Loader2 } from 'lucide-react'
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
-import { getDictionary, Locale } from '@/dictionaries'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
+import { getDictionary, type Locale } from '@/dictionaries'
+import { fetchProposals, updateProposalStatus } from '@/lib/actions/proposals'
+import { fetchBackgroundTestExecutionsByTaskId, fetchBackgroundTests, toggleTestEnabled } from '@/lib/actions/tests'
+import type { BackgroundTest, Proposal } from '@/lib/db/schema'
 import { redactSensitiveInfo } from '@/lib/utils/logging'
 
 /**
@@ -36,7 +36,7 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
         setProposals(fetchedProposals)
         setBackgroundTests(fetchedTests)
         setExecutions(fetchedExecutions)
-      } catch (err) {
+      } catch (_err) {
         console.error('Failed to load interactive task panel data')
         toast.error('Failed to load panel data')
       } finally {
@@ -51,7 +51,7 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
       await updateProposalStatus(id, status)
       setProposals((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)))
       toast.success(`Proposal ${status}`)
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to update proposal')
       toast.error('Failed to update proposal')
     }
@@ -62,7 +62,7 @@ export function InteractiveTaskPanel({ taskId, locale = 'he' }: { taskId?: strin
       await toggleTestEnabled(id, isEnabled)
       setBackgroundTests((prev) => prev.map((t) => (t.id === id ? { ...t, isEnabled } : t)))
       toast.success(`Test ${isEnabled ? 'enabled' : 'disabled'}`)
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to toggle test')
       toast.error('Failed to toggle test')
     }

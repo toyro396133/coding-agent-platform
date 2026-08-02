@@ -1,8 +1,8 @@
 import { tool } from 'ai'
+import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/lib/db/client'
 import { generateEmbedding } from '@/lib/memory/engine'
-import { sql } from 'drizzle-orm'
 
 export const semanticCodeSearchTool = (userId: string, repoUrl: string) => {
   return tool({
@@ -43,7 +43,7 @@ export const semanticCodeSearchTool = (userId: string, repoUrl: string) => {
           .join('\n\n---\n\n')
 
         return formattedResults
-      } catch (error: any) {
+      } catch (_error: any) {
         console.error('Semantic search failed')
         return `Failed to search the codebase. Please try again or use a different query.`
       }

@@ -1,7 +1,7 @@
-import { Sandbox } from '@vercel/sandbox'
+import type { Sandbox } from '@vercel/sandbox'
+import type { TaskLogger } from '@/lib/utils/task-logger'
 import { runCommandInSandbox, runInProject } from './commands'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { runVerificationPipeline, formatPipelineSummary, type PipelineResult } from './pipeline'
+import { formatPipelineSummary, type PipelineResult, runVerificationPipeline } from './pipeline'
 
 /**
  * Check if the pipeline applies to this task.
@@ -112,7 +112,7 @@ export async function pushChangesToBranch(
       return { success: true, pushFailed: true, pipeline }
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    const _errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     await logger.info('Error pushing changes')
     return { success: false }
   }

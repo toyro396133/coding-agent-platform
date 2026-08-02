@@ -1,7 +1,7 @@
-import { type NextRequest } from 'next/server'
+import { CodeChallengeMethod, generateCodeVerifier, generateState, OAuth2Client } from 'arctic'
 import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
 import { isRelativeUrl } from '@/lib/utils/is-relative-url'
-import { CodeChallengeMethod, OAuth2Client, generateCodeVerifier, generateState } from 'arctic'
 
 export async function POST(req: NextRequest): Promise<Response> {
   const client = new OAuth2Client(

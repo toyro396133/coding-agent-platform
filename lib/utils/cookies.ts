@@ -36,7 +36,7 @@ export function getSidebarWidth(): number {
   const cookieValue = Cookies.get(SIDEBAR_WIDTH_COOKIE)
   if (cookieValue) {
     const width = parseInt(cookieValue, 10)
-    if (!isNaN(width) && width >= 200 && width <= 600) {
+    if (!Number.isNaN(width) && width >= 200 && width <= 600) {
       return width
     }
   }
@@ -71,7 +71,7 @@ export function getSidebarWidthFromCookie(cookieString?: string): number {
     )
 
   const width = parseInt(cookies[SIDEBAR_WIDTH_COOKIE] || '', 10)
-  if (!isNaN(width) && width >= 200 && width <= 600) {
+  if (!Number.isNaN(width) && width >= 200 && width <= 600) {
     return width
   }
 
@@ -132,7 +132,7 @@ export function getLogsPaneHeight(): number {
   const cookieValue = Cookies.get(LOGS_PANE_HEIGHT_COOKIE)
   if (cookieValue) {
     const height = parseInt(cookieValue, 10)
-    if (!isNaN(height) && height >= 100 && height <= 600) {
+    if (!Number.isNaN(height) && height >= 100 && height <= 600) {
       return height
     }
   }
@@ -206,7 +206,7 @@ export function getMaxDuration(): number {
   const cookieValue = Cookies.get(MAX_DURATION_COOKIE)
   if (cookieValue) {
     const duration = parseInt(cookieValue, 10)
-    if (!isNaN(duration) && duration >= 1 && duration <= 30) {
+    if (!Number.isNaN(duration) && duration >= 1 && duration <= 30) {
       return duration
     }
   }
@@ -420,7 +420,7 @@ export function getFilesPaneWidth(): number {
   const savedWidth = Cookies.get(FILES_PANE_WIDTH_COOKIE)
   if (savedWidth) {
     const width = parseInt(savedWidth, 10)
-    if (!isNaN(width) && width >= 150 && width <= 600) {
+    if (!Number.isNaN(width) && width >= 150 && width <= 600) {
       return width
     }
   }
@@ -442,7 +442,7 @@ export function getCodePaneWidth(): number {
   const savedWidth = Cookies.get(CODE_PANE_WIDTH_COOKIE)
   if (savedWidth) {
     const width = parseInt(savedWidth, 10)
-    if (!isNaN(width) && width >= 0) {
+    if (!Number.isNaN(width) && width >= 0) {
       return width
     }
   }
@@ -464,7 +464,7 @@ export function getPreviewPaneWidth(): number {
   const savedWidth = Cookies.get(PREVIEW_PANE_WIDTH_COOKIE)
   if (savedWidth) {
     const width = parseInt(savedWidth, 10)
-    if (!isNaN(width) && width >= 0) {
+    if (!Number.isNaN(width) && width >= 0) {
       return width
     }
   }
@@ -486,7 +486,7 @@ export function getChatPaneWidth(): number {
   const savedWidth = Cookies.get(CHAT_PANE_WIDTH_COOKIE)
   if (savedWidth) {
     const width = parseInt(savedWidth, 10)
-    if (!isNaN(width) && width >= 200 && width <= 600) {
+    if (!Number.isNaN(width) && width >= 200 && width <= 600) {
       return width
     }
   }

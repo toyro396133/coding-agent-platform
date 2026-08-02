@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { and, desc, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks, visualQaRuns } from '@/lib/db/schema'
-import { eq, and, desc, isNull } from 'drizzle-orm'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 /**
  * GET /api/tasks/[taskId]/visual-qa
@@ -10,7 +10,7 @@ import { eq, and, desc, isNull } from 'drizzle-orm'
  * Returns the visual QA run history (screenshots, verdicts, critiques) for a
  * task, newest first. The task must belong to the authenticated user.
  */
-export async function GET(req: NextRequest, context: { params: Promise<{ taskId: string }> }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ taskId: string }> }) {
   try {
     const session = await getServerSession()
 
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ taskId:
       success: true,
       runs,
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error fetching visual QA runs')
     return NextResponse.json({ error: 'Failed to fetch visual QA runs' }, { status: 500 })
   }

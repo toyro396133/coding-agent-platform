@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { AlertCircle, ExternalLink, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 type VercelUser = { id: string; username: string; email?: string }
@@ -37,7 +37,7 @@ export function VercelIntegration() {
       } else {
         setUser(data.user)
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to connect to Vercel')
       setUser(null)
     } finally {
@@ -57,7 +57,7 @@ export function VercelIntegration() {
       } else {
         setProjects(data.projects || [])
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to fetch Vercel projects')
       setProjects([])
     } finally {
@@ -161,7 +161,7 @@ function ProjectItem({
         </Button>
       </div>
       {projectDeployments.length > 0 && (
-        <div className="space-y-1 pl-2 border-l-2 border-muted">
+        <div className="space-y-1 ps-2 border-s-2 border-muted">
           {projectDeployments.slice(0, 5).map((d) => (
             <div key={d.id} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">

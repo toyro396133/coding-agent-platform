@@ -1,8 +1,8 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext } from './types'
 import { SandboxBridge } from '../runtime/sandbox-bridge'
-import { extractFileSymbols, buildAiderRepoMapText, type RepoMapFile, type AiderRepoMapResult } from './aider-repo-map'
+import { type AiderRepoMapResult, buildAiderRepoMapText, extractFileSymbols, type RepoMapFile } from './aider-repo-map'
+import type { ToolContext } from './types'
 
 /** Extensions we can extract symbols from (AST or regex fallback). */
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.pyw', '.go']
@@ -96,10 +96,7 @@ export async function buildRepoMap(
           try {
             const content = await bridge.readFile(file)
             if (!content) return null
-            const relPath = file
-              .replace(rootDir + '/', '')
-              .replace(rootDir, '.')
-              .replace(/^\.\//, '')
+            const relPath = file.replace(`${rootDir}/`, '').replace(rootDir, '.').replace(/^\.\//, '')
             return { relPath, symbols: extractFileSymbols(content, file) } as RepoMapFile
           } catch {
             return null

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { and, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
 import { getOctokit } from '@/lib/github/client'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 // Helper function to convert Vercel feedback URL to actual deployment URL
 function convertFeedbackUrlToDeploymentUrl(url: string): string {
@@ -14,7 +14,7 @@ function convertFeedbackUrlToDeploymentUrl(url: string): string {
   return url
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
     const session = await getServerSession()
     if (!session?.user?.id) {
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Parse GitHub repository URL to get owner and repo
-    const githubMatch = task.repoUrl.match(/github\.com\/([^\/]+)\/([^\/\.]+)/)
+    const githubMatch = task.repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/)
     if (!githubMatch) {
       return NextResponse.json({
         success: true,
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             if (check.output?.summary) {
               const summary = check.output.summary
               // Look for URLs in the format https://[deployment]-[hash].vercel.app or other Vercel domains
-              const urlMatch = summary.match(/https?:\/\/[^\s\)\]<]+\.vercel\.app/i)
+              const urlMatch = summary.match(/https?:\/\/[^\s)\]<]+\.vercel\.app/i)
               if (urlMatch) {
                 return urlMatch[0]
               }
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             // Check output text as well
             if (check.output?.text) {
               const text = check.output.text
-              const urlMatch = text.match(/https?:\/\/[^\s\)\]<]+\.vercel\.app/i)
+              const urlMatch = text.match(/https?:\/\/[^\s)\]<]+\.vercel\.app/i)
               if (urlMatch) {
                 return urlMatch[0]
               }
@@ -274,7 +274,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               status.context?.toLowerCase().includes('vercel') && status.state === 'success' && status.target_url,
           )
 
-          if (vercelStatus && vercelStatus.target_url) {
+          if (vercelStatus?.target_url) {
             // Convert feedback URL to actual deployment URL if needed
             const previewUrl = convertFeedbackUrlToDeploymentUrl(vercelStatus.target_url)
             // Store the preview URL in the database

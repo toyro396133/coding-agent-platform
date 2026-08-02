@@ -233,12 +233,19 @@ button {
     /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
     animation-duration: 0.01ms !important;
     /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
+    animation-delay: 0s !important;
+    /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
     animation-iteration-count: 1 !important;
     /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
     transition-duration: 0.01ms !important;
     /* biome-ignore lint/complexity/noImportantStyles: required to override all animation/transition declarations */
     scroll-behavior: auto !important;
   }
+}
+
+/* Stagger entrance — pair with an inline animationDelay (capped) on each card. */
+.card-in {
+  animation: fadeIn 0.3s ease-out both;
 }
 
 @keyframes shimmer {

@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { getSessionFromCookie } from '@/lib/session/server'
-import { SESSION_COOKIE_NAME } from '@/lib/session/constants'
-import { db } from '@/lib/db/client'
-import { taskPlans, tasks, taskMessages } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+import { db } from '@/lib/db/client'
+import { taskMessages, taskPlans, tasks } from '@/lib/db/schema'
+import { SESSION_COOKIE_NAME } from '@/lib/session/constants'
+import { getSessionFromCookie } from '@/lib/session/server'
 
 export async function PATCH(request: Request, context: { params: Promise<{ taskId: string; planId: string }> }) {
   const cookieStore = await cookies()
@@ -70,7 +70,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ taskI
     }
 
     return NextResponse.json({ success: true, status })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error updating plan')
     return new NextResponse('Internal Server Error', { status: 500 })
   }

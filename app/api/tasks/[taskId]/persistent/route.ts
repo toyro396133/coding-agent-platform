@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { db } from '@/lib/db/client'
-import { tasks } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import {
-  startPersistentAgent,
-  stopPersistentAgent,
   getPersistentAgentStatus,
   listActivePersistentAgents,
+  startPersistentAgent,
+  stopPersistentAgent,
 } from '@/lib/ai/orchestrator/runtime/persistent-agent'
+import { db } from '@/lib/db/client'
+import { tasks } from '@/lib/db/schema'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 interface RouteParams {
   params: Promise<{ taskId: string }>
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
-  } catch (error) {
+  } catch (_error) {
     console.error('Persistent agent operation failed')
     return NextResponse.json({ error: 'Failed to manage persistent agent' }, { status: 500 })
   }
@@ -101,7 +101,7 @@ export async function GET() {
     const userAgents = allAgents.filter((agent) => userTaskIdSet.has(agent.taskId))
 
     return NextResponse.json({ agents: userAgents })
-  } catch (error) {
+  } catch (_error) {
     console.error('Persistent agent list failed')
     return NextResponse.json({ error: 'Failed to list' }, { status: 500 })
   }

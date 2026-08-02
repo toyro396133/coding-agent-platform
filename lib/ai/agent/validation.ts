@@ -1,4 +1,4 @@
-import { Sandbox } from '@vercel/sandbox'
+import type { Sandbox } from '@vercel/sandbox'
 import { runCommandInSandbox } from '@/lib/sandbox/commands'
 
 export interface ValidationResult {

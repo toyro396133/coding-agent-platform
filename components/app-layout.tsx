@@ -1,17 +1,16 @@
 'use client'
 
-import { useState, useEffect, createContext, useContext, useCallback } from 'react'
-import { TaskSidebar } from '@/components/task-sidebar'
-import { Task } from '@/lib/db/schema'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Plus } from 'lucide-react'
-import Link from 'next/link'
-import { getSidebarWidth, setSidebarWidth, getSidebarOpen, setSidebarOpen } from '@/lib/utils/cookies'
 import { nanoid } from 'nanoid'
+import Link from 'next/link'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { ConnectorsProvider } from '@/components/connectors-provider'
 import { MergeAccountsDialog } from '@/components/merge-accounts-dialog'
 import { useLocale } from '@/components/providers/locale-provider'
+import { TaskSidebar } from '@/components/task-sidebar'
+import { Button } from '@/components/ui/button'
+import type { Task } from '@/lib/db/schema'
+import { getSidebarOpen, getSidebarWidth, setSidebarOpen, setSidebarWidth } from '@/lib/utils/cookies'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -148,9 +147,26 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
   }, [isDesktop, initialIsMobile, initialSidebarOpen])
 
   // Fetch tasks on component mount
+  const fetchTasks = async () => {
+    try {
+      const response = await fetch('/api/tasks')
+      if (response.ok) {
+        const data = await response.json()
+        setTasks(data.tasks)
+      } else if (response.status === 401) {
+        // User is not authenticated, show empty tasks
+        setTasks([])
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchTasks()
-  }, [])
+  }, [fetchTasks])
 
   // Poll for task updates every 5 seconds
   useEffect(() => {
@@ -159,7 +175,7 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [fetchTasks])
 
   const toggleSidebar = useCallback(() => {
     updateSidebarOpen(!isSidebarOpen)
@@ -192,23 +208,6 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [toggleSidebar])
-
-  const fetchTasks = async () => {
-    try {
-      const response = await fetch('/api/tasks')
-      if (response.ok) {
-        const data = await response.json()
-        setTasks(data.tasks)
-      } else if (response.status === 401) {
-        // User is not authenticated, show empty tasks
-        setTasks([])
-      }
-    } catch (error) {
-      console.error('Error fetching tasks:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const addTaskOptimistically = (taskData: {
     prompt: string
@@ -300,7 +299,7 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
-  }, [isResizing])
+  }, [isResizing, updateSidebarWidth])
 
   return (
     <TasksContext.Provider

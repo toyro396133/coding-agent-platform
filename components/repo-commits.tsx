@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { GitCommit, Calendar, User, MoreVertical, RotateCcw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { useTasks } from '@/components/app-layout'
+import { Calendar, GitCommit, MoreVertical, RotateCcw, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { useTasks } from '@/components/app-layout'
 import { RevertCommitDialog } from '@/components/revert-commit-dialog'
+import { SkeletonCardList } from '@/components/skeleton-card-list'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 function formatDistanceToNow(date: Date): string {
   const now = new Date()
@@ -138,14 +139,7 @@ export function RepoCommits({ owner, repo }: RepoCommitsProps) {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading commits...</p>
-        </div>
-      </div>
-    )
+    return <SkeletonCardList count={5} showAvatar className="pb-6" />
   }
 
   if (error) {
@@ -174,8 +168,12 @@ export function RepoCommits({ owner, repo }: RepoCommitsProps) {
   return (
     <>
       <div className="space-y-3 pb-6">
-        {commits.map((commit) => (
-          <Card key={commit.sha} className="p-4 hover:bg-muted/50 transition-colors">
+        {commits.map((commit, index) => (
+          <Card
+            key={commit.sha}
+            className="card-in p-4 hover:bg-muted/50 transition-colors"
+            style={{ animationDelay: `${Math.min(index * 35, 400)}ms` }}
+          >
             <div className="flex items-start gap-3">
               {commit.author?.avatar_url ? (
                 <img
@@ -217,7 +215,7 @@ export function RepoCommits({ owner, repo }: RepoCommitsProps) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleOpenRevertDialog(commit)}>
-                          <RotateCcw className="h-4 w-4 mr-2" />
+                          <RotateCcw className="h-4 w-4 me-2" />
                           Revert
                         </DropdownMenuItem>
                       </DropdownMenuContent>

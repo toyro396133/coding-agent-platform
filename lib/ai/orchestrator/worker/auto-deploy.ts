@@ -1,8 +1,8 @@
-import { routePrompt } from '@/lib/ai/router'
 import { composeAgentTeam } from '@/lib/ai/orchestrator/loop'
-import { deployWorkerTeam, mergeWorkerPatches } from './worker-manager'
+import { routePrompt } from '@/lib/ai/router'
 import type { AgentType } from '@/lib/sandbox/agents'
-import type { WorkerSpec, WorkerTeamSpec, WorkerTeamResult } from './types'
+import type { WorkerSpec, WorkerTeamResult, WorkerTeamSpec } from './types'
+import { deployWorkerTeam, mergeWorkerPatches } from './worker-manager'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 

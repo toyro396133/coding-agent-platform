@@ -19,6 +19,7 @@ import {
   Layers,
   LayoutDashboard,
   ListOrdered,
+  type LucideIcon,
   Merge,
   MessageSquare,
   Network,
@@ -42,7 +43,6 @@ import {
   Wand2,
   Workflow,
   Zap,
-  type LucideIcon,
 } from 'lucide-react'
 
 export interface CapabilityFeature {

@@ -1,9 +1,9 @@
-import { Sandbox } from '@vercel/sandbox'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from '../commands'
-import { AgentExecutionResult } from '../types'
+import type { Sandbox } from '@vercel/sandbox'
+import type { connectors } from '@/lib/db/schema'
 import { redactSensitiveInfo } from '@/lib/utils/logging'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { connectors } from '@/lib/db/schema'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import { runCommandInSandbox, runInProject } from '../commands'
+import type { AgentExecutionResult } from '../types'
 
 type Connector = typeof connectors.$inferSelect
 
@@ -17,7 +17,7 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
   const result = await runInProject(sandbox, command, args)
 
   // Only try to access properties if result is valid
-  if (result && result.output && result.output.trim()) {
+  if (result?.output?.trim()) {
     const redactedOutput = redactSensitiveInfo(result.output.trim())
     await logger.info(redactedOutput)
   }
@@ -106,7 +106,7 @@ export async function executeGeminiInSandbox(
 
         if (server.type === 'local') {
           // Local STDIO server - parse command string into command and args
-          const commandParts = server.command!.trim().split(/\s+/)
+          const commandParts = server.command?.trim().split(/\s+/) ?? []
           const executable = commandParts[0]
           const args = commandParts.slice(1)
 
@@ -115,7 +115,7 @@ export async function executeGeminiInSandbox(
           if (server.env) {
             try {
               envObject = JSON.parse(server.env)
-            } catch (e) {
+            } catch (_e) {
               await logger.info('Warning: Failed to parse env for MCP server')
             }
           }
@@ -171,33 +171,33 @@ EOF`
     }
 
     // Check authentication options in order of preference
-    let authMethod = 'none'
+    let _authMethod = 'none'
     const authEnv: Record<string, string> = {
       GEMINI_CLI_TRUST_WORKSPACE: 'true',
     }
 
     // Option 1: Check for GEMINI_API_KEY (Gemini API)
     if (process.env.GEMINI_API_KEY) {
-      authMethod = 'api_key'
+      _authMethod = 'api_key'
       authEnv.GEMINI_API_KEY = process.env.GEMINI_API_KEY
       await logger.info('Using Gemini API key authentication')
     }
     // Option 2: Check for GOOGLE_API_KEY with Vertex AI flag (Vertex AI)
     else if (process.env.GOOGLE_API_KEY && process.env.GOOGLE_GENAI_USE_VERTEXAI) {
-      authMethod = 'vertex_ai'
+      _authMethod = 'vertex_ai'
       authEnv.GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
       authEnv.GOOGLE_GENAI_USE_VERTEXAI = 'true'
       await logger.info('Using Vertex AI authentication')
     }
     // Option 3: Check for Google Cloud Project (OAuth with Code Assist)
     else if (process.env.GOOGLE_CLOUD_PROJECT) {
-      authMethod = 'oauth_project'
+      _authMethod = 'oauth_project'
       authEnv.GOOGLE_CLOUD_PROJECT = process.env.GOOGLE_CLOUD_PROJECT
       await logger.info('Using Google Cloud Project authentication (requires OAuth login)')
     }
     // Option 4: Default OAuth (will require interactive login)
     else {
-      authMethod = 'oauth'
+      _authMethod = 'oauth'
       await logger.info('No API keys found, will attempt OAuth authentication')
     }
 
@@ -278,7 +278,7 @@ EOF`
     }
 
     // Log the output
-    if (result.output && result.output.trim()) {
+    if (result.output?.trim()) {
       const redactedOutput = redactSensitiveInfo(result.output.trim())
       await logger.info(redactedOutput)
     }

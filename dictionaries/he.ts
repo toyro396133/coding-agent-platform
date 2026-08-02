@@ -25,6 +25,7 @@ export const he: Dictionary = {
     repos: 'מאגרים',
     loadingRoutes: 'טוען נתיבים...',
     loadingEllipsis: 'טוען...',
+    retry: 'נסה שוב',
   },
   home: {
     title: 'תבנית סוכן קוד',
@@ -397,6 +398,8 @@ export const he: Dictionary = {
     errorFailedAt: 'מועד הכשל',
     errorRecoveryHint: 'הצעה לתיקון',
     tryAgain: 'נסה שוב',
+    completedTitle: 'המשימה הושלמה בהצלחה',
+    completedDesc: 'כל השלבים הסתיימו ללא שגיאות.',
   },
   taskChat: {
     inputPlaceholder: 'הקלד הודעה...',
@@ -417,6 +420,23 @@ export const he: Dictionary = {
     remediated: 'תוקן אוטומטית',
     remediationApplied: 'תיקון הופעל',
     noLogsAvailable: 'אין לוגים זמינים.',
+    // Task list empty / error / loading states
+    noTasksTitle: 'אין עדיין משימות',
+    noTasksDesc: 'צור את המשימה הראשונה ותן לסוכן ה-AI לעשות את העבודה — בלי התקנה מראש.',
+    createFirstTask: 'צור את המשימה הראשונה',
+    noFilteredTasks: 'אין משימות במצב {status}',
+    noFilteredTasksDesc: 'אין כרגע משימות במצב זה.',
+    clearFilter: 'הצג את כל המשימות',
+    loadFailedTitle: 'נכשל בטעינת המשימות',
+    loadFailedDesc: 'לא הצלחנו לטעון את המשימות שלך. בדוק את החיבור ונסה שוב.',
+    status: {
+      pending: 'ממתינה',
+      processing: 'רצה',
+      completed: 'הושלמה',
+      error: 'נכשלה',
+      stopped: 'הופסקה',
+      planning: 'ממתינה לאישור',
+    },
   },
   settings: {
     title: 'הגדרות',

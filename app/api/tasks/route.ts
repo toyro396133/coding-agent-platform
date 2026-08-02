@@ -1,45 +1,36 @@
-import { NextRequest, NextResponse, after } from 'next/server'
-import { generateText, tool, stepCountIs } from 'ai'
-import { z } from 'zod'
-import { getSubAgentModel } from '@/lib/ai/router'
-import { routePrompt } from '@/lib/ai/smart-router'
-import { getModelClient } from '@/lib/ai/models'
-import { Sandbox } from '@vercel/sandbox'
-import { db } from '@/lib/db/client'
-import { tasks, insertTaskSchema, connectors, taskMessages } from '@/lib/db/schema'
-import { generateId } from '@/lib/utils/id'
-import { createSandbox } from '@/lib/sandbox/creation'
-import { executeAgentInSandbox, AgentType } from '@/lib/sandbox/agents'
-import { pushChangesToBranch, shutdownSandbox } from '@/lib/sandbox/git'
-import { unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
-import { deployWorkerTeam, mergeWorkerPatches } from '@/lib/ai/orchestrator/worker/worker-manager'
-import type { WorkerSpec, WorkerTeamSpec } from '@/lib/ai/orchestrator/worker/types'
-import { detectPackageManager } from '@/lib/sandbox/package-manager'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from '@/lib/sandbox/commands'
-import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
-import { eq, desc, or, and, isNull } from 'drizzle-orm'
-import { createTaskLogger } from '@/lib/utils/task-logger'
-import { generateBranchName, createFallbackBranchName } from '@/lib/utils/branch-name-generator'
-import { generateTaskTitle, createFallbackTitle } from '@/lib/utils/title-generator'
-import { generateCommitMessage, createFallbackCommitMessage } from '@/lib/utils/commit-message-generator'
-import { decrypt } from '@/lib/crypto'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { parseMentionsAndInjectContext } from '@/lib/memory/mention-parser'
-import { retrieveRelevantMemories } from '@/lib/memory/engine'
-
-import { summarizeAndStoreTask, extractAndStoreProjectRules } from '@/lib/memory/summarize'
+import type { Sandbox } from '@vercel/sandbox'
+import { and, desc, eq, isNull, or } from 'drizzle-orm'
+import { after, type NextRequest, NextResponse } from 'next/server'
 import { runOrchestrator } from '@/lib/ai/orchestrator/loop'
-import { checkLocalEnvironment } from '@/lib/sandbox/local-execution'
-import { reviewChanges } from '@/lib/sandbox/code-review'
-import { suggestModelForPrompt } from '@/lib/ai/router'
-
-import { getUserGitHubToken } from '@/lib/github/user-token'
-import { getGitHubUser } from '@/lib/github/client'
 import { autoDeployWorkerTeam } from '@/lib/ai/orchestrator/worker/auto-deploy'
+import type { WorkerSpec, WorkerTeamSpec } from '@/lib/ai/orchestrator/worker/types'
+import { deployWorkerTeam, mergeWorkerPatches } from '@/lib/ai/orchestrator/worker/worker-manager'
+import { routePromptWithLLM } from '@/lib/ai/smart-router'
 import { getUserApiKeys } from '@/lib/api-keys/user-keys'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { decrypt } from '@/lib/crypto'
+import { db } from '@/lib/db/client'
+import { connectors, insertTaskSchema, taskMessages, tasks } from '@/lib/db/schema'
 import { getMaxSandboxDuration } from '@/lib/db/settings'
+import { getGitHubUser } from '@/lib/github/client'
+import { getUserGitHubToken } from '@/lib/github/user-token'
+import { retrieveRelevantMemories } from '@/lib/memory/engine'
+import { parseMentionsAndInjectContext } from '@/lib/memory/mention-parser'
+import { extractAndStoreProjectRules, summarizeAndStoreTask } from '@/lib/memory/summarize'
+import { type AgentType, executeAgentInSandbox } from '@/lib/sandbox/agents'
+import { reviewChanges } from '@/lib/sandbox/code-review'
+import { createSandbox } from '@/lib/sandbox/creation'
+import { pushChangesToBranch, shutdownSandbox } from '@/lib/sandbox/git'
+import { checkLocalEnvironment } from '@/lib/sandbox/local-execution'
+import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
+import { unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
+import { getServerSession } from '@/lib/session/get-server-session'
+import { createFallbackBranchName, generateBranchName } from '@/lib/utils/branch-name-generator'
+import { createFallbackCommitMessage, generateCommitMessage } from '@/lib/utils/commit-message-generator'
+import { generateId } from '@/lib/utils/id'
+import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { normalizeRepoUrl } from '@/lib/utils/repo-url'
+import { createTaskLogger } from '@/lib/utils/task-logger'
+import { createFallbackTitle, generateTaskTitle } from '@/lib/utils/title-generator'
 
 export async function GET() {
   try {
@@ -442,7 +433,7 @@ async function processTask(
 ) {
   let sandbox: Sandbox | null = null
   const logger = createTaskLogger(taskId)
-  const taskStartTime = Date.now()
+  const _taskStartTime = Date.now()
 
   try {
     console.log('Starting task processing')
@@ -740,10 +731,10 @@ async function processTask(
     if (!selectedModel || selectedModel === 'auto') {
       try {
         await logger.info('Analyzing prompt complexity for smart routing...')
-        const routingDecision = await routePrompt(prompt, selectedAgent)
+        const routingDecision = await routePromptWithLLM(prompt, selectedAgent)
         finalModel = routingDecision.model
         await logger.info('Routing decision completed')
-      } catch (error) {
+      } catch (_error) {
         console.error('Smart routing failed, defaulting to gpt-4o')
         finalModel = 'gpt-4o'
       }
@@ -928,7 +919,7 @@ async function processTask(
           const review = await reviewChanges(sandbox!, prompt)
           if (review.issues.length > 0) {
             await logger.info('Code review completed')
-            for (const issue of review.issues) {
+            for (const _issue of review.issues) {
               await logger.info('Issue found in code review')
             }
           }

@@ -1,20 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { cn } from '@/lib/utils'
 import {
-  BarChart3,
-  Zap,
-  BrainCircuit,
-  Layers,
-  TrendingUp,
-  RefreshCw,
   Activity,
-  PieChart,
+  BarChart3,
+  BrainCircuit,
   Database,
   Gauge,
+  Layers,
+  PieChart,
+  RefreshCw,
+  TrendingUp,
   XCircle,
+  Zap,
 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { SkeletonCardList } from '@/components/skeleton-card-list'
+import { cn } from '@/lib/utils'
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
@@ -247,7 +248,7 @@ export function RoutingMetricsDashboard({ className }: { className?: string }) {
     <div
       className={cn(
         'space-y-6 transition-all duration-500',
-        animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4',
+        animateIn || (loading && !data) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4',
         className,
       )}
     >
@@ -256,7 +257,7 @@ export function RoutingMetricsDashboard({ className }: { className?: string }) {
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">Router Metrics</h2>
-          {loading && <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />}
+          {loading && !data && <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />}
         </div>
         <button
           onClick={() => {
@@ -275,6 +276,16 @@ export function RoutingMetricsDashboard({ className }: { className?: string }) {
           <XCircle className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
           <p className="text-xs text-muted-foreground">{error}</p>
         </div>
+      ) : loading && !data ? (
+        <>
+          {/* Key stats row skeleton — only this block announces loading; the
+              next two suppress role="status" to avoid duplicate announcements. */}
+          <SkeletonCardList count={4} containerClassName="grid grid-cols-2 md:grid-cols-4 gap-3" lines={3} />
+          {/* Efficiency breakdown skeleton */}
+          <SkeletonCardList count={1} announce={false} />
+          {/* Two-column panels skeleton */}
+          <SkeletonCardList count={2} containerClassName="grid grid-cols-1 md:grid-cols-2 gap-4" announce={false} />
+        </>
       ) : (
         <>
           {/* Key stats row */}

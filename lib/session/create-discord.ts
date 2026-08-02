@@ -1,11 +1,11 @@
 import 'server-only'
 
-import type { Session } from './types'
-import { SESSION_COOKIE_NAME } from './constants'
-import { encryptJWE } from '@/lib/jwe/encrypt'
-import { upsertUser, getUserById } from '@/lib/db/users'
-import { encrypt } from '@/lib/crypto'
 import ms from 'ms'
+import { encrypt } from '@/lib/crypto'
+import { getUserById, upsertUser } from '@/lib/db/users'
+import { encryptJWE } from '@/lib/jwe/encrypt'
+import { SESSION_COOKIE_NAME } from './constants'
+import type { Session } from './types'
 
 interface DiscordUser {
   id: string

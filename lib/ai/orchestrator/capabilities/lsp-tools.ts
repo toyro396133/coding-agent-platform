@@ -1,7 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext } from './types'
 import { SandboxBridge } from '../runtime/sandbox-bridge'
+import type { ToolContext } from './types'
 
 export function createLspTools(ctx: ToolContext) {
   const bridge = new SandboxBridge(ctx.taskId)

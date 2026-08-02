@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Check, Copy, Key, Loader2, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { toast } from 'sonner'
-import { Loader2, Key, Trash2, Copy, Check } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 type PlatformApiKey = {
   id: string
@@ -47,7 +46,7 @@ export function PlatformApiKeys() {
       } else {
         toast.error('Failed to load API keys')
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Error fetching keys')
       toast.error('Failed to load API keys')
     } finally {
@@ -59,7 +58,7 @@ export function PlatformApiKeys() {
     const currentSeq = fetchSequence
     fetchKeys(currentSeq)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchSequence])
+  }, [fetchSequence, fetchKeys])
 
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,7 +81,7 @@ export function PlatformApiKeys() {
         const error = await res.json()
         toast.error(error.error || 'Failed to create key')
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Error creating key')
       toast.error('Failed to create API key')
     } finally {
@@ -106,7 +105,7 @@ export function PlatformApiKeys() {
       } else {
         toast.error('Failed to revoke key')
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Error revoking key')
     }
   }
@@ -117,7 +116,7 @@ export function PlatformApiKeys() {
         await navigator.clipboard.writeText(newlyCreatedKey.value)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-      } catch (err) {
+      } catch (_err) {
         toast.error('Failed to copy to clipboard')
       }
     }
@@ -148,7 +147,7 @@ export function PlatformApiKeys() {
               />
             </div>
             <Button type="submit" disabled={!newKeyName.trim() || creating}>
-              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
+              {creating ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Key className="me-2 h-4 w-4" />}
               Create new key
             </Button>
           </form>

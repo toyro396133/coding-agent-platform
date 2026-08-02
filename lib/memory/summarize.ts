@@ -1,9 +1,9 @@
-import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
-import { saveMemory } from './engine'
+import { generateText } from 'ai'
 import { db } from '@/lib/db/client'
 import { projectRules } from '@/lib/db/schema'
 import { normalizeRepoUrl } from '@/lib/utils/repo-url'
+import { saveMemory } from './engine'
 
 function redactSensitiveData(text: string): string {
   let redacted = text
@@ -141,7 +141,7 @@ Extract rules as a bulleted list. Each bullet must be a clear, standalone rule. 
         console.error('[Rules] Error extracting rules')
       }
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('[Rules] Error extracting rules')
   }
 }

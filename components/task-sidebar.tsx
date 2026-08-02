@@ -1,13 +1,16 @@
 'use client'
 
-import { Task } from '@/lib/db/schema'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { AlertCircle, Plus, Sparkles, Trash2, GitBranch, Loader2, Search, X, BarChart3 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useAtomValue } from 'jotai'
+import { AlertCircle, BarChart3, GitBranch, Loader2, Plus, Search, Sparkles, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { useTasks } from '@/components/app-layout'
 import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { PRCheckStatus } from '@/components/pr-check-status'
+import { PRStatusIcon } from '@/components/pr-status-icon'
+import { useLocale } from '@/components/providers/locale-provider'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,19 +21,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { toast } from 'sonner'
-import { useTasks } from '@/components/app-layout'
-import { useAtomValue } from 'jotai'
-import { sessionAtom } from '@/lib/atoms/session'
-import { PRStatusIcon } from '@/components/pr-status-icon'
-import { PRCheckStatus } from '@/components/pr-check-status'
+import { getModelName } from '@/lib/ai/model-definitions'
 import { githubConnectionAtom } from '@/lib/atoms/github-connection'
-import { useLocale } from '@/components/providers/locale-provider'
-
-import { AGENT_MODELS, getModelName } from '@/lib/ai/model-definitions'
+import { sessionAtom } from '@/lib/atoms/session'
+import type { Task } from '@/lib/db/schema'
+import { cn } from '@/lib/utils'
 
 interface TaskSidebarProps {
   tasks: Task[]
@@ -575,18 +574,18 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           {/* Search input */}
           {githubConnection.connected && (repos.length > 0 || repoSearchQuery) && (
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder={t.sidebar.searchRepos}
                 value={repoSearchQuery}
                 onChange={(e) => setRepoSearchQuery(e.target.value)}
-                className="h-8 pl-7 pr-7 text-xs"
+                className="h-8 ps-7 pe-7 text-xs"
               />
               {repoSearchQuery && (
                 <button
                   onClick={() => setRepoSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -625,7 +624,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
               <>
                 {displayedRepos.map((repo) => {
                   const repoPath = `/repos/${repo.owner}/${repo.name}`
-                  const isActive = pathname === repoPath || pathname.startsWith(repoPath + '/')
+                  const isActive = pathname === repoPath || pathname.startsWith(`${repoPath}/`)
                   const repoKey = `${repo.owner}/${repo.name}`
                   const taskCount = taskCountByRepo.get(repoKey) || 0
 

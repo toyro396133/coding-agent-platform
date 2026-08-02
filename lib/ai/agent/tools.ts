@@ -1,7 +1,6 @@
-import { tool } from 'ai'
-import { z } from 'zod'
+import type { Sandbox } from '@vercel/sandbox'
 import * as ts from 'typescript'
-import { Sandbox } from '@vercel/sandbox'
+import { z } from 'zod'
 import { runCommandInSandbox } from '@/lib/sandbox/commands'
 
 // Using raw function instead of the tool wrapper if it complains with the specific sdk version

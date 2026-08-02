@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
-import { useParams } from 'next/navigation'
-import { DiffView, DiffModeEnum } from '@git-diff-view/react'
 import { generateDiffFile } from '@git-diff-view/file'
+import { DiffModeEnum, DiffView } from '@git-diff-view/react'
+import { useParams } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import '@git-diff-view/react/styles/diff-view-pure.css'
 import { FileEditor } from '@/components/file-editor'
 
@@ -64,7 +64,7 @@ export function FileDiffViewer({
         const parentMediaQuery = window.matchMedia('(prefers-color-scheme: dark)').matches
         const parentTheme = parentHasDarkClass || parentMediaQuery ? 'dark' : 'light'
         setTheme(parentTheme)
-      } catch (e) {
+      } catch (_e) {
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
         setTheme(systemTheme)
       }

@@ -1,10 +1,10 @@
+import * as crypto from 'node:crypto'
 import { tool } from 'ai'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/lib/db/client'
 import { taskPlans, tasks } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import * as crypto from 'crypto'
-import type { ToolContext, PlanStep } from './types'
+import type { ToolContext } from './types'
 
 export const planStepSchema = z.object({
   id: z.string(),
@@ -84,7 +84,7 @@ export function createPlanTools(ctx: ToolContext) {
           return blocksExecution
             ? `Plan submitted for user approval with version ${insertedVersion}. The task is now paused until the user approves this plan.`
             : `Plan recorded (version ${insertedVersion}). Continuing execution autonomously — no approval needed.`
-        } catch (error: any) {
+        } catch (_error: any) {
           console.error('Failed to create plan')
           return `Failed to create plan. Please try again.`
         }

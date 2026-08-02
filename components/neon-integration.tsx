@@ -1,10 +1,10 @@
 'use client'
 
+import { AlertCircle, CheckCircle2, Database, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { RefreshCw, AlertCircle, Database, CheckCircle2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 export function NeonIntegration() {
@@ -27,7 +27,7 @@ export function NeonIntegration() {
         setStatus('connected')
         setVersion(data.version || null)
       }
-    } catch (err) {
+    } catch (_err) {
       setStatus('error')
       setError('Failed to reach Neon health endpoint')
       setVersion(null)

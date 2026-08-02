@@ -1,4 +1,4 @@
-import { Sandbox } from '@vercel/sandbox'
+import type { Sandbox } from '@vercel/sandbox'
 
 /**
  * Simplified sandbox registry since we now use Sandbox.get() to reconnect
@@ -47,7 +47,7 @@ export async function killSandbox(taskId: string): Promise<{ success: boolean; e
     // Stop the sandbox using the SDK
     try {
       await sandbox.stop()
-    } catch (stopError) {
+    } catch (_stopError) {
       // Sandbox may already be stopped, that's okay
       console.log('Sandbox stop completed or was already stopped')
     }

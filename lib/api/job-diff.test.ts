@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Hoisted mocks so the vi.mock factories can reference them
 const h = vi.hoisted(() => ({
@@ -134,12 +134,12 @@ describe('buildJobDiff', () => {
     const diff = await buildJobDiff({ userId: 'u1', repoUrl: REPO_URL, branchName: BRANCH })
 
     expect(diff).not.toBeNull()
-    expect(diff!.base_ref).toBe('main')
-    expect(diff!.head_ref).toBe(BRANCH)
-    expect(diff!.compare_url).toContain('compare/main...feat/big-change')
-    expect(diff!.summary).toEqual({ files_changed: 3, additions: 4, deletions: 7 })
+    expect(diff?.base_ref).toBe('main')
+    expect(diff?.head_ref).toBe(BRANCH)
+    expect(diff?.compare_url).toContain('compare/main...feat/big-change')
+    expect(diff?.summary).toEqual({ files_changed: 3, additions: 4, deletions: 7 })
 
-    const [ts, png, md] = diff!.files
+    const [ts, png, md] = diff?.files ?? []
     expect(ts).toMatchObject({
       filename: 'src/index.ts',
       status: 'modified',
@@ -162,7 +162,7 @@ describe('buildJobDiff', () => {
   it('honors the truncated flag from GitHub', async () => {
     h.compareCommits.mockResolvedValue(mockCompareResponse({ truncated: true }))
     const diff = await buildJobDiff({ userId: 'u1', repoUrl: REPO_URL, branchName: BRANCH })
-    expect(diff!.truncated).toBe(true)
+    expect(diff?.truncated).toBe(true)
   })
 
   it('returns null when the GitHub compare API fails', async () => {
@@ -178,7 +178,7 @@ describe('buildJobDiff', () => {
     const diff = await buildJobDiff({ userId: 'u1', repoUrl: REPO_URL, branchName: BRANCH })
 
     expect(diff).not.toBeNull()
-    expect(diff!.base_ref).toBe('main')
+    expect(diff?.base_ref).toBe('main')
     expect(h.compareCommits).toHaveBeenCalledWith({
       owner: 'acme',
       repo: 'widgets',

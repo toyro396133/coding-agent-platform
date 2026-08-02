@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { createMockNextRequest, mockCookieStore, mockGenerateCodeVerifier, mockGenerateState } from '@/test-setup'
 import { GET } from './route'
-import { mockCookieStore, mockGenerateState, mockGenerateCodeVerifier, createMockNextRequest } from '@/test-setup'
 
 describe('GET /api/auth/signin/discord', () => {
   beforeEach(() => {

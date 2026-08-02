@@ -1,21 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { cn } from '@/lib/utils'
 import {
   CheckCircle2,
-  XCircle,
-  RotateCcw,
-  Eye,
   ChevronDown,
   ChevronRight,
   Clock,
-  GitCommit,
-  FilePlus,
-  FileMinus,
+  Eye,
   FileEdit,
+  FileMinus,
+  FilePlus,
+  GitCommit,
+  RotateCcw,
+  XCircle,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export interface CheckpointViewerData {
   id: string
@@ -129,7 +129,7 @@ export function CheckpointViewer({
 
       {/* Checkpoint list */}
       <div className="space-y-1">
-        {checkpoints.map((cp, index) => (
+        {checkpoints.map((cp, _index) => (
           <div
             key={cp.id}
             className={cn(
@@ -227,7 +227,7 @@ export function CheckpointViewer({
                         onAccept?.(cp.id)
                       }}
                     >
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      <CheckCircle2 className="h-3 w-3 me-1" />
                       Accept
                     </Button>
                     <Button
@@ -239,7 +239,7 @@ export function CheckpointViewer({
                         onReject?.(cp.id)
                       }}
                     >
-                      <XCircle className="h-3 w-3 mr-1" />
+                      <XCircle className="h-3 w-3 me-1" />
                       Reject
                     </Button>
                     <Button
@@ -251,7 +251,7 @@ export function CheckpointViewer({
                         onViewDiff?.(cp.id)
                       }}
                     >
-                      <Eye className="h-3 w-3 mr-1" />
+                      <Eye className="h-3 w-3 me-1" />
                       View Diff
                     </Button>
                   </div>
@@ -268,7 +268,7 @@ export function CheckpointViewer({
                       onRollback?.(cp.id)
                     }}
                   >
-                    <RotateCcw className="h-3 w-3 mr-1" />
+                    <RotateCcw className="h-3 w-3 me-1" />
                     Rollback to here
                   </Button>
                 )}

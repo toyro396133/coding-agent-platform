@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, startTransition } from 'react'
+import { startTransition, useEffect, useState } from 'react'
+import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
 import { useLocale } from '@/components/providers/locale-provider'
 import {
   AlertDialog,
@@ -12,11 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
-import { CODING_AGENTS, AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AGENT_MODELS, CODING_AGENTS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
 const AGENT_ICONS = {
   claude: Claude,
@@ -186,7 +186,7 @@ export function RevertCommitDialog({
                 <Label htmlFor="revert-max-duration" className="text-sm font-medium">
                   {t.dialogs.revertCommit.maxDuration}
                 </Label>
-                <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value))}>
+                <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value, 10))}>
                   <SelectTrigger id="revert-max-duration" className="w-full">
                     <SelectValue />
                   </SelectTrigger>

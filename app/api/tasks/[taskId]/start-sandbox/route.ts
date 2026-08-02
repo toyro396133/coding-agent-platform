@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { Sandbox } from '@vercel/sandbox'
+import { eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { Sandbox } from '@vercel/sandbox'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { getMaxSandboxDuration } from '@/lib/db/settings'
 import { getGitHubUser } from '@/lib/github/client'
 import { getUserGitHubToken } from '@/lib/github/user-token'
-import { registerSandbox, unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from '@/lib/sandbox/commands'
+import { PROJECT_DIR, runCommandInSandbox, runInProject } from '@/lib/sandbox/commands'
 import { detectPackageManager, installDependencies } from '@/lib/sandbox/package-manager'
-import { createTaskLogger } from '@/lib/utils/task-logger'
-import { getMaxSandboxDuration } from '@/lib/db/settings'
 import { detectPortFromRepo } from '@/lib/sandbox/port-detection'
+import { registerSandbox, unregisterSandbox } from '@/lib/sandbox/sandbox-registry'
+import { getServerSession } from '@/lib/session/get-server-session'
+import { createTaskLogger } from '@/lib/utils/task-logger'
 
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
@@ -56,7 +56,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
         if (testResult.success) {
           return NextResponse.json({ error: 'Sandbox is already running' }, { status: 400 })
         }
-      } catch (error) {
+      } catch (_error) {
         // Sandbox is not accessible, clear it from the database and registry, then continue
         await logger.info('Existing sandbox not accessible, clearing and creating new one')
         unregisterSandbox(taskId)
@@ -171,10 +171,10 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
         const hasDevScript = packageJson?.scripts?.dev
 
         // Detect Vite projects (use port 5173)
-        let devPort = 3000
+        let _devPort = 3000
         const hasVite = packageJson?.dependencies?.vite || packageJson?.devDependencies?.vite
         if (hasVite) {
-          devPort = 5173
+          _devPort = 5173
           await logger.info('Vite project detected, using port 5173')
         }
 
@@ -254,7 +254,7 @@ export default mergeConfig(userConfig, defineConfig({
           const fullDevCommand = devArgs.length > 0 ? `${devCommand} ${devArgs.join(' ')}` : devCommand
 
           // Import Writable for stream capture
-          const { Writable } = await import('stream')
+          const { Writable } = await import('node:stream')
 
           const captureServerStdout = new Writable({
             write(chunk: Buffer | string, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
@@ -262,7 +262,7 @@ export default mergeConfig(userConfig, defineConfig({
                 .toString()
                 .split('\n')
                 .filter((line) => line.trim())
-              for (const line of lines) {
+              for (const _line of lines) {
                 logger.info('Action logged').catch(() => {})
               }
               callback()
@@ -275,7 +275,7 @@ export default mergeConfig(userConfig, defineConfig({
                 .toString()
                 .split('\n')
                 .filter((line) => line.trim())
-              for (const line of lines) {
+              for (const _line of lines) {
                 logger.info('Action logged').catch(() => {})
               }
               callback()

@@ -6,18 +6,18 @@
  * flushes writes asynchronously.
  */
 
+import { and, desc, eq, gte } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { providerUsage } from '@/lib/db/schema'
-import { eq, and, gte, desc, sql } from 'drizzle-orm'
 import type { LlmProvider, UsageRecord } from './types'
 import { PROVIDER_QUOTAS } from './types'
 
 // ─── In-memory cache ────────────────────────────────────────────────────
 
 const usageCache = new Map<string, UsageRecord>()
-let lastCacheFlush = Date.now()
-const CACHE_TTL_MS = 30_000 // 30 seconds
-const FLUSH_INTERVAL_MS = 5_000 // flush every 5s
+let _lastCacheFlush = Date.now()
+const _CACHE_TTL_MS = 30_000 // 30 seconds
+const _FLUSH_INTERVAL_MS = 5_000 // flush every 5s
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ function quotaWindowDay(provider: LlmProvider, now: Date): string {
 
 async function loadFromDb(provider: LlmProvider, now: Date): Promise<UsageRecord | null> {
   const windowStart = computeWindowStart(provider, now)
-  const windowResetAt = computeWindowReset(provider, now)
+  const _windowResetAt = computeWindowReset(provider, now)
   const day = quotaWindowDay(provider, now)
 
   try {
@@ -82,7 +82,7 @@ async function loadFromDb(provider: LlmProvider, now: Date): Promise<UsageRecord
       }
     }
     return null
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to load usage from DB')
     return null
   }
@@ -245,7 +245,7 @@ async function flushToDb(provider: LlmProvider, record: UsageRecord): Promise<vo
           updatedAt: now,
         },
       })
-  } catch (error) {
+  } catch (_error) {
     // Non-critical — cache is still available
     console.error('Failed to flush usage to DB')
   }
@@ -262,5 +262,5 @@ export async function flushAllUsage(): Promise<void> {
     promises.push(flushToDb(provider, record))
   }
   await Promise.allSettled(promises)
-  lastCacheFlush = Date.now()
+  _lastCacheFlush = Date.now()
 }

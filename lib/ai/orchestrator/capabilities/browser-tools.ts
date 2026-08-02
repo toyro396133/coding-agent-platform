@@ -1,13 +1,13 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext } from './types'
 import { SandboxBridge } from '../runtime/sandbox-bridge'
+import type { ToolContext } from './types'
 
 export function createBrowserTools(ctx: ToolContext) {
   const bridge = new SandboxBridge(ctx.taskId)
 
-  let browser: any = null
-  let page: any = null
+  const _browser: any = null
+  const _page: any = null
 
   const ensurePlaywright = async () => {
     if (!bridge.isAvailable()) return false

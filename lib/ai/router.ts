@@ -1,13 +1,10 @@
+import { and, eq } from 'drizzle-orm'
+import { MODEL_TIERS } from '@/lib/ai/model-registry'
+import { generateId } from '@/lib/utils/id'
 import { db } from '../db/client'
 import { settings } from '../db/schema'
-import { eq, and } from 'drizzle-orm'
-import { generateId } from '@/lib/utils/id'
 
-const MODEL_TIERS = {
-  fast: ['gpt-4o-mini', 'gemini-2.5-flash', 'claude-haiku-4-5', 'gpt-5-nano'],
-  balanced: ['gpt-4o', 'gemini-2.5-pro', 'claude-sonnet-4-5', 'gpt-5-mini'],
-  powerful: ['gpt-5', 'claude-opus-4-5', 'gemini-3-pro-preview', 'gpt-5-codex'],
-}
+export { MODEL_TIERS }
 
 export type TaskCategory =
   | 'web_search'
@@ -432,7 +429,7 @@ export async function getSubAgentModel(subTaskType: string, userId: string): Pro
         updatedAt: new Date(),
       })
       .onConflictDoNothing({ target: [settings.userId, settings.key] })
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to save sub-agent routing to database')
   }
 
@@ -445,5 +442,5 @@ export function suggestModelForPrompt(prompt: string): string {
 }
 
 export function getTieredModels(tier: keyof typeof MODEL_TIERS): string[] {
-  return MODEL_TIERS[tier]
+  return [...MODEL_TIERS[tier]]
 }

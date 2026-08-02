@@ -7,7 +7,7 @@ async function main() {
     process.exit(1)
   }
 
-  console.log('Using API key:', apiKey.slice(0, 10) + '...')
+  console.log('Using API key:', `${apiKey.slice(0, 10)}...`)
 
   const response = await fetch('https://gateway.vercel.ai/v1/chat/completions', {
     method: 'POST',

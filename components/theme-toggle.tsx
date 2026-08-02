@@ -1,14 +1,14 @@
 'use client'
 
-import * as React from 'react'
-import { useTheme } from 'next-themes'
 import { Monitor, Moon, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import * as React from 'react'
 import {
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 
 export function ThemeToggle() {
@@ -28,26 +28,26 @@ export function ThemeToggle() {
     <DropdownMenuSub>
       <DropdownMenuSubTrigger className="cursor-pointer">
         {theme === 'light' ? (
-          <Sun className="h-4 w-4 mr-2" />
+          <Sun className="h-4 w-4 me-2" />
         ) : theme === 'dark' ? (
-          <Moon className="h-4 w-4 mr-2" />
+          <Moon className="h-4 w-4 me-2" />
         ) : (
-          <Monitor className="h-4 w-4 mr-2" />
+          <Monitor className="h-4 w-4 me-2" />
         )}
         Theme
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
           <DropdownMenuRadioItem value="light" className="cursor-pointer">
-            <Sun className="h-4 w-4 mr-2" />
+            <Sun className="h-4 w-4 me-2" />
             Light
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="dark" className="cursor-pointer">
-            <Moon className="h-4 w-4 mr-2" />
+            <Moon className="h-4 w-4 me-2" />
             Dark
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="system" className="cursor-pointer">
-            <Monitor className="h-4 w-4 mr-2" />
+            <Monitor className="h-4 w-4 me-2" />
             System
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>

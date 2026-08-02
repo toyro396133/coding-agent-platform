@@ -1,16 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { and, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
+import { addMessage, createRoom, getRoom, joinRoom, leaveRoom } from '@/lib/collaboration/room-manager'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
-import {
-  createRoom,
-  joinRoom,
-  leaveRoom,
-  addMessage,
-  getRoom,
-  getRoomUserCount,
-} from '@/lib/collaboration/room-manager'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 interface RouteParams {
   params: Promise<{ taskId: string }>
@@ -85,13 +78,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
-  } catch (error) {
+  } catch (_error) {
     console.error('Collaboration operation failed')
     return NextResponse.json({ error: 'Failed to process collaboration action' }, { status: 500 })
   }
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession()
     if (!session?.user?.id) {
@@ -117,7 +110,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({ exists: true, ...data })
-  } catch (error) {
+  } catch (_error) {
     console.error('Room fetch failed')
     return NextResponse.json({ error: 'Failed to fetch room' }, { status: 500 })
   }

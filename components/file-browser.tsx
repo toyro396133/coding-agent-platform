@@ -1,36 +1,26 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useAtom } from 'jotai'
 import {
+  Clipboard,
+  Clock,
+  Copy,
+  ExternalLink,
   File,
+  FilePlus,
   Folder,
   FolderOpen,
-  Clock,
+  FolderPlus,
   GitBranch,
-  Loader2,
   GitCommit,
-  ExternalLink,
-  Scissors,
-  Copy,
-  Clipboard,
+  Loader2,
   Lock,
   RotateCcw,
-  FilePlus,
-  FolderPlus,
+  Scissors,
   Trash2,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useAtom } from 'jotai'
-import { getTaskFileBrowserState } from '@/lib/atoms/file-browser'
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuShortcut,
-} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -49,8 +40,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getTaskFileBrowserState } from '@/lib/atoms/file-browser'
 
 interface FileChange {
   filename: string
@@ -280,7 +279,7 @@ export function FileBrowser({
           loading: false,
         })
       }
-    } catch (err) {
+    } catch (_err) {
       setState({
         [viewMode]: {
           files: [],
@@ -473,7 +472,7 @@ export function FileBrowser({
     try {
       // If a folder is selected, prepend its path to the filename
       const isSelectedItemFolder =
-        selectedFile && files.some((f: FileChange) => f.filename.startsWith(selectedFile + '/'))
+        selectedFile && files.some((f: FileChange) => f.filename.startsWith(`${selectedFile}/`))
       const filename =
         isSelectedItemFolder && !newFileName.includes('/')
           ? `${selectedFile}/${newFileName.trim()}`
@@ -551,7 +550,7 @@ export function FileBrowser({
     try {
       // If a folder is selected, prepend its path to the foldername
       const isSelectedItemFolder =
-        selectedFile && files.some((f: FileChange) => f.filename.startsWith(selectedFile + '/'))
+        selectedFile && files.some((f: FileChange) => f.filename.startsWith(`${selectedFile}/`))
       const foldername =
         isSelectedItemFolder && !newFolderName.includes('/')
           ? `${selectedFile}/${newFolderName.trim()}`
@@ -701,7 +700,14 @@ export function FileBrowser({
       fetchBranchFiles()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey, branchName])
+  }, [
+    refreshKey,
+    branchName,
+    viewMode, // Reset fetchAttempted flag to allow refetch
+    setState,
+    fetchBranchFiles,
+    currentViewData,
+  ])
 
   const toggleFolder = (path: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -913,7 +919,7 @@ export function FileBrowser({
       }
 
       // Don't allow dropping on itself or its children
-      if (draggedItem.path === folderPath || folderPath.startsWith(draggedItem.path + '/')) {
+      if (draggedItem.path === folderPath || folderPath.startsWith(`${draggedItem.path}/`)) {
         return
       }
 
@@ -940,7 +946,7 @@ export function FileBrowser({
       }
 
       // Don't allow dropping on itself or its children
-      if (draggedItem.path === targetFolderPath || targetFolderPath.startsWith(draggedItem.path + '/')) {
+      if (draggedItem.path === targetFolderPath || targetFolderPath.startsWith(`${draggedItem.path}/`)) {
         toast.error('Cannot move a folder into itself')
         setDraggedItem(null)
         setDropTarget(null)
@@ -1129,7 +1135,7 @@ export function FileBrowser({
                   <DropdownMenuContent align="start" side="bottom">
                     {isRemoteMode && (
                       <DropdownMenuItem onClick={() => handleOpenOnGitHub(fullPath, true)}>
-                        <ExternalLink className="w-4 h-4 mr-2" />
+                        <ExternalLink className="w-4 h-4 me-2" />
                         Open on GitHub
                       </DropdownMenuItem>
                     )}
@@ -1143,7 +1149,7 @@ export function FileBrowser({
                                 setShowNewFileDialog(true)
                               }}
                             >
-                              <FilePlus className="w-4 h-4 mr-2" />
+                              <FilePlus className="w-4 h-4 me-2" />
                               New File
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -1152,13 +1158,13 @@ export function FileBrowser({
                                 setShowNewFolderDialog(true)
                               }}
                             >
-                              <FolderPlus className="w-4 h-4 mr-2" />
+                              <FolderPlus className="w-4 h-4 me-2" />
                               New Folder
                             </DropdownMenuItem>
                           </>
                         )}
                         <DropdownMenuItem onClick={() => handlePaste(fullPath)} disabled={!clipboardFile}>
-                          <Clipboard className="w-4 h-4 mr-2" />
+                          <Clipboard className="w-4 h-4 me-2" />
                           Paste
                           <DropdownMenuShortcut>{isMac ? '⌘V' : 'Ctrl+V'}</DropdownMenuShortcut>
                         </DropdownMenuItem>
@@ -1169,7 +1175,7 @@ export function FileBrowser({
               )}
             </div>
             {isExpanded && node.children && (
-              <div className="ml-3 md:ml-4">{renderFileTree(node.children, fullPath)}</div>
+              <div className="ms-3 md:ms-4">{renderFileTree(node.children, fullPath)}</div>
             )}
           </div>
         )
@@ -1253,55 +1259,52 @@ export function FileBrowser({
                 <DropdownMenuContent align="start" side="bottom">
                   {isRemoteMode && (
                     <DropdownMenuItem onClick={() => handleOpenOnGitHub(node.filename!)}>
-                      <ExternalLink className="w-4 h-4 mr-2" />
+                      <ExternalLink className="w-4 h-4 me-2" />
                       Open on GitHub
                     </DropdownMenuItem>
                   )}
-                  {isSandboxMode && (
-                    <>
-                      {viewMode === 'local' ? (
-                        // Changes > Sandbox: Only show Discard Changes
+                  {isSandboxMode &&
+                    (viewMode === 'local' ? (
+                      // Changes > Sandbox: Only show Discard Changes
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setFileToDiscard(node.filename!)
+                          setShowDiscardConfirm(true)
+                        }}
+                      >
+                        <RotateCcw className="w-4 h-4 me-2" />
+                        Discard Changes
+                      </DropdownMenuItem>
+                    ) : (
+                      // Files > Sandbox: Show all file operations
+                      <>
+                        <DropdownMenuItem onClick={() => handleCut(node.filename!)}>
+                          <Scissors className="w-4 h-4 me-2" />
+                          Cut
+                          <DropdownMenuShortcut>{isMac ? '⌘X' : 'Ctrl+X'}</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(node.filename!)}>
+                          <Copy className="w-4 h-4 me-2" />
+                          Copy
+                          <DropdownMenuShortcut>{isMac ? '⌘C' : 'Ctrl+C'}</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handlePaste()} disabled={!clipboardFile}>
+                          <Clipboard className="w-4 h-4 me-2" />
+                          Paste
+                          <DropdownMenuShortcut>{isMac ? '⌘V' : 'Ctrl+V'}</DropdownMenuShortcut>
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            setFileToDiscard(node.filename!)
-                            setShowDiscardConfirm(true)
+                            setFileToDelete(node.filename!)
+                            setShowDeleteConfirm(true)
                           }}
+                          className="text-destructive focus:text-destructive"
                         >
-                          <RotateCcw className="w-4 h-4 mr-2" />
-                          Discard Changes
+                          <Trash2 className="w-4 h-4 me-2" />
+                          Delete
                         </DropdownMenuItem>
-                      ) : (
-                        // Files > Sandbox: Show all file operations
-                        <>
-                          <DropdownMenuItem onClick={() => handleCut(node.filename!)}>
-                            <Scissors className="w-4 h-4 mr-2" />
-                            Cut
-                            <DropdownMenuShortcut>{isMac ? '⌘X' : 'Ctrl+X'}</DropdownMenuShortcut>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleCopy(node.filename!)}>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy
-                            <DropdownMenuShortcut>{isMac ? '⌘C' : 'Ctrl+C'}</DropdownMenuShortcut>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handlePaste()} disabled={!clipboardFile}>
-                            <Clipboard className="w-4 h-4 mr-2" />
-                            Paste
-                            <DropdownMenuShortcut>{isMac ? '⌘V' : 'Ctrl+V'}</DropdownMenuShortcut>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setFileToDelete(node.filename!)
-                              setShowDeleteConfirm(true)
-                            }}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </>
-                  )}
+                      </>
+                    ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -1413,7 +1416,7 @@ export function FileBrowser({
                 <Button size="sm" onClick={handleStartSandbox} disabled={isStartingSandbox}>
                   {isStartingSandbox ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 me-2 animate-spin" />
                       Starting...
                     </>
                   ) : (
@@ -1465,7 +1468,7 @@ export function FileBrowser({
             </div>
             <DropdownMenuContent>
               <DropdownMenuItem onClick={() => handlePaste()} disabled={!clipboardFile}>
-                <Clipboard className="w-4 h-4 mr-2" />
+                <Clipboard className="w-4 h-4 me-2" />
                 Paste
                 <DropdownMenuShortcut>{isMac ? '⌘V' : 'Ctrl+V'}</DropdownMenuShortcut>
               </DropdownMenuItem>
@@ -1488,12 +1491,12 @@ export function FileBrowser({
             >
               {isSyncing ? (
                 <>
-                  <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                  <Loader2 className="h-3 w-3 me-1.5 animate-spin" />
                   Syncing...
                 </>
               ) : (
                 <>
-                  <GitCommit className="h-3 w-3 mr-1.5" />
+                  <GitCommit className="h-3 w-3 me-1.5" />
                   Sync Changes
                 </>
               )}
@@ -1507,12 +1510,12 @@ export function FileBrowser({
             >
               {isResetting ? (
                 <>
-                  <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                  <Loader2 className="h-3 w-3 me-1.5 animate-spin" />
                   Resetting...
                 </>
               ) : (
                 <>
-                  <RotateCcw className="h-3 w-3 mr-1.5" />
+                  <RotateCcw className="h-3 w-3 me-1.5" />
                   Reset
                 </>
               )}
@@ -1609,7 +1612,7 @@ export function FileBrowser({
             <Button onClick={handleSyncChanges} disabled={isSyncing}>
               {isSyncing ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Syncing...
                 </>
               ) : (
@@ -1679,7 +1682,7 @@ export function FileBrowser({
             <Button onClick={handleResetChanges} disabled={isResetting}>
               {isResetting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Resetting...
                 </>
               ) : (
@@ -1696,7 +1699,7 @@ export function FileBrowser({
           <DialogHeader>
             <DialogTitle>Create New File</DialogTitle>
             <DialogDescription>
-              {selectedFile && files.some((f: FileChange) => f.filename.startsWith(selectedFile + '/'))
+              {selectedFile && files.some((f: FileChange) => f.filename.startsWith(`${selectedFile}/`))
                 ? `Creating file in: ${selectedFile}/`
                 : 'Enter the name for the new file (e.g., src/utils/helper.ts).'}
             </DialogDescription>
@@ -1708,7 +1711,7 @@ export function FileBrowser({
               value={newFileName}
               onChange={(e) => setNewFileName(e.target.value)}
               placeholder={
-                selectedFile && files.some((f: FileChange) => f.filename.startsWith(selectedFile + '/'))
+                selectedFile && files.some((f: FileChange) => f.filename.startsWith(`${selectedFile}/`))
                   ? 'filename.ts'
                   : 'path/to/file.ts'
               }
@@ -1735,7 +1738,7 @@ export function FileBrowser({
             <Button onClick={handleCreateFile} disabled={isCreatingFile || !newFileName.trim()}>
               {isCreatingFile ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Creating...
                 </>
               ) : (
@@ -1752,7 +1755,7 @@ export function FileBrowser({
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>
-              {selectedFile && files.some((f: FileChange) => f.filename.startsWith(selectedFile + '/'))
+              {selectedFile && files.some((f: FileChange) => f.filename.startsWith(`${selectedFile}/`))
                 ? `Creating folder in: ${selectedFile}/`
                 : 'Enter the name for the new folder (e.g., src/components).'}
             </DialogDescription>
@@ -1764,7 +1767,7 @@ export function FileBrowser({
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder={
-                selectedFile && files.some((f: FileChange) => f.filename.startsWith(selectedFile + '/'))
+                selectedFile && files.some((f: FileChange) => f.filename.startsWith(`${selectedFile}/`))
                   ? 'foldername'
                   : 'path/to/folder'
               }
@@ -1791,7 +1794,7 @@ export function FileBrowser({
             <Button onClick={handleCreateFolder} disabled={isCreatingFolder || !newFolderName.trim()}>
               {isCreatingFolder ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Creating...
                 </>
               ) : (
@@ -1831,7 +1834,7 @@ export function FileBrowser({
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Deleting...
                 </>
               ) : (
@@ -1864,7 +1867,7 @@ export function FileBrowser({
             <AlertDialogAction onClick={handleDiscardChanges} disabled={isDiscarding}>
               {isDiscarding ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Discarding...
                 </>
               ) : (

@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server'
+import { and, desc, eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
-import { getSessionFromCookie } from '@/lib/session/server'
-import { SESSION_COOKIE_NAME } from '@/lib/session/constants'
+import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { taskPlans, tasks } from '@/lib/db/schema'
-import { eq, desc, and } from 'drizzle-orm'
+import { SESSION_COOKIE_NAME } from '@/lib/session/constants'
+import { getSessionFromCookie } from '@/lib/session/server'
 
-export async function GET(request: Request, context: { params: Promise<{ taskId: string }> }) {
+export async function GET(_request: Request, context: { params: Promise<{ taskId: string }> }) {
   const cookieStore = await cookies()
   const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value
   const session = await getSessionFromCookie(sessionCookie)
@@ -31,7 +31,7 @@ export async function GET(request: Request, context: { params: Promise<{ taskId:
     const plans = await db.select().from(taskPlans).where(eq(taskPlans.taskId, taskId)).orderBy(desc(taskPlans.version))
 
     return NextResponse.json(plans)
-  } catch (error) {
+  } catch (_error) {
     console.error('Error fetching plans')
     return new NextResponse('Internal Server Error', { status: 500 })
   }

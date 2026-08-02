@@ -1,11 +1,11 @@
-import { type NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
-import { db } from '@/lib/db/client'
-import { users, accounts, tasks, connectors, keys } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
-import { createGitHubSession, saveSession } from '@/lib/session/create-github'
+import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
 import { encrypt } from '@/lib/crypto'
+import { db } from '@/lib/db/client'
+import { accounts, connectors, keys, tasks, users } from '@/lib/db/schema'
+import { createGitHubSession, saveSession } from '@/lib/session/create-github'
 
 export async function GET(req: NextRequest): Promise<Response> {
   const code = req.nextUrl.searchParams.get('code')
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   // Check if this is a sign-in flow or connect flow
   const authMode = cookieStore.get(`github_auth_mode`)?.value ?? null
   const isSignInFlow = authMode === 'signin'
-  const isConnectFlow = authMode === 'connect'
+  const _isConnectFlow = authMode === 'connect'
 
   // Try both cookie patterns (new unified flow vs legacy oauth flow)
   const storedState = cookieStore.get(authMode ? `github_auth_state` : `github_oauth_state`)?.value ?? null

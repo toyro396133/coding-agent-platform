@@ -3,8 +3,8 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
-import { chromium } from 'playwright-core'
 import OpenAI from 'openai'
+import { chromium } from 'playwright-core'
 
 const server = new Server(
   {
@@ -43,7 +43,7 @@ async function captureScreenshot(url: string, timeoutMs: number = 30000): Promis
         break
       } catch (e: any) {
         lastError = e
-        if (e.message && e.message.includes('ERR_CONNECTION_REFUSED')) {
+        if (e.message?.includes('ERR_CONNECTION_REFUSED')) {
           // Wait 1 second before retrying
           await new Promise((resolve) => setTimeout(resolve, 1000))
         } else {

@@ -1,20 +1,20 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
 import {
   ArrowRight,
-  ChevronLeft,
-  Home,
-  Sparkles,
-  Zap,
-  Terminal,
-  GitBranch,
-  Eye,
-  Workflow,
   Box,
+  ChevronLeft,
+  Eye,
+  GitBranch,
+  Home,
   Route,
+  Sparkles,
+  Terminal,
+  Workflow,
+  Zap,
 } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -136,7 +136,7 @@ export function LandingPage() {
       setPromptIndex((prev) => (prev + 1) % DEMO_PROMPTS.length)
     }, 5000)
     return () => clearTimeout(timeout)
-  }, [promptIndex])
+  }, [])
 
   /* Trigger agent grid animation after mount */
   useEffect(() => {
@@ -243,7 +243,7 @@ export function LandingPage() {
                 {displayed}
                 <span
                   className={cn(
-                    'inline-block w-[2px] h-[1.1em] align-text-bottom ml-0.5',
+                    'inline-block w-[2px] h-[1.1em] align-text-bottom ms-0.5',
                     cursor ? 'bg-amber-400' : 'bg-transparent',
                   )}
                 />

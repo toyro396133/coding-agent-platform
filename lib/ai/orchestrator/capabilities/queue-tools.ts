@@ -1,14 +1,14 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext } from './types'
 import {
-  listQueue,
-  updateQueueRequest,
-  reorderQueueRequest,
   deleteQueueRequest,
-  mergeQueueRequests,
   enqueueFollowUpSteps,
+  listQueue,
+  mergeQueueRequests,
+  reorderQueueRequest,
+  updateQueueRequest,
 } from '@/lib/queue/engine'
+import type { ToolContext } from './types'
 
 /**
  * Queue capability pack — gives the AGENT full management power over the user
@@ -72,7 +72,7 @@ export function createQueueTools(ctx: ToolContext) {
             'You can manage this queue with editQueueRequest, reorderQueueRequest, mergeQueueRequests, deleteQueueRequest and enqueueFollowUpSteps.',
           )
           return lines.join('\n')
-        } catch (error) {
+        } catch (_error) {
           return 'Failed to read the queue — please try again.'
         }
       },
@@ -98,7 +98,7 @@ export function createQueueTools(ctx: ToolContext) {
             return `❌ Queue request \`${requestId}\` not found. Use listQueueRequests to see available requests.`
           }
           return `✅ Queue request updated: \`${requestId}\`\n- Prompt: ${updated.prompt.substring(0, 200)}${updated.prompt.length > 200 ? '…' : ''}`
-        } catch (error) {
+        } catch (_error) {
           return 'Failed to update the queue request.'
         }
       },
@@ -117,7 +117,7 @@ export function createQueueTools(ctx: ToolContext) {
           return `✅ Reordered queue request \`${requestId}\` to position ${newPosition}. New order:\n${queue
             .map((item) => `  ${item.position}. ${item.title || item.prompt.substring(0, 60)}`)
             .join('\n')}`
-        } catch (error) {
+        } catch (_error) {
           return 'Failed to reorder the queue.'
         }
       },
@@ -139,7 +139,7 @@ export function createQueueTools(ctx: ToolContext) {
             return `❌ Target queue request \`${targetId}\` not found. Use listQueueRequests to see available requests.`
           }
           return `✅ Merged ${mergeIds.length} request(s) into \`${targetId}\`.\nCombined prompt:\n${merged.prompt.substring(0, 500)}${merged.prompt.length > 500 ? '…' : ''}`
-        } catch (error) {
+        } catch (_error) {
           return 'Failed to merge the queue requests.'
         }
       },
@@ -159,7 +159,7 @@ export function createQueueTools(ctx: ToolContext) {
             return `❌ Queue request \`${requestId}\` not found.`
           }
           return `✅ Queue request \`${requestId}\` deleted — it will not be executed.`
-        } catch (error) {
+        } catch (_error) {
           return 'Failed to delete the queue request.'
         }
       },
@@ -190,7 +190,7 @@ export function createQueueTools(ctx: ToolContext) {
           return `✅ Enqueued ${ids.length} follow-up step(s) — they will run automatically once the current task completes.\n${steps
             .map((s, i) => `  ${i + 1}. ${s.title || s.prompt.substring(0, 80)} (\`${ids[i]}\`)`)
             .join('\n')}`
-        } catch (error) {
+        } catch (_error) {
           return 'Failed to enqueue follow-up steps.'
         }
       },

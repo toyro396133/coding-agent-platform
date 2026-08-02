@@ -1,6 +1,6 @@
-import { type NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { NextResponse } from 'next/server'
 import { getPendingMerges } from '@/lib/db/merge-identity'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export async function GET() {
   const session = await getServerSession()

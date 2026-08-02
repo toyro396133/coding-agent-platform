@@ -1,8 +1,8 @@
 import 'dotenv/config'
 import { db } from '../lib/db/client'
 import { tasks } from '../lib/db/schema'
-import { generateId } from '../lib/utils/id'
 import { getUserByUsername } from '../lib/db/users'
+import { generateId } from '../lib/utils/id'
 
 async function main() {
   const user = await getUserByUsername('admin')

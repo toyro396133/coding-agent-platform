@@ -219,7 +219,7 @@ export async function buildJobDiff(options: BuildJobDiffOptions): Promise<JobDif
 
     setCachedDiff(key, diff)
     return diff
-  } catch (error) {
+  } catch (_error) {
     // Best-effort: log server-side only (no dynamic values per security policy)
     console.error('Failed to build job diff')
     setCachedDiff(key, null, true)

@@ -1,12 +1,12 @@
 'use client'
 
+import { useState } from 'react'
+import { GitHubIcon } from '@/components/icons/github-icon'
 import { useLocale } from '@/components/providers/locale-provider'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
-import { GitHubIcon } from '@/components/icons/github-icon'
-import { useState } from 'react'
 import { getEnabledAuthProviders } from '@/lib/auth/providers'
+import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
 import { SignInPassword } from './sign-in-password'
 
 export function SignIn() {
@@ -70,7 +70,7 @@ export function SignIn() {
                     {loadingVercel ? (
                       <>
                         <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4"
+                          className="animate-spin -ms-1 me-2 h-4 w-4"
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
@@ -93,7 +93,7 @@ export function SignIn() {
                       </>
                     ) : (
                       <>
-                        <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
+                        <svg viewBox="0 0 76 65" className="h-3 w-3 me-2" fill="currentColor">
                           <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
                         </svg>
                         Sign in with Vercel
@@ -113,7 +113,7 @@ export function SignIn() {
                     {loadingGitHub ? (
                       <>
                         <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4"
+                          className="animate-spin -ms-1 me-2 h-4 w-4"
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
@@ -136,7 +136,7 @@ export function SignIn() {
                       </>
                     ) : (
                       <>
-                        <GitHubIcon className="h-4 w-4 mr-2" />
+                        <GitHubIcon className="h-4 w-4 me-2" />
                         Sign in with GitHub
                       </>
                     )}

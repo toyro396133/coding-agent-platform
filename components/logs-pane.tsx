@@ -1,15 +1,15 @@
 'use client'
 
-import { Task, LogEntry } from '@/lib/db/schema'
-import { Button } from '@/components/ui/button'
-import { Copy, Check, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useState, useEffect, useRef } from 'react'
+import { Check, ChevronDown, ChevronUp, Copy, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useTasks } from '@/components/app-layout'
-import { getLogsPaneHeight, setLogsPaneHeight, getLogsPaneCollapsed, setLogsPaneCollapsed } from '@/lib/utils/cookies'
-import { Terminal, TerminalRef } from '@/components/terminal'
+import { Terminal, type TerminalRef } from '@/components/terminal'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { LogEntry, Task } from '@/lib/db/schema'
+import { cn } from '@/lib/utils'
+import { getLogsPaneCollapsed, getLogsPaneHeight, setLogsPaneCollapsed, setLogsPaneHeight } from '@/lib/utils/cookies'
 
 interface LogsPaneProps {
   task: Task
@@ -238,7 +238,7 @@ export function LogsPane({ task, onHeightChange }: LogsPaneProps) {
       {/* Resize Handle */}
       {!isCollapsed && (
         <div
-          className={`absolute top-0 left-0 right-0 h-1 cursor-row-resize group hover:bg-primary/20 ${isResizing ? '' : 'transition-colors'}`}
+          className={`absolute inset-x-0 top-0 h-1 cursor-row-resize group hover:bg-primary/20 ${isResizing ? '' : 'transition-colors'}`}
           onMouseDown={handleMouseDown}
         >
           <div className="absolute inset-x-0 top-0 h-2 -mt-0.5" />
@@ -293,7 +293,7 @@ export function LogsPane({ task, onHeightChange }: LogsPaneProps) {
             </div>
           </div>
           {activeTab === 'logs' && (
-            <div className="flex items-center gap-1.5 mr-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1.5 me-3" onClick={(e) => e.stopPropagation()}>
               <Select value={logFilter} onValueChange={(value) => setLogFilter(value as LogFilterType)}>
                 <SelectTrigger size="sm" className="h-6 text-xs px-2 py-0 min-w-[90px] border-0 shadow-none">
                   <SelectValue />
@@ -326,7 +326,7 @@ export function LogsPane({ task, onHeightChange }: LogsPaneProps) {
             </div>
           )}
           {activeTab === 'terminal' && (
-            <div className="flex items-center gap-1 mr-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1 me-3" onClick={(e) => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -367,7 +367,6 @@ export function LogsPane({ task, onHeightChange }: LogsPaneProps) {
                   return 'text-red-400'
                 case 'success':
                   return 'text-green-400'
-                case 'info':
                 default:
                   return 'text-white'
               }

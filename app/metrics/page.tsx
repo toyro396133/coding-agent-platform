@@ -1,8 +1,8 @@
+import { BarChart3 } from 'lucide-react'
 import type { Metadata } from 'next'
-import { getServerSession } from '@/lib/session/get-server-session'
 import { redirect } from 'next/navigation'
 import { RoutingMetricsDashboard } from '@/components/routing-metrics-dashboard'
-import { BarChart3 } from 'lucide-react'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export const metadata: Metadata = {
   title: 'Router Metrics',

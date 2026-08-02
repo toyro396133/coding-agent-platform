@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { getUserApiKey } from '@/lib/api-keys/user-keys'
 
 type Provider = 'openai' | 'gemini' | 'cursor' | 'anthropic' | 'aigateway'

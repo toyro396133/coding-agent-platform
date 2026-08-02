@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { AlertTriangle, DollarSign, Info, TrendingUp } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { getCostLevelInfo, quickCostEstimate } from '@/lib/sandbox/cost-estimator'
 import { cn } from '@/lib/utils'
-import { quickCostEstimate, getCostLevelInfo } from '@/lib/sandbox/cost-estimator'
-import { Info, AlertTriangle, DollarSign, TrendingUp } from 'lucide-react'
 
 interface CostEstimationProps {
   prompt: string

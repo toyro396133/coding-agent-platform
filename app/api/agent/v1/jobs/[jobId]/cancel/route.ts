@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { and, eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
 import { publishJobEvent } from '@/lib/jobs/event-bus'
-import { createTaskLogger } from '@/lib/utils/task-logger'
 import { killSandbox } from '@/lib/sandbox/sandbox-registry'
+import { createTaskLogger } from '@/lib/utils/task-logger'
 
 const TERMINAL_STATUSES = ['completed', 'error', 'stopped']
 
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ jobId:
       cancelled: true,
       message: 'Job cancelled successfully',
     })
-  } catch (error) {
+  } catch (_error) {
     console.error('Error in cancel job endpoint')
     return NextResponse.json(
       {

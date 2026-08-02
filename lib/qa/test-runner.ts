@@ -1,12 +1,12 @@
 import { Sandbox } from '@vercel/sandbox'
-import { db } from '@/lib/db/client'
-import { backgroundTestsBank, backgroundTestExecutions } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { getSandbox } from '@/lib/sandbox/sandbox-registry'
-import { runCommandInSandbox } from '@/lib/sandbox/commands'
-import { getModelClient } from '@/lib/ai/models'
 import { generateObject } from 'ai'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { getModelClient } from '@/lib/ai/models'
+import { db } from '@/lib/db/client'
+import { backgroundTestExecutions, backgroundTestsBank } from '@/lib/db/schema'
+import { runCommandInSandbox } from '@/lib/sandbox/commands'
+import { getSandbox } from '@/lib/sandbox/sandbox-registry'
 
 export async function runBackgroundTests(options?: { taskId?: string; sandboxId?: string }) {
   // Query backgroundTestsBank for enabled tests
@@ -148,7 +148,7 @@ Please provide an explanation of the bug and the fix, and an array of modified f
     } else {
       return { success: false, patch: null }
     }
-  } catch (err) {
+  } catch (_err) {
     return { success: false, patch: null }
   }
 }

@@ -1,8 +1,8 @@
+import { createHash } from 'node:crypto'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { repositoryEmbeddings } from '@/lib/db/schema'
 import { generateEmbedding } from '@/lib/memory/engine'
-import { and, eq } from 'drizzle-orm'
-import { createHash } from 'crypto'
 
 function generateDeterministicId(userId: string, repoUrl: string, filePath: string, content: string): string {
   const hash = createHash('sha256')

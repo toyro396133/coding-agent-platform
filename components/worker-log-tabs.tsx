@@ -176,6 +176,21 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
   // Combine external data with live polled data
   const mergedStatusData = liveWorkerStatus || workerStatusData
 
+  const getWorkerLogs = (workerName: string): LogEntry[] => {
+    // First try polled data for live logs
+    if (mergedStatusData?.workerLogs) {
+      const polledLogs = mergedStatusData.workerLogs[workerName]
+      if (polledLogs && polledLogs.length > 0) {
+        return polledLogs as LogEntry[]
+      }
+    }
+    // Fall back to task.logs from props
+    return (task.logs || []).filter((log) => {
+      const workerNameFromLog = extractWorkerName(log.message)
+      return workerNameFromLog === workerName
+    })
+  }
+
   useEffect(() => {
     if (!activeWorkerId || !logsContainerRef.current) return
     const actWorker = workers.find((w) => w.id === activeWorkerId)
@@ -189,7 +204,7 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
     }
 
     prevLogsLengthRef.current[activeWorkerId] = workerLogs.length
-  }, [activeWorkerId, workers, task.logs])
+  }, [activeWorkerId, workers, getWorkerLogs])
 
   // Early return if no workers (after all hooks)
   if (!hasWorkers) return null
@@ -242,21 +257,6 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
       if (found?.changedFiles) return found.changedFiles
     }
     return undefined
-  }
-
-  const getWorkerLogs = (workerName: string): LogEntry[] => {
-    // First try polled data for live logs
-    if (mergedStatusData && mergedStatusData.workerLogs) {
-      const polledLogs = mergedStatusData.workerLogs[workerName]
-      if (polledLogs && polledLogs.length > 0) {
-        return polledLogs as LogEntry[]
-      }
-    }
-    // Fall back to task.logs from props
-    return (task.logs || []).filter((log) => {
-      const workerNameFromLog = extractWorkerName(log.message)
-      return workerNameFromLog === workerName
-    })
   }
 
   return (

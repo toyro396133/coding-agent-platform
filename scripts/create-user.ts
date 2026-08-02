@@ -1,10 +1,12 @@
 import dotenv from 'dotenv'
+
 dotenv.config({ path: '.env.local' })
-import { db } from '../lib/db/client'
-import { users } from '../lib/db/schema'
+
+import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
-import bcrypt from 'bcryptjs'
+import { db } from '../lib/db/client'
+import { users } from '../lib/db/schema'
 
 async function main() {
   const username = 'admin'

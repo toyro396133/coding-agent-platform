@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse, after } from 'next/server'
+import { eq } from 'drizzle-orm'
+import { after, type NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
-import { generateId } from '@/lib/utils/id'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
 import { createFallbackBranchName } from '@/lib/utils/branch-name-generator'
+import { generateId } from '@/lib/utils/id'
 import { createFallbackTitle } from '@/lib/utils/title-generator'
-import { z } from 'zod'
-import { eq } from 'drizzle-orm'
 
 // OpenAI Chat Completions compatible endpoint
 export async function POST(req: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     let body: any
     try {
       body = await req.json()
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json(
         {
           error: { message: 'Invalid JSON in request body', type: 'invalid_request_error' },
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     const prompt = typeof lastMessage.content === 'string' ? lastMessage.content : JSON.stringify(lastMessage.content)
 
     // Extract platform config (can be in extra_body or directly in root)
-    const config = platform_config || (extra_body && extra_body.platform_config) || {}
+    const config = platform_config || extra_body?.platform_config || {}
     const { repoUrl, branchName, agentConfig } = config
 
     if (!repoUrl) {
@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
         if (!response.ok) {
           throw new Error('Task invocation failed')
         }
-      } catch (err) {
+      } catch (_err) {
         // Update task to error status
         await db
           .update(tasks)
@@ -312,7 +312,7 @@ export async function POST(req: NextRequest) {
         },
       })
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('Error in OpenAI compatible endpoint')
     return NextResponse.json(
       {

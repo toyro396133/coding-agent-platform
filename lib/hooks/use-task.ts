@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Task } from '@/lib/db/schema'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Task } from '@/lib/db/schema'
 
 export function useTask(taskId: string) {
   const [task, setTask] = useState<Task | null>(null)
@@ -68,7 +68,10 @@ export function useTask(taskId: string) {
 
     return () => clearInterval(retryInterval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskId]) // fetchTask is intentionally not in deps to avoid recreating interval on every fetchTask change
+  }, [
+    // Fetch immediately
+    fetchTask,
+  ]) // fetchTask is intentionally not in deps to avoid recreating interval on every fetchTask change
 
   // Poll for updates every 5 seconds after initial load
   useEffect(() => {

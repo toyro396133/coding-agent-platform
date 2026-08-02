@@ -4,10 +4,12 @@ import { and, asc, eq, isNull } from 'drizzle-orm'
 import { after, type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getModelClient } from '@/lib/ai/models'
+import { runAutomaticVisualQa } from '@/lib/ai/orchestrator/capabilities/auto-visual-qa'
 import { autoDeployWorkerTeam } from '@/lib/ai/orchestrator/worker/auto-deploy'
 import type { WorkerSpec, WorkerTeamSpec } from '@/lib/ai/orchestrator/worker/types'
 import { deployWorkerTeam, mergeWorkerPatches } from '@/lib/ai/orchestrator/worker/worker-manager'
 import { getSubAgentModel } from '@/lib/ai/router'
+import { deriveErrorDetails, formatStructuredTaskError } from '@/lib/api/job-errors'
 import { getUserApiKeys } from '@/lib/api-keys/user-keys'
 import { decrypt } from '@/lib/crypto'
 import { db } from '@/lib/db/client'
@@ -25,8 +27,6 @@ import { createFallbackCommitMessage, generateCommitMessage } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { createTaskLogger } from '@/lib/utils/task-logger'
-import { deriveErrorDetails, formatStructuredTaskError } from '@/lib/api/job-errors'
-import { runAutomaticVisualQa } from '@/lib/ai/orchestrator/capabilities/auto-visual-qa'
 
 export async function POST(req: NextRequest, context: { params: Promise<{ taskId: string }> }) {
   try {
@@ -280,7 +280,7 @@ async function continueTask(
       contextMessages.forEach((msg) => {
         const role = msg.role === 'user' ? 'User' : 'A'
         // Escape special characters and limit length to avoid shell parsing issues
-        const truncatedContent = msg.content.length > 500 ? msg.content.substring(0, 500) + '...' : msg.content
+        const truncatedContent = msg.content.length > 500 ? `${msg.content.substring(0, 500)}...` : msg.content
         // Remove problematic characters that could cause shell parsing issues
         const sanitizedContent = truncatedContent
           .replace(/`/g, "'") // Replace backticks with single quotes
@@ -719,7 +719,7 @@ async function continueTask(
           updatedAt: new Date(),
         })
         .where(eq(tasks.id, taskId))
-    } catch (persistError) {
+    } catch (_persistError) {
       // Fall back to the plain message if structured persistence fails
       console.error('Failed to persist structured task error')
       await db

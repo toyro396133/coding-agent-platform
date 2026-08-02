@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { and, eq } from 'drizzle-orm'
+import { nanoid } from 'nanoid'
+import { type NextRequest, NextResponse } from 'next/server'
+import { encrypt } from '@/lib/crypto'
 import { db } from '@/lib/db/client'
 import { connectors } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
-import { nanoid } from 'nanoid'
-import { encrypt } from '@/lib/crypto'
 import { getMarketplaceEntry } from '@/lib/mcp/marketplace'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the entry has env keys that need to be filled
-    const hasRequiredEnvKeys = entry.envKeys && entry.envKeys.some((k) => k.required)
+    const hasRequiredEnvKeys = entry.envKeys?.some((k) => k.required)
     if (hasRequiredEnvKeys) {
       // Try to auto-fill from user's stored API keys and global env
       const envObj: Record<string, string> = {}

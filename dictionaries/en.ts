@@ -23,6 +23,7 @@ const _en = {
     repos: 'Repos',
     loadingRoutes: 'Loading routes...',
     loadingEllipsis: 'Loading...',
+    retry: 'Retry',
   },
   home: {
     title: 'Coding Agent Template',
@@ -396,6 +397,9 @@ const _en = {
     errorFailedAt: 'Failed At',
     errorRecoveryHint: 'Recovery Hint',
     tryAgain: 'Try Again',
+    // Subtle success banner shown when a task finishes without errors
+    completedTitle: 'Task completed successfully',
+    completedDesc: 'All steps finished without errors.',
   },
   taskChat: {
     inputPlaceholder: 'Type a message...',
@@ -416,6 +420,23 @@ const _en = {
     remediated: 'Remediated',
     remediationApplied: 'Remediation Applied',
     noLogsAvailable: 'No logs available.',
+    // Task list empty / error / loading states
+    noTasksTitle: 'No tasks yet',
+    noTasksDesc: 'Create your first task and let the AI agent do the work — no setup required.',
+    createFirstTask: 'Create your first task',
+    noFilteredTasks: 'No {status} tasks',
+    noFilteredTasksDesc: 'There are no tasks in this state right now.',
+    clearFilter: 'Show all tasks',
+    loadFailedTitle: 'Failed to load tasks',
+    loadFailedDesc: "We couldn't load your tasks. Please check your connection and try again.",
+    status: {
+      pending: 'Pending',
+      processing: 'Running',
+      completed: 'Completed',
+      error: 'Failed',
+      stopped: 'Stopped',
+      planning: 'Awaiting Approval',
+    },
   },
   settings: {
     title: 'Settings',

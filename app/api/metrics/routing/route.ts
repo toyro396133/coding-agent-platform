@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { getRouterMetrics } from '@/lib/ai/router-metrics'
 import { getRouterCache } from '@/lib/ai/router-cache'
+import { getRouterMetrics } from '@/lib/ai/router-metrics'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export const dynamic = 'force-dynamic'
 

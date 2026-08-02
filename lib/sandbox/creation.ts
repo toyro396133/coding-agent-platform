@@ -1,15 +1,15 @@
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { Writable } from 'node:stream'
 import { Sandbox } from '@vercel/sandbox'
-import { Writable } from 'stream'
-import { validateEnvironmentVariables, createAuthenticatedRepoUrl } from './config'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from './commands'
 import { generateId } from '@/lib/utils/id'
-import { SandboxConfig, SandboxResult } from './types'
 import { redactSensitiveInfo } from '@/lib/utils/logging'
-import { TaskLogger } from '@/lib/utils/task-logger'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import { PROJECT_DIR, runCommandInSandbox, runInProject } from './commands'
+import { createAuthenticatedRepoUrl, validateEnvironmentVariables } from './config'
 import { detectPackageManager, installDependencies } from './package-manager'
 import { registerSandbox } from './sandbox-registry'
+import type { SandboxConfig, SandboxResult } from './types'
 
 // Helper function to run command and log it
 async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[], logger: TaskLogger, cwd?: string) {
@@ -33,7 +33,7 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
     result = await runCommandInSandbox(sandbox, command, args)
   }
 
-  if (result && result.output && result.output.trim()) {
+  if (result?.output?.trim()) {
     const redactedOutput = redactSensitiveInfo(result.output.trim())
     await logger.info(redactedOutput)
   }
@@ -79,7 +79,7 @@ export async function createSandbox(config: SandboxConfig, logger: TaskLogger): 
 
     // Use the specified timeout (maxDuration) for sandbox lifetime
     // keepAlive only controls whether we shutdown after task completion
-    const timeoutMs = config.timeout ? parseInt(config.timeout.replace(/\D/g, '')) * 60 * 1000 : 60 * 60 * 1000 // Default 1 hour
+    const timeoutMs = config.timeout ? parseInt(config.timeout.replace(/\D/g, ''), 10) * 60 * 1000 : 60 * 60 * 1000 // Default 1 hour
 
     // Determine ports based on project type (will be detected after cloning)
     // Default to both 3000 (Next.js) and 5173 (Vite) for now
@@ -154,7 +154,7 @@ MCP_EOF`
         await runCommandInSandbox(sandbox, 'sh', ['-c', `cd ${mcpDir} && npx playwright install chromium --with-deps`])
 
         await logger.info('Visual QA MCP Server setup completed successfully')
-      } catch (err: any) {
+      } catch (_err: any) {
         await logger.error('Failed to setup MCP server in sandbox')
         // Continue execution even if MCP setup fails, as it's an optional enhancement
       }
@@ -397,7 +397,7 @@ MCP_EOF`
             await logger.info('Dev script detected, starting development server...')
 
             const packageManager = await detectPackageManager(sandbox, logger)
-            let devCommand = packageManager === 'npm' ? 'npm' : packageManager
+            const devCommand = packageManager === 'npm' ? 'npm' : packageManager
             let devArgs = packageManager === 'npm' ? ['run', 'dev'] : ['dev']
 
             // Check if Vite project and configure to allow all hosts
@@ -419,7 +419,7 @@ MCP_EOF`
                 // Read and modify the config
                 const configRead = await runInProject(sandbox, 'cat', ['vite.config.js'])
                 if (configRead.success) {
-                  let config = configRead.output || ''
+                  const _config = configRead.output || ''
 
                   // Simple sed replacement to set host: true in server config
                   // This disables Vite's host checking
@@ -509,7 +509,7 @@ fi
             domain = sandbox.domain(devPort)
             await logger.info('Development server is running')
           }
-        } catch (parseError) {
+        } catch (_parseError) {
           // If package.json parsing fails, continue without starting dev server
           console.error('Failed to parse repository package.json')
           await logger.info('Could not parse package.json, skipping auto-start of dev server')
@@ -844,7 +844,7 @@ SKILL_EOF`
       await logger.info('Empty repository detected, creating initial main branch')
 
       // Extract repo name from repoUrl (e.g., https://github.com/owner/repo.git -> repo)
-      const repoNameMatch = config.repoUrl.match(/\/([^\/]+?)(\.git)?$/)
+      const repoNameMatch = config.repoUrl.match(/\/([^/]+?)(\.git)?$/)
       const repoName = repoNameMatch ? repoNameMatch[1] : 'repository'
 
       // Create README.md with repo name
@@ -912,7 +912,7 @@ MCP_EOF`
         await runCommandInSandbox(sandbox, 'sh', ['-c', `cd ${mcpDir} && npx playwright install chromium --with-deps`])
 
         await logger.info('Visual QA MCP Server setup completed successfully')
-      } catch (err: any) {
+      } catch (_err: any) {
         await logger.error('Failed to setup MCP server in sandbox')
         // Continue execution even if MCP setup fails, as it's an optional enhancement
       }
@@ -1032,9 +1032,9 @@ MCP_EOF`
           if (!createBranch.success) {
             await logger.info('Failed to create branch')
             // Add debugging information
-            const gitStatus = await runInProject(sandbox, 'git', ['status'])
+            const _gitStatus = await runInProject(sandbox, 'git', ['status'])
             await logger.info('Git status retrieved')
-            const gitBranch = await runInProject(sandbox, 'git', ['branch', '-a'])
+            const _gitBranch = await runInProject(sandbox, 'git', ['branch', '-a'])
             await logger.info('Git branches retrieved')
             throw new Error('Failed to create Git branch')
           }
@@ -1055,11 +1055,11 @@ MCP_EOF`
       if (!createBranch.success) {
         await logger.info('Failed to create branch')
         // Add debugging information for fallback branch creation too
-        const gitStatus = await runInProject(sandbox, 'git', ['status'])
+        const _gitStatus = await runInProject(sandbox, 'git', ['status'])
         await logger.info('Git status retrieved')
-        const gitBranch = await runInProject(sandbox, 'git', ['branch', '-a'])
+        const _gitBranch = await runInProject(sandbox, 'git', ['branch', '-a'])
         await logger.info('Git branches retrieved')
-        const gitLog = await runInProject(sandbox, 'git', ['log', '--oneline', '-5'])
+        const _gitLog = await runInProject(sandbox, 'git', ['log', '--oneline', '-5'])
         await logger.info('Recent commits retrieved')
         throw new Error('Failed to create Git branch')
       }

@@ -1,6 +1,6 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext, Checkpoint } from './types'
+import type { Checkpoint, ToolContext } from './types'
 
 export function createSessionTools(ctx: ToolContext) {
   const checkpoints: Checkpoint[] = []

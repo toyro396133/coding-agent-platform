@@ -1,11 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Calendar, GitPullRequest, ListTodo, MessageSquare, MoreHorizontal, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import Claude from '@/components/logos/claude'
+import Codex from '@/components/logos/codex'
+import Copilot from '@/components/logos/copilot'
+import Cursor from '@/components/logos/cursor'
+import Gemini from '@/components/logos/gemini'
+import OpenCode from '@/components/logos/opencode'
+import { SkeletonCardList } from '@/components/skeleton-card-list'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +21,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -24,18 +33,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
-import { GitPullRequest, Calendar, MessageSquare, MoreHorizontal, X, ListTodo } from 'lucide-react'
-import { toast } from 'sonner'
-import Claude from '@/components/logos/claude'
-import Codex from '@/components/logos/codex'
-import Copilot from '@/components/logos/copilot'
-import Cursor from '@/components/logos/cursor'
-import Gemini from '@/components/logos/gemini'
-import OpenCode from '@/components/logos/opencode'
-import { CODING_AGENTS, AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AGENT_MODELS, CODING_AGENTS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
 const AGENT_ICONS = {
   claude: Claude,
@@ -228,15 +229,9 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
     }
   }
 
+  // PR cards lead with a GitPullRequest icon, not an avatar — so skip the avatar placeholder.
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading pull requests...</p>
-        </div>
-      </div>
-    )
+    return <SkeletonCardList count={5} className="pb-6" />
   }
 
   if (error) {
@@ -265,8 +260,12 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
   return (
     <>
       <div className="space-y-3 pb-6">
-        {pullRequests.map((pr) => (
-          <Card key={pr.number} className="p-4 hover:bg-muted/50 transition-colors">
+        {pullRequests.map((pr, index) => (
+          <Card
+            key={pr.number}
+            className="card-in p-4 hover:bg-muted/50 transition-colors"
+            style={{ animationDelay: `${Math.min(index * 35, 400)}ms` }}
+          >
             <div className="flex items-start gap-3">
               <a
                 href={pr.html_url}
@@ -355,7 +354,7 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
                   <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                     {!prTaskStatus[pr.number]?.hasTask && (
                       <DropdownMenuItem onClick={() => handleCreateTaskFromPR(pr)}>
-                        <ListTodo className="mr-2 h-4 w-4" />
+                        <ListTodo className="me-2 h-4 w-4" />
                         Create Task
                       </DropdownMenuItem>
                     )}
@@ -364,7 +363,7 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
                       disabled={closingPR === pr.number}
                       className="text-red-600 dark:text-red-400"
                     >
-                      <X className="mr-2 h-4 w-4" />
+                      <X className="me-2 h-4 w-4" />
                       {closingPR === pr.number ? 'Closing...' : 'Close PR'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -446,7 +445,7 @@ export function RepoPullRequests({ owner, repo }: RepoPullRequestsProps) {
                   <Label htmlFor="max-duration" className="text-sm font-medium">
                     Maximum Duration
                   </Label>
-                  <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value))}>
+                  <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value, 10))}>
                     <SelectTrigger id="max-duration" className="w-full">
                       <SelectValue />
                     </SelectTrigger>

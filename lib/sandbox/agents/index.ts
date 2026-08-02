@@ -1,15 +1,24 @@
-import { Sandbox } from '@vercel/sandbox'
-import { AgentExecutionResult } from '../types'
+import type { Sandbox } from '@vercel/sandbox'
+import type { Connector } from '@/lib/db/schema'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import type { AgentExecutionResult } from '../types'
 import { executeClaudeInSandbox } from './claude'
 import { executeCodexInSandbox } from './codex'
 import { executeCopilotInSandbox } from './copilot'
 import { executeCursorInSandbox } from './cursor'
 import { executeGeminiInSandbox } from './gemini'
 import { executeOpenCodeInSandbox } from './opencode'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { Connector } from '@/lib/db/schema'
 
 export type AgentType = 'claude' | 'codex' | 'copilot' | 'cursor' | 'gemini' | 'opencode'
+
+/** API keys provisioned into the sandbox for a single agent run. */
+export interface AgentApiKeys {
+  OPENAI_API_KEY?: string
+  GEMINI_API_KEY?: string
+  CURSOR_API_KEY?: string
+  ANTHROPIC_API_KEY?: string
+  AI_GATEWAY_API_KEY?: string
+}
 
 // Re-export types
 export type { AgentExecutionResult } from '../types'
@@ -23,13 +32,7 @@ export async function executeAgentInSandbox(
   selectedModel?: string,
   mcpServers?: Connector[],
   onCancellationCheck?: () => Promise<boolean>,
-  apiKeys?: {
-    OPENAI_API_KEY?: string
-    GEMINI_API_KEY?: string
-    CURSOR_API_KEY?: string
-    ANTHROPIC_API_KEY?: string
-    AI_GATEWAY_API_KEY?: string
-  },
+  apiKeys?: AgentApiKeys,
   isResumed?: boolean,
   sessionId?: string,
   taskId?: string,
@@ -49,7 +52,7 @@ export async function executeAgentInSandbox(
   // For Copilot agent, get the GitHub token from the user's GitHub account
 
   // Ensure we have an mcpServers array
-  let enhancedMcpServers = mcpServers ? [...mcpServers] : []
+  const enhancedMcpServers = mcpServers ? [...mcpServers] : []
 
   // Inject the Visual QA MCP Server dynamically
   enhancedMcpServers.push({

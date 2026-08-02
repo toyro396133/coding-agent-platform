@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { AlertCircle, Clock, Link2, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocale } from '@/components/providers/locale-provider'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -10,8 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Loader2, Link2, AlertCircle, Clock } from 'lucide-react'
 
 interface PendingMerge {
   tokenId: string
@@ -24,7 +24,7 @@ interface PendingMerge {
 export function MergeAccountsDialog() {
   const { t } = useLocale()
   const [pendingMerges, setPendingMerges] = useState<PendingMerge[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [_isLoading, setIsLoading] = useState(true)
   const [isMerging, setIsMerging] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -168,7 +168,7 @@ export function MergeAccountsDialog() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">{t.dialogs.mergeAccounts.whatHappens}</p>
-                  <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                  <ul className="list-disc ps-5 text-sm text-muted-foreground space-y-1">
                     <li>{t.dialogs.mergeAccounts.benefit1}</li>
                     <li>{t.dialogs.mergeAccounts.benefit2}</li>
                     <li>{t.dialogs.mergeAccounts.benefit3}</li>
@@ -203,7 +203,7 @@ export function MergeAccountsDialog() {
           >
             {isMerging ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 {t.dialogs.mergeAccounts.merging}
               </>
             ) : (

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { Sandbox } from '@vercel/sandbox'
+import { eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { Sandbox } from '@vercel/sandbox'
-import { getServerSession } from '@/lib/session/get-server-session'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from '@/lib/sandbox/commands'
+import { PROJECT_DIR, runCommandInSandbox, runInProject } from '@/lib/sandbox/commands'
 import { detectPackageManager } from '@/lib/sandbox/package-manager'
+import { getServerSession } from '@/lib/session/get-server-session'
 import { createTaskLogger } from '@/lib/utils/task-logger'
 
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
@@ -145,7 +145,7 @@ export default mergeConfig(userConfig, defineConfig({
     const fullDevCommand = devArgs.length > 0 ? `${devCommand} ${devArgs.join(' ')}` : devCommand
 
     // Import Writable for stream capture
-    const { Writable } = await import('stream')
+    const { Writable } = await import('node:stream')
 
     const captureServerStdout = new Writable({
       write(chunk: Buffer | string, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
@@ -153,7 +153,7 @@ export default mergeConfig(userConfig, defineConfig({
           .toString()
           .split('\n')
           .filter((line) => line.trim())
-        for (const line of lines) {
+        for (const _line of lines) {
           logger.info('Action logged').catch(() => {})
         }
         callback()
@@ -166,7 +166,7 @@ export default mergeConfig(userConfig, defineConfig({
           .toString()
           .split('\n')
           .filter((line) => line.trim())
-        for (const line of lines) {
+        for (const _line of lines) {
           logger.info('Action logged').catch(() => {})
         }
         callback()

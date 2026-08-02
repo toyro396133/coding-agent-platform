@@ -1,6 +1,6 @@
-import { Sandbox } from '@vercel/sandbox'
+import type { Sandbox } from '@vercel/sandbox'
+import type { TaskLogger } from '@/lib/utils/task-logger'
 import { runInProject } from './commands'
-import { TaskLogger } from '@/lib/utils/task-logger'
 
 // Helper function to detect package manager based on lock files
 export async function detectPackageManager(sandbox: Sandbox, logger: TaskLogger): Promise<'pnpm' | 'yarn' | 'npm'> {
@@ -38,7 +38,7 @@ export async function installDependencies(
   let logMessage: string
 
   switch (packageManager) {
-    case 'pnpm':
+    case 'pnpm': {
       // Configure pnpm to use /tmp/pnpm-store to avoid large files in project
       const configStore = await runInProject(sandbox, 'pnpm', ['config', 'set', 'store-dir', '/tmp/pnpm-store'])
       if (!configStore.success) {
@@ -50,6 +50,7 @@ export async function installDependencies(
       installCommand = ['pnpm', 'install', '--frozen-lockfile']
       logMessage = 'Attempting pnpm install'
       break
+    }
     case 'yarn':
       installCommand = ['yarn', 'install', '--frozen-lockfile']
       logMessage = 'Attempting yarn install'

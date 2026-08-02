@@ -1,5 +1,5 @@
+import type { Plugin, PluginManifest } from '@/lib/plugins/types'
 import type { ToolContext } from '../capabilities/types'
-import type { PluginManifest, Plugin } from '@/lib/plugins/types'
 
 type ToolRegistry = Record<string, any>
 type PackLoader = (ctx: ToolContext) => ToolRegistry
@@ -103,13 +103,13 @@ export function runPluginHooks(hookName: string, ...args: unknown[]): unknown[] 
   const results: unknown[] = []
   for (const [pluginName, hooks] of pluginHooks) {
     const plugin = externalPlugins.get(pluginName)
-    if (!plugin || !plugin.enabled) continue
+    if (!plugin?.enabled) continue
 
     const handler = hooks.get(hookName)
     if (handler) {
       try {
         results.push(handler(...args))
-      } catch (error) {
+      } catch (_error) {
         console.error('Plugin hook execution failed')
       }
     }

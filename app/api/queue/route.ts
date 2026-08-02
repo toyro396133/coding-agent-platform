@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse, after } from 'next/server'
+import { after, type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { advanceAndDispatchQueue } from '@/lib/queue/dispatch'
 import {
+  deleteQueueRequest,
   enqueueRequest,
   listQueue,
-  updateQueueRequest,
-  reorderQueueRequest,
-  deleteQueueRequest,
   mergeQueueRequests,
+  reorderQueueRequest,
+  updateQueueRequest,
 } from '@/lib/queue/engine'
-import { advanceAndDispatchQueue } from '@/lib/queue/dispatch'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 /**
  * /api/queue — REST API for the user request queue.
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       after(async () => {
         try {
           await advanceAndDispatchQueue(session.user.id, cookieHeader)
-        } catch (error) {
+        } catch (_error) {
           console.error('Queue auto-advance failed')
         }
       })

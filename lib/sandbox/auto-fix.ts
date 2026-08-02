@@ -8,12 +8,12 @@
  * Inspired by Devin's auto-fix loop and the existing test-runner remediation.
  */
 
+import type { Sandbox } from '@vercel/sandbox'
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { Sandbox } from '@vercel/sandbox'
 import { getModelClient } from '@/lib/ai/models'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { runInProject, PROJECT_DIR } from './commands'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import { PROJECT_DIR, runInProject } from './commands'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -264,7 +264,7 @@ async function gatherFileContext(sandbox: Sandbox, errorOutput: string, projectD
   while ((match = filePathRegex.exec(errorOutput)) !== null) {
     let path = match[1]
     // Strip the project/ prefix if present (only at the start)
-    if (path.startsWith(projectPrefix + '/')) {
+    if (path.startsWith(`${projectPrefix}/`)) {
       path = path.slice(projectPrefix.length + 1)
     }
     // Remove leading slashes

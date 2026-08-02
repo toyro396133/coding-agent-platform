@@ -1,9 +1,9 @@
-import { Sandbox } from '@vercel/sandbox'
-import { runCommandInSandbox, runInProject, PROJECT_DIR } from '../commands'
-import { AgentExecutionResult } from '../types'
+import type { Sandbox } from '@vercel/sandbox'
+import type { connectors } from '@/lib/db/schema'
 import { redactSensitiveInfo } from '@/lib/utils/logging'
-import { TaskLogger } from '@/lib/utils/task-logger'
-import { connectors } from '@/lib/db/schema'
+import type { TaskLogger } from '@/lib/utils/task-logger'
+import { PROJECT_DIR, runCommandInSandbox, runInProject } from '../commands'
+import type { AgentExecutionResult } from '../types'
 
 type Connector = typeof connectors.$inferSelect
 
@@ -14,7 +14,7 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
 
   const result = await runInProject(sandbox, command, args)
 
-  if (result.output && result.output.trim()) {
+  if (result.output?.trim()) {
     await logger.info(redactSensitiveInfo(result.output.trim()))
   }
 
@@ -25,6 +25,96 @@ async function runAndLogCommand(sandbox: Sandbox, command: string, args: string[
   return result
 }
 
+/**
+ * Build the Codex CLI config.toml for a given model + API key.
+ *
+ * Single source of truth for the config template — used by BOTH the main
+ * codex execution path (`executeCodexInSandbox`) and the worker runner
+ * (`lib/sandbox/agents/worker.ts`), so key handling can never drift.
+ *
+ * @param model      The model to use (e.g. "openai/gpt-4o")
+ * @param apiKey     The AI Gateway / OpenAI API key (vck_ = Vercel gateway, sk- = direct)
+ * @param mcpServers Optional MCP servers to append to the config
+ */
+export function buildCodexConfigToml(model: string, apiKey: string, mcpServers?: Connector[]): string {
+  const isVercelKey = apiKey?.startsWith('vck_')
+
+  let configToml: string
+  if (isVercelKey) {
+    // Use Vercel AI Gateway configuration for vck_ keys
+    configToml = `model = "${model}"
+model_provider = "vercel-ai-gateway"
+
+[model_providers.vercel-ai-gateway]
+name = "Vercel AI Gateway"
+base_url = "https://ai-gateway.vercel.sh/v1"
+env_key = "AI_GATEWAY_API_KEY"
+wire_api = "responses"
+
+# Debug settings
+[debug]
+log_requests = true
+`
+  } else {
+    // Use OpenAI direct for sk_ keys
+    configToml = `model = "${model}"
+model_provider = "openai"
+
+[model_providers.openai]
+name = "OpenAI"
+base_url = "https://api.openai.com/v1"
+env_key = "AI_GATEWAY_API_KEY"
+wire_api = "responses"
+
+# Debug settings
+[debug]
+log_requests = true
+`
+  }
+
+  // Add MCP servers configuration if provided
+  if (mcpServers && mcpServers.length > 0) {
+    // Check if we need experimental RMCP client (for remote servers)
+    const hasRemoteServers = mcpServers.some((s) => s.type === 'remote')
+    if (hasRemoteServers) {
+      configToml = `experimental_use_rmcp_client = true\n\n${configToml}`
+    }
+
+    for (const server of mcpServers) {
+      const serverName = server.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
+
+      if (server.type === 'local') {
+        // Local STDIO server - parse command string into command and args
+        const commandParts = server.command?.trim().split(/\s+/) ?? []
+        const executable = commandParts[0]
+        const args = commandParts.slice(1)
+
+        configToml += `\n[mcp_servers.${serverName}]\ncommand = "${executable}"\n`
+        // Add args if provided
+        if (args.length > 0) {
+          configToml += `args = [${args.map((arg) => `"${arg}"`).join(', ')}]\n`
+        }
+
+        // Add env vars if provided
+        if (server.env && Object.keys(server.env).length > 0) {
+          configToml += `env = { ${Object.entries(server.env)
+            .map(([key, value]) => `"${key}" = "${value}"`)
+            .join(', ')} }\n`
+        }
+      } else {
+        // Remote HTTP/SSE server
+        configToml += `\n[mcp_servers.${serverName}]\nurl = "${server.baseUrl}"\n`
+        // Add bearer token if available (using oauthClientSecret)
+        if (server.oauthClientSecret) {
+          configToml += `bearer_token = "${server.oauthClientSecret}"\n`
+        }
+      }
+    }
+  }
+
+  return configToml
+}
+
 export async function executeCodexInSandbox(
   sandbox: Sandbox,
   instruction: string,
@@ -32,7 +122,7 @@ export async function executeCodexInSandbox(
   selectedModel?: string,
   mcpServers?: Connector[],
   isResumed?: boolean,
-  sessionId?: string,
+  _sessionId?: string,
 ): Promise<AgentExecutionResult> {
   try {
     // Executing Codex CLI with instruction
@@ -105,7 +195,7 @@ export async function executeCodexInSandbox(
     }
 
     if (logger) {
-      const keyType = isVercelKey ? 'Vercel AI Gateway' : 'OpenAI'
+      const _keyType = isVercelKey ? 'Vercel AI Gateway' : 'OpenAI'
       await logger.info('Using API key for authentication')
     }
 
@@ -130,7 +220,7 @@ export async function executeCodexInSandbox(
     // or require specific authentication setup. Let's try a more comprehensive approach
 
     // First, check if we can get version info
-    const versionTestResult = await sandbox.runCommand({
+    const _versionTestResult = await sandbox.runCommand({
       cmd: 'codex',
       args: ['--version'],
       env: {
@@ -148,97 +238,17 @@ export async function executeCodexInSandbox(
     // Create configuration file based on API key type
     // Use selectedModel if provided, otherwise fall back to default
     const modelToUse = selectedModel || 'openai/gpt-4o'
-    let configToml
-    if (isVercelKey) {
-      // Use Vercel AI Gateway configuration for vck_ keys
-      // Based on the curl example, it uses /chat/completions endpoint, not responses
-      configToml = `model = "${modelToUse}"
-model_provider = "vercel-ai-gateway"
+    const configToml = buildCodexConfigToml(modelToUse, apiKey, mcpServers)
 
-[model_providers.vercel-ai-gateway]
-name = "Vercel AI Gateway"
-base_url = "https://ai-gateway.vercel.sh/v1"
-env_key = "AI_GATEWAY_API_KEY"
-wire_api = "responses"
-
-# Debug settings
-[debug]
-log_requests = true
-`
-    } else {
-      // Use OpenAI direct for sk_ keys
-      configToml = `model = "${modelToUse}"
-model_provider = "openai"
-
-[model_providers.openai]
-name = "OpenAI"
-base_url = "https://api.openai.com/v1"
-env_key = "AI_GATEWAY_API_KEY"
-wire_api = "responses"
-
-# Debug settings
-[debug]
-log_requests = true
-`
-    }
-
-    // Add MCP servers configuration if provided
     if (mcpServers && mcpServers.length > 0) {
       await logger.info('Configuring MCP servers')
-
-      // Check if we need experimental RMCP client (for remote servers)
-      const hasRemoteServers = mcpServers.some((s) => s.type === 'remote')
-      if (hasRemoteServers) {
-        configToml = `experimental_use_rmcp_client = true\n\n` + configToml
-      }
-
-      for (const server of mcpServers) {
-        const serverName = server.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
-
-        if (server.type === 'local') {
-          // Local STDIO server - parse command string into command and args
-          const commandParts = server.command!.trim().split(/\s+/)
-          const executable = commandParts[0]
-          const args = commandParts.slice(1)
-
-          configToml += `
-[mcp_servers.${serverName}]
-command = "${executable}"
-`
-          // Add args if provided
-          if (args.length > 0) {
-            configToml += `args = [${args.map((arg) => `"${arg}"`).join(', ')}]\n`
-          }
-
-          // Add env vars if provided
-          if (server.env && Object.keys(server.env).length > 0) {
-            configToml += `env = { ${Object.entries(server.env)
-              .map(([key, value]) => `"${key}" = "${value}"`)
-              .join(', ')} }\n`
-          }
-
-          await logger.info('Added local MCP server')
-        } else {
-          // Remote HTTP/SSE server
-          configToml += `
-[mcp_servers.${serverName}]
-url = "${server.baseUrl}"
-`
-          // Add bearer token if available (using oauthClientSecret)
-          if (server.oauthClientSecret) {
-            configToml += `bearer_token = "${server.oauthClientSecret}"\n`
-          }
-
-          await logger.info('Added remote MCP server')
-        }
-      }
     }
 
     if (logger) {
       await logger.info('Creating Codex configuration file...')
     }
 
-    const configSetupResult = await sandbox.runCommand({
+    const _configSetupResult = await sandbox.runCommand({
       cmd: 'sh',
       args: ['-c', `mkdir -p ~/.codex && cat > ~/.codex/config.toml << 'EOF'\n${configToml}EOF`],
       env: {},
@@ -264,13 +274,13 @@ url = "${server.baseUrl}"
     }
 
     // Debug: List files in the current directory before running Codex
-    const lsDebugResult = await runCommandInSandbox(sandbox, 'ls', ['-la'])
+    const _lsDebugResult = await runCommandInSandbox(sandbox, 'ls', ['-la'])
     if (logger) {
       await logger.info('Current directory contents retrieved')
     }
 
     // Debug: Show current working directory
-    const pwdResult = await runCommandInSandbox(sandbox, 'pwd', [])
+    const _pwdResult = await runCommandInSandbox(sandbox, 'pwd', [])
     if (logger) {
       await logger.info('Current working directory retrieved')
     }
@@ -311,7 +321,7 @@ url = "${server.baseUrl}"
     const result = await runInProject(sandbox, 'sh', ['-c', fullCommand])
 
     // Log the output and error results (similar to Claude and Cursor)
-    if (result.output && result.output.trim()) {
+    if (result.output?.trim()) {
       const redactedOutput = redactSensitiveInfo(result.output.trim())
       await logger.info(redactedOutput)
       if (logger) {

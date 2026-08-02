@@ -1,6 +1,6 @@
-import { getSandbox } from '@/lib/sandbox/sandbox-registry'
-import { runCommandInSandbox, runInProject } from '@/lib/sandbox/commands'
 import type { CommandResult } from '@/lib/sandbox/commands'
+import { runCommandInSandbox, runInProject } from '@/lib/sandbox/commands'
+import { getSandbox } from '@/lib/sandbox/sandbox-registry'
 
 export class SandboxBridge {
   private taskId: string

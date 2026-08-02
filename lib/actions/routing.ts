@@ -1,11 +1,11 @@
 'use server'
 
+import { and, eq, like } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
+import { generateId } from '@/lib/utils/id'
 import { db } from '../db/client'
 import { settings } from '../db/schema'
-import { eq, and, like } from 'drizzle-orm'
 import { getServerSession } from '../session/get-server-session'
-import { generateId } from '@/lib/utils/id'
-import { revalidatePath } from 'next/cache'
 
 export async function getDynamicRoutes() {
   const session = await getServerSession()

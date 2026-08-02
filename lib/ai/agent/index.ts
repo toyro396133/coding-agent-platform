@@ -1,7 +1,6 @@
-import { AgentContext, AgentState, AgentResult, TaskBudgets } from './types'
-import { Sandbox } from '@vercel/sandbox'
+import type { Sandbox } from '@vercel/sandbox'
+import type { AgentContext, AgentResult, AgentState, TaskBudgets } from './types'
 import { validateProject } from './validation'
-import { generateText } from 'ai'
 // Assuming a model provider is available, e.g., from a config
 // import { getModel } from '../models'; // We will assume this exists or use a mock
 
@@ -102,7 +101,7 @@ export class NativeCloudAgent {
     }
   }
 
-  private async analyze(prompt: string): Promise<AgentState> {
+  private async analyze(_prompt: string): Promise<AgentState> {
     // Placeholder for actual generateText call
     // const { text, usage } = await generateText({
     //   model: getModel('claude-3-5-sonnet-20241022'),
@@ -112,12 +111,12 @@ export class NativeCloudAgent {
     return 'Plan'
   }
 
-  private async plan(prompt: string): Promise<AgentState> {
+  private async plan(_prompt: string): Promise<AgentState> {
     // Placeholder
     return 'Execute'
   }
 
-  private async execute(prompt: string): Promise<AgentState> {
+  private async execute(_prompt: string): Promise<AgentState> {
     // Placeholder for tool execution loop
     return 'Verify'
   }

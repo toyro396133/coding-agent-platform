@@ -1,4 +1,4 @@
-import type { Task, LogEntry } from '@/lib/db/schema'
+import type { LogEntry, Task } from '@/lib/db/schema'
 import type { AutonomyLevel, CapabilityLevel, ToolContext } from './capabilities/types'
 
 export interface SubAgentResult {
@@ -64,12 +64,12 @@ export class OrchestratorState {
       get subAgentResults() {
         return self.subAgentResults
       },
-      checkpoint: async (label: string) => {
+      checkpoint: async (_label: string) => {
         const id = `ck-${Date.now().toString(36)}`
         self.saveCheckpoint()
         return id
       },
-      restore: async (id: string) => {
+      restore: async (_id: string) => {
         self.saveCheckpoint()
       },
     }
@@ -80,7 +80,7 @@ export class OrchestratorState {
   }
 
   appendContext(context: string): void {
-    this.accumulatedContext += context + '\n'
+    this.accumulatedContext += `${context}\n`
   }
 
   markCompleted(): void {

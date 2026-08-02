@@ -1,13 +1,13 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { SharedHeader } from '@/components/shared-header'
 import { Button } from '@/components/ui/button'
 import type { Session } from '@/lib/session/types'
 import { cn } from '@/lib/utils'
 import { setSelectedOwner, setSelectedRepo } from '@/lib/utils/cookies'
-import { Plus } from 'lucide-react'
 
 interface RepoLayoutProps {
   owner: string
@@ -83,7 +83,10 @@ export function RepoLayout({ owner, repo, user, authProvider, initialStars = 120
           </nav>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-auto">{children}</div>
+        {/* Keyed by pathname so switching tabs replays a short fade-in */}
+        <div key={pathname} className="flex-1 min-h-0 overflow-auto" style={{ animation: 'fadeIn 0.25s ease-out' }}>
+          {children}
+        </div>
       </div>
     </div>
   )

@@ -54,7 +54,7 @@ Return ONLY the branch name, nothing else.`
     const branchName = `${baseBranchName}-${hash}`
 
     // Validate the base branch name
-    const branchNameRegex = /^[a-z0-9-\/]+$/
+    const branchNameRegex = /^[a-z0-9-/]+$/
     if (!branchNameRegex.test(baseBranchName)) {
       throw new Error(`Generated branch name contains invalid characters: ${baseBranchName}`)
     }

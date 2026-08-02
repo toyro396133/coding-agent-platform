@@ -36,6 +36,6 @@ export async function executeCapAgent(taskId: string, options: CapAgentOptions):
   return {
     success: result.success,
     output: result.output || '',
-    changesDetected: !!(result.output && result.output.includes('changes detected')),
+    changesDetected: !!result.output?.includes('changes detected'),
   }
 }

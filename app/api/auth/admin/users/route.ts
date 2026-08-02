@@ -1,13 +1,13 @@
 import 'server-only'
 
+import bcrypt from 'bcryptjs'
+import { eq, sql } from 'drizzle-orm'
+import { nanoid } from 'nanoid'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { users } from '@/lib/db/schema'
-import { getServerSession } from '@/lib/session/get-server-session'
 import { getUserByUsername } from '@/lib/db/users'
-import { nanoid } from 'nanoid'
-import bcrypt from 'bcryptjs'
-import { eq, sql } from 'drizzle-orm'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 export async function GET() {
   try {

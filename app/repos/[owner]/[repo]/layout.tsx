@@ -1,7 +1,7 @@
+import type { Metadata } from 'next'
 import { RepoLayout } from '@/components/repo-layout'
-import { getServerSession } from '@/lib/session/get-server-session'
 import { getGitHubStars } from '@/lib/github-stars'
-import { Metadata } from 'next'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 interface LayoutPageProps {
   params: Promise<{

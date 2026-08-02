@@ -1,9 +1,46 @@
 # תוכנית קומיטים וענפים — עבודה לא-מחויבת (Commit & Branch Plan)
 
-> **מטרת מסמך זה:** לתעד את כל העבודה הלא-מחויבת כרגע ב-working tree, לחלק אותה לפיצ'רים קוהרנטיים, ולתת לכל פיצ'ר ענף משלו עם רשימת קבצים מדויקת, הודעת commit וסדר מיזוג. כל ת'רד עתידי יכול לקחת ענף מהרשימה ולבצע אותו.
+> **מטרת מסמך זה:** לתעד את כל העבודה הלא-מחויבת כרגע ב-working tree, לחלק אותה לפיצ'רים קוהרנטיים, ולתת לכל פיצ'ר ענף משלו עם רשימת קבצים מדויקת, הודעת commit וסדר מיזוג.
 >
-> **תאריך עדכון אחרון:** 2 באוגוסט 2026
+> **סטטוס: ✅ הושלם** — כל 8 הענפים מוזגו ל-`main` (PRs #31–#38).
+> **תאריך עדכון אחרון:** 2 באוגוסט 2026 (סגירה)
 > **בסיס:** `main` ב-`10ac0e5` (אחרי מיזוג PR #30)
+
+---
+
+## 0. סטטוס הביצוע (✅ הושלם)
+
+### 0.1 טבלת סטטוס מלאה
+
+| # | ענף | PR | Merge commit | סטטוס |
+|---|---|---|---|---|
+| 0 | `chore/repo-infra` | [#31](https://github.com/toyro396133/coding-agent-platform/pull/31) | `9db3af6` | ✅ מוזג |
+| 1 | `feat/request-queue` | [#32](https://github.com/toyro396133/coding-agent-platform/pull/32) | `ae7a281` | ✅ מוזג |
+| 2 | `feat/router-metrics-dashboard` | [#33](https://github.com/toyro396133/coding-agent-platform/pull/33) | `c2ad6a1` | ✅ מוזג |
+| 3 | `feat/rate-limits-rotation` | [#34](https://github.com/toyro396133/coding-agent-platform/pull/34) | `1e551bc` | ✅ מוזג |
+| 4 | `feat/visual-qa-automation` | [#35](https://github.com/toyro396133/coding-agent-platform/pull/35) | `f87f270` | ✅ מוזג |
+| 5 | `feat/autonomy-system-control` | [#36](https://github.com/toyro396133/coding-agent-platform/pull/36) | `1db3fa4` | ✅ מוזג |
+| 6 | `feat/aider-repo-map` | [#37](https://github.com/toyro396133/coding-agent-platform/pull/37) | `4396a1b` | ✅ מוזג |
+| 7 | `feat/landing-page` | [#38](https://github.com/toyro396133/coding-agent-platform/pull/38) | `3fe1438` | ✅ מוזג |
+
+### 0.2 מה הפלטפורמה קיבלה (סיכום כולל)
+
+- **תשתית ומפתח (ענף 0):** vitest + סקריפט `validate-docs.sh` + `ARCHITECTURE.md` — בסיס לבדיקות יחידה ול-CI לכל הענפים הבאים.
+- **תור בקשות (ענף 1):** תור משתמשים עם backlog מסודר מחדש ו-auto-advance dispatch (`lib/queue/*`, `app/api/queue`, `queue-panel.tsx`) — תיקן גם את שבירת ה-Vercel build.
+- **מדדי routing (ענף 2):** LRU cache עם dedup + דשבורד מדדים (`lib/ai/router-metrics.ts`, `router-cache.ts`, `app/api/metrics`) — נראות על החלטות ה-router.
+- **Rate-limits ו-retry (ענף 3):** מעקב שימוש לספק, רוטציית מפתחות, ו-`withRetry` עם backoff+jitter (`lib/rate-limits/*`, `lib/ai/retry.ts`) — בסיס לענף 4.
+- **ביקורת ויזואלית אוטומטית (ענף 4):** צילום מסך בארגז החול + ביקורת מודל vision + היסטוריית ריצות DB (`visual-qa-*`, `auto-visual-qa.ts`, migration 0034) — רצה אוטומטית אחרי כל push של שינויי UI.
+- **אוטונומיה מלאה (ענף 5):** `AutonomyLevel` (guided/autonomous/full, ברירת מחדל full) + חבילת כלי שליטה במערכת (`system-tools.ts` — stopTask, killSandbox עם guard בעלות, revoke API keys, rate limits, הגדרות) — 17 בדיקות יחידה.
+- **Repo map בסגנון Aider (ענף 6):** חילוץ סמלים AST (TypeScript compiler API + fallback לפייתון/Go) עם תקציב טוקנים, מוזרק ל-system prompt של האורכ'סטרטור — חיסכון משמעותי בטוקנים (20 בדיקות).
+- **דף נחיתה + ליטוש RTL (ענף 7):** `/landing` (רשת 6 סוכנים, אנימציית הקלדה, CTA), hero חדש בדף הבית, IBM Plex fonts, `lang`/`dir` דינמי (he=rtl), טבלת קודי שגיאה ב-`/capabilities`, ותיקוני `space-x→gap`/`ms`/`me` ב-5 קומפוננטות.
+
+### 0.3 ענפים מקומיים שנמחקו
+
+הענפים המקומיים הבאים נמחקו לאחר המיזוג: `chore/repo-infra`, `feat/request-queue`, `feat/router-metrics-dashboard`, `feat/rate-limits-rotation`, `feat/visual-qa-automation`, `feat/autonomy-system-control`, `feat/aider-repo-map`.
+
+**`feat/landing-page` טרם נמחק** — הוא היה הענף המחובר (checked out) בזמן הסגירה, ומעבר ל-`main` נחסם בגלל שינויים לא-מחויבים של ת'רדים אחרים ב-working tree (אין לגעת בהם). יימחק כשיהיה מעבר בטוח ל-`main`.
+
+> **לת'רדים עתידיים:** כל התוכן למטה (פירוט הקבצים, נקודות קריטיות) נשמר כהיסטוריה וכהתייחסות — הענפים כבר מוזגו.
 
 ---
 

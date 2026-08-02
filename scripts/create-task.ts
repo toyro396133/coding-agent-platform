@@ -1,10 +1,8 @@
 import 'dotenv/config'
-import { EncryptJWT, base64url } from 'jose'
+import { base64url, EncryptJWT } from 'jose'
 import { getUserByUsername } from '../lib/db/users'
-import { generateId } from '../lib/utils/id'
-import { db } from '../lib/db/client'
-import { tasks } from '../lib/db/schema'
 import { SESSION_COOKIE_NAME } from '../lib/session/constants'
+import { generateId } from '../lib/utils/id'
 
 async function main() {
   const user = await getUserByUsername('admin')

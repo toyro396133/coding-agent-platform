@@ -1,41 +1,41 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useLocale } from '@/components/providers/locale-provider'
-import { TaskForm } from '@/components/task-form'
-import { SharedHeader } from '@/components/shared-header'
-import { RepoSelector } from '@/components/repo-selector'
-import { toast } from 'sonner'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { ExternalLink, MoreHorizontal, Plus, RefreshCw, Settings, Sparkles, Unlink, Zap } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { useTasks } from '@/components/app-layout'
-import { setSelectedOwner, setSelectedRepo } from '@/lib/utils/cookies'
-import type { Session } from '@/lib/session/types'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { HomePageMobileFooter } from '@/components/home-page-mobile-footer'
+import { GitHubIcon } from '@/components/icons/github-icon'
+import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
+import { MultiRepoDialog } from '@/components/multi-repo-dialog'
+import { OpenRepoUrlDialog } from '@/components/open-repo-url-dialog'
+import { useLocale } from '@/components/providers/locale-provider'
+import { QueuePanel } from '@/components/queue-panel'
+import { RepoSelector } from '@/components/repo-selector'
+import { SharedHeader } from '@/components/shared-header'
+import { TaskForm } from '@/components/task-form'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, RefreshCw, Unlink, Settings, Plus, ExternalLink, Sparkles, Zap } from 'lucide-react'
-import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
-import { GitHubIcon } from '@/components/icons/github-icon'
-import { Claude, Codex, Copilot, Cursor, Gemini, OpenCode } from '@/components/logos'
-import { cn } from '@/lib/utils'
-import { getEnabledAuthProviders } from '@/lib/auth/providers'
-import Link from 'next/link'
-import { useSetAtom, useAtom, useAtomValue } from 'jotai'
-import { taskPromptAtom } from '@/lib/atoms/task'
-import { HomePageMobileFooter } from '@/components/home-page-mobile-footer'
+import { githubConnectionAtom, githubConnectionInitializedAtom } from '@/lib/atoms/github-connection'
 import { multiRepoModeAtom, selectedReposAtom } from '@/lib/atoms/multi-repo'
 import { sessionAtom } from '@/lib/atoms/session'
-import { githubConnectionAtom, githubConnectionInitializedAtom } from '@/lib/atoms/github-connection'
-import { OpenRepoUrlDialog } from '@/components/open-repo-url-dialog'
-import { MultiRepoDialog } from '@/components/multi-repo-dialog'
-import { QueuePanel } from '@/components/queue-panel'
+import { taskPromptAtom } from '@/lib/atoms/task'
+import { getEnabledAuthProviders } from '@/lib/auth/providers'
 import { VERCEL_DEPLOY_URL } from '@/lib/constants'
+import { redirectToSignIn } from '@/lib/session/redirect-to-sign-in'
+import type { Session } from '@/lib/session/types'
+import { cn } from '@/lib/utils'
+import { setSelectedOwner, setSelectedRepo } from '@/lib/utils/cookies'
 
 const HERO_PROMPTS = [
   'בנה API לרשימת משימות עם Express ו-TypeScript',
@@ -343,29 +343,29 @@ export function HomePageContent({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={handleNewRepo}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 me-2" />
                 New Repo
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowOpenRepoDialog(true)}>
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <ExternalLink className="h-4 w-4 me-2" />
                 Open Repo URL
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleRefreshOwners} disabled={isRefreshing}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 me-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh Owners
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleRefreshRepos} disabled={isRefreshing}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 me-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh Repos
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleReconfigureGitHub}>
-                <Settings className="h-4 w-4 mr-2" />
+                <Settings className="h-4 w-4 me-2" />
                 Manage Access
               </DropdownMenuItem>
               {!isGitHubAuthUser && (
                 <DropdownMenuItem onClick={handleDisconnectGitHub}>
-                  <Unlink className="h-4 w-4 mr-2" />
+                  <Unlink className="h-4 w-4 me-2" />
                   Disconnect GitHub
                 </DropdownMenuItem>
               )}
@@ -374,7 +374,7 @@ export function HomePageContent({
         </>
       ) : user ? (
         <Button onClick={handleConnectGitHub} variant="outline" size="sm" className="h-8 flex-shrink-0">
-          <GitHubIcon className="h-4 w-4 mr-2" />
+          <GitHubIcon className="h-4 w-4 me-2" />
           Connect GitHub
         </Button>
       ) : selectedOwner || selectedRepo ? (
@@ -523,7 +523,7 @@ export function HomePageContent({
       try {
         // Create all tasks in parallel
         const responses = await Promise.all(
-          tasksData.map((taskData) =>
+          (tasksData ?? []).map((taskData) =>
             fetch('/api/tasks', {
               method: 'POST',
               headers: {
@@ -566,7 +566,7 @@ export function HomePageContent({
     if (isMultiAgent) {
       // Create multiple tasks, one for each selected model
       const taskIds: string[] = []
-      const tasksData = data.selectedModels!.map((modelValue) => {
+      const tasksData = data.selectedModels?.map((modelValue) => {
         // Parse agent:model format
         const [agent, model] = modelValue.split(':')
         const { id } = addTaskOptimistically({
@@ -598,7 +598,7 @@ export function HomePageContent({
       try {
         // Create all tasks in parallel
         const responses = await Promise.all(
-          tasksData.map((taskData) =>
+          (tasksData ?? []).map((taskData) =>
             fetch('/api/tasks', {
               method: 'POST',
               headers: {
@@ -860,7 +860,7 @@ export function HomePageContent({
                 {loadingVercel ? (
                   <>
                     <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      className="animate-spin -ms-1 me-2 h-4 w-4"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -883,7 +883,7 @@ export function HomePageContent({
                   </>
                 ) : (
                   <>
-                    <svg viewBox="0 0 76 65" className="h-3 w-3 mr-2" fill="currentColor">
+                    <svg viewBox="0 0 76 65" className="h-3 w-3 me-2" fill="currentColor">
                       <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" />
                     </svg>
                     Sign in with Vercel
@@ -903,7 +903,7 @@ export function HomePageContent({
                 {loadingGitHub ? (
                   <>
                     <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      className="animate-spin -ms-1 me-2 h-4 w-4"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -926,7 +926,7 @@ export function HomePageContent({
                   </>
                 ) : (
                   <>
-                    <GitHubIcon className="h-4 w-4 mr-2" />
+                    <GitHubIcon className="h-4 w-4 me-2" />
                     Sign in with GitHub
                   </>
                 )}

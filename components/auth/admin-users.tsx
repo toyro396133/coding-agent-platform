@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useAtomValue } from 'jotai'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { toast } from 'sonner'
-import { useAtomValue } from 'jotai'
 import { sessionAtom } from '@/lib/atoms/session'
 
 interface UserInfo {
@@ -29,10 +29,6 @@ export function AdminUsers() {
   const [selectedUserId, setSelectedUserId] = useState('')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    fetchUsers()
-  }, [])
-
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/auth/admin/users')
@@ -42,6 +38,10 @@ export function AdminUsers() {
       console.error('Failed to fetch users')
     }
   }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -145,7 +145,7 @@ export function AdminUsers() {
               {loading ? 'Saving...' : selectedUserId ? 'Set Password' : 'Create User'}
             </Button>
             {selectedUserId && (
-              <Button type="button" variant="ghost" className="ml-2" onClick={() => setSelectedUserId('')}>
+              <Button type="button" variant="ghost" className="ms-2" onClick={() => setSelectedUserId('')}>
                 Cancel
               </Button>
             )}

@@ -1,10 +1,10 @@
 import { Suspense } from 'react'
+import { AdminUsers } from '@/components/auth/admin-users'
+import { PlatformApiKeys } from '@/components/platform-api-keys'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getDynamicRoutes } from '@/lib/actions/routing'
 import { RoutingForm } from './routing-form'
-import { AdminUsers } from '@/components/auth/admin-users'
-import { PlatformApiKeys } from '@/components/platform-api-keys'
 
 export const metadata = {
   title: 'Settings',

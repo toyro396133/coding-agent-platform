@@ -1,7 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import type { ToolContext } from './types'
 import { SandboxBridge } from '../runtime/sandbox-bridge'
+import type { ToolContext } from './types'
 
 export function createShellTools(ctx: ToolContext) {
   const bridge = new SandboxBridge(ctx.taskId)
@@ -30,7 +30,7 @@ export function createShellTools(ctx: ToolContext) {
           if (result.exitCode !== undefined) output += `Exit code: ${result.exitCode}\n`
           if (result.output) {
             const truncated =
-              result.output.length > 10000 ? result.output.slice(0, 10000) + '\n... (output truncated)' : result.output
+              result.output.length > 10000 ? `${result.output.slice(0, 10000)}\n... (output truncated)` : result.output
             output += truncated
           }
           if (result.error) output += `\nStderr: ${result.error}`

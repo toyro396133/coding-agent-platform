@@ -1,10 +1,20 @@
 'use client'
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { ArrowLeft, Eye, EyeOff, Loader2, Pencil, Plus, Server, X } from 'lucide-react'
+import { useActionState, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { useConnectors } from '@/components/connectors-provider'
+import BrowserbaseIcon from '@/components/icons/browserbase-icon'
+import Context7Icon from '@/components/icons/context7-icon'
+import ConvexIcon from '@/components/icons/convex-icon'
+import FigmaIcon from '@/components/icons/figma-icon'
+import HuggingFaceIcon from '@/components/icons/huggingface-icon'
+import LinearIcon from '@/components/icons/linear-icon'
+import NotionIcon from '@/components/icons/notion-icon'
+import PlaywrightIcon from '@/components/icons/playwright-icon'
+import SupabaseIcon from '@/components/icons/supabase-icon'
+import { McpMarketplace } from '@/components/mcp-marketplace'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import {
   AlertDialog,
@@ -16,47 +26,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { createConnector, updateConnector, deleteConnector, toggleConnectorStatus } from '@/lib/actions/connectors'
-import type { Connector } from '@/lib/db/schema'
-import { useActionState } from 'react'
-import { toast } from 'sonner'
-import { useEffect, useState, useRef } from 'react'
-import { useConnectors } from '@/components/connectors-provider'
-import { Loader2, Plus, X, ArrowLeft, Eye, EyeOff, Pencil, Server } from 'lucide-react'
-import BrowserbaseIcon from '@/components/icons/browserbase-icon'
-import Context7Icon from '@/components/icons/context7-icon'
-import ConvexIcon from '@/components/icons/convex-icon'
-import FigmaIcon from '@/components/icons/figma-icon'
-import HuggingFaceIcon from '@/components/icons/huggingface-icon'
-import LinearIcon from '@/components/icons/linear-icon'
-import NotionIcon from '@/components/icons/notion-icon'
-import PlaywrightIcon from '@/components/icons/playwright-icon'
-import SupabaseIcon from '@/components/icons/supabase-icon'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { createConnector, deleteConnector, toggleConnectorStatus, updateConnector } from '@/lib/actions/connectors'
 import {
+  addCustomServerAtom,
+  clearPresetActionAtom,
   connectorDialogViewAtom,
   editingConnectorAtom,
-  selectedPresetAtom,
-  serverTypeAtom,
   envVarsAtom,
-  visibleEnvVarsAtom,
+  goBackFromFormAtom,
+  goBackFromMarketplaceAtom,
+  goBackFromPresetsAtom,
   isEditingAtom,
+  onSuccessActionAtom,
+  openMarketplaceAtom,
+  type PresetConfig,
   resetDialogStateAtom,
+  selectedPresetAtom,
+  selectPresetActionAtom,
+  serverTypeAtom,
   setEditingConnectorActionAtom,
   startAddingConnectorAtom,
-  selectPresetActionAtom,
-  addCustomServerAtom,
-  goBackFromFormAtom,
-  goBackFromPresetsAtom,
-  openMarketplaceAtom,
-  goBackFromMarketplaceAtom,
-  onSuccessActionAtom,
-  clearPresetActionAtom,
-  type PresetConfig,
+  visibleEnvVarsAtom,
 } from '@/lib/atoms/connector-dialog'
-import { McpMarketplace } from '@/components/mcp-marketplace'
 
 interface ConnectorDialogProps {
   open: boolean
@@ -129,7 +127,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
   const [loadingConnectors, setLoadingConnectors] = useState<Set<string>>(new Set())
 
   // Jotai atoms
-  const [view, setView] = useAtom(connectorDialogViewAtom)
+  const [view, _setView] = useAtom(connectorDialogViewAtom)
   const editingConnector = useAtomValue(editingConnectorAtom)
   const isEditing = useAtomValue(isEditingAtom)
   const [serverType, setServerType] = useAtom(serverTypeAtom)
@@ -557,49 +555,43 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                 )}
 
                 {serverType === 'remote' ? (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="baseUrl">Base URL</Label>
-                      <Input
-                        id="baseUrl"
-                        name="baseUrl"
-                        type="url"
-                        placeholder="https://api.example.com"
-                        defaultValue={editingConnector?.baseUrl || selectedPreset?.url || ''}
-                        required={serverType === 'remote'}
-                        disabled={!!selectedPreset}
-                      />
-                      {state.errors?.baseUrl && <p className="text-sm text-red-600">{state.errors.baseUrl}</p>}
-                    </div>
-                  </>
+                  <div className="space-y-2">
+                    <Label htmlFor="baseUrl">Base URL</Label>
+                    <Input
+                      id="baseUrl"
+                      name="baseUrl"
+                      type="url"
+                      placeholder="https://api.example.com"
+                      defaultValue={editingConnector?.baseUrl || selectedPreset?.url || ''}
+                      required={serverType === 'remote'}
+                      disabled={!!selectedPreset}
+                    />
+                    {state.errors?.baseUrl && <p className="text-sm text-red-600">{state.errors.baseUrl}</p>}
+                  </div>
                 ) : (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="command">Command</Label>
-                      <Input
-                        id="command"
-                        name="command"
-                        placeholder="npx @browserbasehq/mcp"
-                        defaultValue={editingConnector?.command || selectedPreset?.command || ''}
-                        required={serverType === 'local'}
-                        disabled={!!selectedPreset}
-                      />
-                      <p className="text-xs text-muted-foreground">Full command including all arguments</p>
-                      {state.errors?.command && <p className="text-sm text-red-600">{state.errors.command}</p>}
-                    </div>
-                  </>
+                  <div className="space-y-2">
+                    <Label htmlFor="command">Command</Label>
+                    <Input
+                      id="command"
+                      name="command"
+                      placeholder="npx @browserbasehq/mcp"
+                      defaultValue={editingConnector?.command || selectedPreset?.command || ''}
+                      required={serverType === 'local'}
+                      disabled={!!selectedPreset}
+                    />
+                    <p className="text-xs text-muted-foreground">Full command including all arguments</p>
+                    {state.errors?.command && <p className="text-sm text-red-600">{state.errors.command}</p>}
+                  </div>
                 )}
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>
                       Environment Variables{' '}
-                      {selectedPreset && selectedPreset.envKeys && selectedPreset.envKeys.length > 0
-                        ? ''
-                        : '(optional)'}
+                      {selectedPreset?.envKeys && selectedPreset.envKeys.length > 0 ? '' : '(optional)'}
                     </Label>
                     <Button type="button" size="sm" variant="outline" onClick={addEnvVar}>
-                      <Plus className="h-4 w-4 mr-1" />
+                      <Plus className="h-4 w-4 me-1" />
                       Add Variable
                     </Button>
                   </div>
@@ -626,7 +618,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="absolute right-0 top-0 h-full hover:bg-transparent"
+                              className="absolute end-0 top-0 h-full hover:bg-transparent"
                               onClick={() => toggleEnvVarVisibility(index)}
                             >
                               {visibleEnvVars.has(index) ? (
@@ -702,7 +694,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                     <Button type="submit" disabled={pending || isDeleting}>
                       {pending ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="me-2 h-4 w-4 animate-spin" />
                           {isEditing ? 'Saving...' : 'Creating...'}
                         </>
                       ) : isEditing ? (
@@ -736,7 +728,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                   Deleting...
                 </>
               ) : (

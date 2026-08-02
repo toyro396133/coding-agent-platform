@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSandbox } from '@/lib/sandbox/sandbox-registry'
-import { runInProject } from '@/lib/sandbox/commands'
-import { getServerSession } from '@/lib/session/get-server-session'
+import { and, eq, isNull } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { tasks } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { runInProject } from '@/lib/sandbox/commands'
+import { getSandbox } from '@/lib/sandbox/sandbox-registry'
+import { getServerSession } from '@/lib/session/get-server-session'
 
 interface RouteParams {
   params: Promise<{ taskId: string }>
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 })
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('Git operation failed')
     return NextResponse.json({ error: 'Git operation failed' }, { status: 500 })
   }

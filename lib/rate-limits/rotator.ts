@@ -8,12 +8,10 @@
  * 4. Returns the selected key or null if all providers are exhausted
  */
 
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { poolApiKeys } from '@/lib/db/schema'
-import { eq, and, isNull, sql } from 'drizzle-orm'
-import type { LlmProvider, KeyStatus } from './types'
-import { markProviderExhausted } from './tracker'
-import { PROVIDER_QUOTAS } from './types'
+import type { KeyStatus, LlmProvider } from './types'
 
 // ─── Provider fallback order ────────────────────────────────────────────
 
@@ -61,7 +59,7 @@ async function loadKeysFromDb(provider?: LlmProvider): Promise<KeyStatus[]> {
       exhaustedAt: row.exhaustedAt,
       quotaResetMinutes: row.quotaResetMinutes,
     }))
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to load pool keys from DB')
     return []
   }
@@ -119,7 +117,7 @@ export async function exhaustKey(keyId: string, resetMinutes?: number): Promise<
       cached.healthy = false
       cached.exhaustedAt = resetAt
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to exhaust key')
   }
 }
@@ -160,7 +158,7 @@ export async function resetExpiredKeys(provider?: LlmProvider): Promise<number> 
     }
 
     return result.length
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to reset expired keys')
     return 0
   }
@@ -186,7 +184,7 @@ export async function recordKeyUsage(keyId: string): Promise<void> {
       cached.usageCount++
       cached.lastUsedAt = now
     }
-  } catch (error) {
+  } catch (_error) {
     console.error('Failed to record key usage')
   }
 }

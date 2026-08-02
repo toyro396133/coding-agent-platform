@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useLocale } from '@/components/providers/locale-provider'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
-import { Eye, EyeOff } from 'lucide-react'
 
 interface ApiKeysDialogProps {
   open: boolean
@@ -44,12 +44,6 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
   })
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (open) {
-      fetchApiKeys()
-    }
-  }, [open])
-
   const fetchApiKeys = async () => {
     try {
       const response = await fetch('/api/api-keys')
@@ -66,6 +60,12 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
       console.error('Error fetching API keys:', error)
     }
   }
+
+  useEffect(() => {
+    if (open) {
+      fetchApiKeys()
+    }
+  }, [open, fetchApiKeys])
 
   const handleSave = async (provider: Provider) => {
     const key = apiKeys[provider]
@@ -108,7 +108,7 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
     }
   }
 
-  const handleDelete = async (provider: Provider) => {
+  const _handleDelete = async (provider: Provider) => {
     setLoading(true)
     try {
       const response = await fetch(`/api/api-keys?provider=${provider}`, {
@@ -206,11 +206,11 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
                     value={apiKeys[provider.id]}
                     onChange={(e) => setApiKeys((prev) => ({ ...prev, [provider.id]: e.target.value }))}
                     disabled={loading || isInputDisabled}
-                    className="pr-9 h-8 text-sm"
+                    className="pe-9 h-8 text-sm"
                   />
                   <button
                     onClick={() => toggleShowKey(provider.id)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     type="button"
                     disabled={loading || isInputDisabled}
                   >

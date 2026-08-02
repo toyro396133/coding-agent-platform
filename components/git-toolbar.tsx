@@ -1,21 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { ArrowDown, ArrowUp, Check, FileDiff, GitBranch, GitCommit, List, Loader2, RefreshCw, X } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  GitBranch,
-  ArrowUp,
-  ArrowDown,
-  RotateCcw,
-  GitCommit,
-  List,
-  FileDiff,
-  RefreshCw,
-  Loader2,
-  Check,
-  X,
-} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface GitToolbarProps {
@@ -51,7 +39,7 @@ export function GitToolbar({ taskId, className }: GitToolbarProps) {
         if (data.output) setOutput(data.output)
         if (data.error) setError(data.error)
         return data
-      } catch (e) {
+      } catch (_e) {
         setError('Network error')
         return { success: false, error: 'Network error' }
       } finally {

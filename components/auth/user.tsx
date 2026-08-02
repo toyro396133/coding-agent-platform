@@ -1,11 +1,11 @@
 'use client'
 
-import { SignOut } from './sign-out'
-import { SignIn } from './sign-in'
-import { type Session } from '@/lib/session/types'
 import { useAtomValue } from 'jotai'
-import { sessionAtom, sessionInitializedAtom } from '@/lib/atoms/session'
 import { useMemo } from 'react'
+import { sessionAtom, sessionInitializedAtom } from '@/lib/atoms/session'
+import type { Session } from '@/lib/session/types'
+import { SignIn } from './sign-in'
+import { SignOut } from './sign-out'
 
 export function User(props: { user?: Session['user'] | null; authProvider?: Session['authProvider'] | null }) {
   const session = useAtomValue(sessionAtom)

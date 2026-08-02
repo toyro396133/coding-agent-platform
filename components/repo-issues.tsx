@@ -1,11 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Calendar, ListTodo, MessageSquare, MoreVertical, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import Claude from '@/components/logos/claude'
+import Codex from '@/components/logos/codex'
+import Copilot from '@/components/logos/copilot'
+import Cursor from '@/components/logos/cursor'
+import Gemini from '@/components/logos/gemini'
+import OpenCode from '@/components/logos/opencode'
+import { SkeletonCardList } from '@/components/skeleton-card-list'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,18 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
-import { User, Calendar, MessageSquare, MoreVertical, ListTodo } from 'lucide-react'
-import { toast } from 'sonner'
-import Claude from '@/components/logos/claude'
-import Codex from '@/components/logos/codex'
-import Copilot from '@/components/logos/copilot'
-import Cursor from '@/components/logos/cursor'
-import Gemini from '@/components/logos/gemini'
-import OpenCode from '@/components/logos/opencode'
-import { CODING_AGENTS, AGENT_MODELS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AGENT_MODELS, CODING_AGENTS, DEFAULT_MODELS } from '@/lib/ai/model-definitions'
 
 const AGENT_ICONS = {
   claude: Claude,
@@ -178,14 +179,7 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading issues...</p>
-        </div>
-      </div>
-    )
+    return <SkeletonCardList count={5} showAvatar className="pb-6" />
   }
 
   if (error) {
@@ -214,8 +208,12 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
   return (
     <>
       <div className="space-y-3 pb-6">
-        {issues.map((issue) => (
-          <Card key={issue.number} className="p-4 hover:bg-muted/50 transition-colors">
+        {issues.map((issue, index) => (
+          <Card
+            key={issue.number}
+            className="card-in p-4 hover:bg-muted/50 transition-colors"
+            style={{ animationDelay: `${Math.min(index * 35, 400)}ms` }}
+          >
             <div className="flex items-start gap-3">
               <img
                 src={issue.user.avatar_url}
@@ -274,7 +272,7 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleCreateTaskFromIssue(issue)}>
-                          <ListTodo className="h-4 w-4 mr-2" />
+                          <ListTodo className="h-4 w-4 me-2" />
                           Create Task
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -358,7 +356,7 @@ export function RepoIssues({ owner, repo }: RepoIssuesProps) {
                   <Label htmlFor="max-duration" className="text-sm font-medium">
                     Maximum Duration
                   </Label>
-                  <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value))}>
+                  <Select value={maxDuration.toString()} onValueChange={(value) => setMaxDuration(parseInt(value, 10))}>
                     <SelectTrigger id="max-duration" className="w-full">
                       <SelectValue />
                     </SelectTrigger>

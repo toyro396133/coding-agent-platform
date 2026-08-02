@@ -88,6 +88,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // Autonomy level: default to 'full' (100% control). Accept 'guided' or
+    // 'autonomous' to dial back for a specific task.
+    const autonomyLevel =
+      body.autonomyLevel === 'guided' || body.autonomyLevel === 'autonomous' ? body.autonomyLevel : 'full'
+
     // Use provided ID or generate a new one
     const taskId = body.id || generateId(12)
     const validatedData = insertTaskSchema.parse({
@@ -257,6 +262,7 @@ export async function POST(request: NextRequest) {
           validatedData.enableBrowser || false,
           validatedData.executionMode || 'orchestrator_external',
           validatedData.executionLevel || 'basic',
+          autonomyLevel,
           validatedData.workerTeamConfig || undefined,
           userApiKeys,
           userGithubToken,
@@ -288,6 +294,7 @@ async function processTaskWithTimeout(
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
   executionLevel: string = 'basic',
+  autonomyLevel: string = 'full',
   workerTeamConfig?: {
     workers: { id: string; role: string; agentType: string; model: string; instructions: string; priority: number }[]
     timeoutMinutes: number
@@ -340,6 +347,7 @@ async function processTaskWithTimeout(
         enableBrowser,
         executionMode,
         executionLevel,
+        autonomyLevel,
         workerTeamConfig,
         apiKeys,
         githubToken,
@@ -413,6 +421,7 @@ async function processTask(
   enableBrowser: boolean = false,
   executionMode: string = 'orchestrator_external',
   executionLevel: string = 'basic',
+  autonomyLevel: string = 'full',
   workerTeamConfig?: {
     workers: { id: string; role: string; agentType: string; model: string; instructions: string; priority: number }[]
     timeoutMinutes: number
@@ -756,6 +765,7 @@ async function processTask(
           userId,
           selectedModel: finalModel,
           capabilityLevel: executionLevel as 'basic' | 'enhanced' | 'auto',
+          autonomyLevel: autonomyLevel as 'guided' | 'autonomous' | 'full',
         })
         if (result.paused) {
           orchestratorPaused = true

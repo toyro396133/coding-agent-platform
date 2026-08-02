@@ -9,8 +9,9 @@ import { routePrompt } from '@/lib/ai/router'
 import { OrchestratorState, type OrchestratorResult, type AgentTeamMember } from './state'
 import { createOrchestratorTools } from './tools'
 import { loadCapabilityTools } from './capabilities/index'
+import { loadPackTools } from './runtime/plugin-registry'
 import { getModeConfig } from './modes'
-import type { CapabilityLevel } from './capabilities/types'
+import type { AutonomyLevel, CapabilityLevel } from './capabilities/types'
 import { createTaskLogger } from '@/lib/utils/task-logger'
 import { deployWorkerTeam, mergeWorkerPatches } from './worker/worker-manager'
 import type { WorkerSpec, WorkerTeamSpec } from './worker/types'
@@ -25,6 +26,11 @@ interface RunOrchestratorOptions {
   systemPrompt?: string
   maxSteps?: number
   capabilityLevel?: CapabilityLevel
+  /**
+   * Autonomy level for this run. Defaults to 'full' (100% control): the agent
+   * never pauses for plan approval and receives system-control tools.
+   */
+  autonomyLevel?: AutonomyLevel
   apiKeys?: {
     OPENAI_API_KEY?: string
     GEMINI_API_KEY?: string
@@ -146,8 +152,13 @@ export async function runOrchestrator(prompt: string, options: RunOrchestratorOp
 
   const level = options.capabilityLevel || 'enhanced'
   state.capabilityLevel = level
-  if (options.userId && level !== 'basic') {
-    state.setCapabilityLevel(level, options.userId)
+  const autonomyLevel = options.autonomyLevel || 'full'
+  state.autonomyLevel = autonomyLevel
+  // Build the tool context whenever we have a userId — even in basic mode — so
+  // full autonomy can always load the system-control pack regardless of the
+  // capability level.
+  if (options.userId) {
+    state.setCapabilityContext(level, options.userId, autonomyLevel)
   }
 
   // Smart model selection using the enhanced router
@@ -172,6 +183,7 @@ You are in ENHANCED mode with these capabilities:
 🔍 LSP/AST Tools — type checking, code analysis
 🌐 Browser Tools — Playwright navigation, screenshots
 🗺️ Repo Map — codebase structure overview
+🛠️ System Tools — platform control (sandboxes, API keys, settings, rate limits, tasks)
 
 Use the right tools for each job. Start with generateRepoMap to understand the codebase.`
   } else if (level === 'auto') {
@@ -225,7 +237,37 @@ Proceed without asking for each step. Use your judgment.`
     }
   }
 
-  const systemPrompt = baseSystemPrompt + modeInstructions + rulesText + taskQueueAwareness
+  // Full-autonomy mandate: the agent controls the platform itself and never
+  // pauses for approval. Applied after mode instructions so it takes precedence.
+  let autonomyInstructions = ''
+  if (autonomyLevel === 'full') {
+    autonomyInstructions = `
+
+=== FULL AUTONOMY & SYSTEM CONTROL ===
+You have 100% autonomy over both the task AND the platform itself.
+- Do NOT ask for permission or wait for approval at any step.
+- Use the system tools (getSystemStatus, listActiveTasks, stopTask, killSandbox,
+  getRateLimitStatus, getRouterMetrics, listPlatformApiKeys, revokePlatformApiKey,
+  getUserSettings, setUserSetting) to observe and control the platform.
+- You may stop runaway tasks, revoke leaked API keys, adjust settings, and
+  kill sandboxes — exercise judgment, act decisively.
+- The createPlan tool records a plan but NEVER pauses execution; proceed and execute.
+- Handle errors autonomously: diagnose, fix, retry. Only surface the final result.`
+  } else if (autonomyLevel === 'autonomous') {
+    autonomyInstructions = `
+
+=== AUTONOMOUS MODE ===
+You execute freely and do not need step-by-step approval. Plan approval is
+optional — if you create a plan you may continue working in the same pass.`
+  } else {
+    autonomyInstructions = `
+
+=== GUIDED MODE ===
+You may create a plan for human approval. When you call createPlan, the task
+will pause and wait for the user to approve before continuing.`
+  }
+
+  const systemPrompt = baseSystemPrompt + modeInstructions + rulesText + taskQueueAwareness + autonomyInstructions
 
   // Compose Agent Team for parallel execution
   const agentTeam = composeAgentTeam(prompt, options.repoUrl)
@@ -390,9 +432,17 @@ Available team members: ${agentTeam.map((m) => `${m.role} (${m.specialty})`).joi
       }
     }
 
-    if (level !== 'basic' && state.toolContext) {
-      const capTools = loadCapabilityTools(level, state.toolContext)
-      allTools = { ...allTools, ...capTools }
+    if (state.toolContext) {
+      // Standard capability packs by level
+      if (level !== 'basic') {
+        const capTools = loadCapabilityTools(level, state.toolContext)
+        allTools = { ...allTools, ...capTools }
+      }
+      // 100% autonomy: always grant the system-control pack, even in basic mode
+      if (autonomyLevel === 'full') {
+        const systemTools = loadPackTools('system', state.toolContext)
+        allTools = { ...allTools, ...systemTools }
+      }
     }
 
     try {

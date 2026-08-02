@@ -1,5 +1,15 @@
 export type CapabilityLevel = 'basic' | 'enhanced' | 'auto'
 
+/**
+ * How much control the agent has over the platform itself.
+ *
+ * - `guided`:  agent works on code but pauses for plan approval (human-in-the-loop)
+ * - `autonomous`: agent executes freely; plan approval is optional
+ * - `full`: agent has complete autonomy AND system-control tools (sandboxes,
+ *   API keys, settings, rate limits, tasks) with no mandatory approval gates
+ */
+export type AutonomyLevel = 'guided' | 'autonomous' | 'full'
+
 export interface CapabilityPack {
   name: string
   tools: Record<string, ToolDefinition>
@@ -52,6 +62,8 @@ export interface ToolContext {
   userId: string
   repoUrl?: string
   capabilityLevel: CapabilityLevel
+  /** Autonomy level of the current run (defaults to 'full' for 100% control) */
+  autonomyLevel: AutonomyLevel
   accumulatedContext: string
   subAgentResults: { type: string; prompt: string; result: string }[]
   checkpoint: (label: string) => Promise<string>

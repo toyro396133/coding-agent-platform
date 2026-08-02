@@ -1,5 +1,5 @@
 import type { Task, LogEntry } from '@/lib/db/schema'
-import type { CapabilityLevel, ToolContext } from './capabilities/types'
+import type { AutonomyLevel, CapabilityLevel, ToolContext } from './capabilities/types'
 
 export interface SubAgentResult {
   type: string
@@ -31,6 +31,7 @@ export class OrchestratorState {
   public taskId: string
   public userId: string = ''
   public capabilityLevel: CapabilityLevel = 'basic'
+  public autonomyLevel: AutonomyLevel = 'full'
   public toolContext: ToolContext | null = null
   public agentTeam: AgentTeamMember[] = []
   private checkpointFrequency: number
@@ -45,12 +46,18 @@ export class OrchestratorState {
   }
 
   setCapabilityLevel(level: CapabilityLevel, userId: string): void {
+    this.setCapabilityContext(level, userId, this.autonomyLevel)
+  }
+
+  setCapabilityContext(level: CapabilityLevel, userId: string, autonomyLevel: AutonomyLevel): void {
     this.capabilityLevel = level
+    this.autonomyLevel = autonomyLevel
     const self = this
     this.toolContext = {
       taskId: this.taskId,
       userId,
       capabilityLevel: level,
+      autonomyLevel,
       get accumulatedContext() {
         return self.accumulatedContext
       },

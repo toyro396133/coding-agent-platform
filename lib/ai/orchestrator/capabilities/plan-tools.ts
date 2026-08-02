@@ -20,10 +20,16 @@ export const planContentSchema = z.object({
 export type PlanContent = z.infer<typeof planContentSchema>
 
 export function createPlanTools(ctx: ToolContext) {
+  // In FULL autonomy the plan is recorded for reference but never blocks
+  // execution — the agent proceeds in the same pass. In guided/autonomous mode
+  // it pauses for human approval (guided) or is optional (autonomous).
+  const blocksExecution = ctx.autonomyLevel === 'guided'
+
   return {
     createPlan: tool({
-      description:
-        'Create a structured, step-by-step plan for accomplishing a task and submit it for user approval. Use this for human-in-the-loop planning.',
+      description: blocksExecution
+        ? 'Create a structured, step-by-step plan for accomplishing a task and submit it for user approval. Use this for human-in-the-loop planning.'
+        : 'Create a structured, step-by-step plan for accomplishing a task. The plan is recorded for reference; execution continues in the same pass (no approval pause).',
       inputSchema: z.object({
         objective: z.string().describe('The goal or task to plan for'),
         steps: z
@@ -60,7 +66,11 @@ export function createPlanTools(ctx: ToolContext) {
               status: 'pending_approval',
             })
 
-            await tx.update(tasks).set({ status: 'PLANNING_PENDING_APPROVAL' }).where(eq(tasks.id, ctx.taskId))
+            // Only pause for approval in guided mode. In full/autonomous the
+            // agent keeps executing and the plan is just a recorded artifact.
+            if (blocksExecution) {
+              await tx.update(tasks).set({ status: 'PLANNING_PENDING_APPROVAL' }).where(eq(tasks.id, ctx.taskId))
+            }
           })
 
           const existingPlans = await db
@@ -71,7 +81,9 @@ export function createPlanTools(ctx: ToolContext) {
 
           const insertedVersion = existingPlans.length > 0 ? existingPlans[existingPlans.length - 1].version : 1
 
-          return `Plan submitted for user approval with version ${insertedVersion}. The task is now paused until the user approves this plan.`
+          return blocksExecution
+            ? `Plan submitted for user approval with version ${insertedVersion}. The task is now paused until the user approves this plan.`
+            : `Plan recorded (version ${insertedVersion}). Continuing execution autonomously — no approval needed.`
         } catch (error: any) {
           console.error('Failed to create plan')
           return `Failed to create plan. Please try again.`

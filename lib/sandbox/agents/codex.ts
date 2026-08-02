@@ -85,7 +85,7 @@ log_requests = true
 
       if (server.type === 'local') {
         // Local STDIO server - parse command string into command and args
-        const commandParts = server.command?.trim().split(/\s+/)
+        const commandParts = server.command?.trim().split(/\s+/) ?? []
         const executable = commandParts[0]
         const args = commandParts.slice(1)
 

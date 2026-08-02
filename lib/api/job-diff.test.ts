@@ -139,7 +139,7 @@ describe('buildJobDiff', () => {
     expect(diff?.compare_url).toContain('compare/main...feat/big-change')
     expect(diff?.summary).toEqual({ files_changed: 3, additions: 4, deletions: 7 })
 
-    const [ts, png, md] = diff?.files
+    const [ts, png, md] = diff?.files ?? []
     expect(ts).toMatchObject({
       filename: 'src/index.ts',
       status: 'modified',

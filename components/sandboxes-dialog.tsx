@@ -35,12 +35,6 @@ export function SandboxesDialog({ open, onOpenChange }: SandboxesDialogProps) {
   const router = useRouter()
   const { t } = useLocale()
 
-  useEffect(() => {
-    if (open) {
-      fetchSandboxes()
-    }
-  }, [open, fetchSandboxes])
-
   const fetchSandboxes = async () => {
     setLoading(true)
     try {
@@ -57,6 +51,12 @@ export function SandboxesDialog({ open, onOpenChange }: SandboxesDialogProps) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (open) {
+      fetchSandboxes()
+    }
+  }, [open, fetchSandboxes])
 
   const handleStopSandbox = async (taskId: string) => {
     setStoppingId(taskId)

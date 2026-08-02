@@ -44,12 +44,6 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
   })
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (open) {
-      fetchApiKeys()
-    }
-  }, [open, fetchApiKeys])
-
   const fetchApiKeys = async () => {
     try {
       const response = await fetch('/api/api-keys')
@@ -66,6 +60,12 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
       console.error('Error fetching API keys:', error)
     }
   }
+
+  useEffect(() => {
+    if (open) {
+      fetchApiKeys()
+    }
+  }, [open, fetchApiKeys])
 
   const handleSave = async (provider: Provider) => {
     const key = apiKeys[provider]

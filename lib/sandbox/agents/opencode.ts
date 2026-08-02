@@ -182,7 +182,7 @@ export async function executeOpenCodeInSandbox(
 
           opencodeConfig.mcp[serverName] = {
             type: 'local',
-            command: commandParts,
+            command: commandParts ?? [],
             enabled: true,
             ...(envObject ? { environment: envObject } : {}),
           }

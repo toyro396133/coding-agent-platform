@@ -202,7 +202,7 @@ export function RepoSelector({
 
     loadOwners()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [githubConnection.connected, setGitHubConnection, setOwners, owners.length, owners])
+  }, [githubConnection.connected, setGitHubConnection, setOwners, owners?.length, owners])
 
   // Check if a selected owner/repo is accessible even if not in the user's scopes
   // OR create a placeholder owner when signed out
@@ -365,7 +365,7 @@ export function RepoSelector({
       setLoadingRepos(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOwner, setGitHubConnection, setOwners, setRepos, repos.length, repos])
+  }, [selectedOwner, setGitHubConnection, setOwners, setRepos, repos?.length, repos])
 
   // Focus filter input when dropdown opens (but not on mobile to prevent keyboard popup)
   useEffect(() => {

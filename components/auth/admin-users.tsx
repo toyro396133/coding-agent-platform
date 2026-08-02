@@ -29,10 +29,6 @@ export function AdminUsers() {
   const [selectedUserId, setSelectedUserId] = useState('')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
-
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/auth/admin/users')
@@ -42,6 +38,10 @@ export function AdminUsers() {
       console.error('Failed to fetch users')
     }
   }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

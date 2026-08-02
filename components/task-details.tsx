@@ -722,7 +722,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
     fetchMcpServers()
     // Use JSON.stringify to create stable dependency - only re-run when IDs actually change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task.mcpServerIds.length, task.mcpServerIds?.includes, task.mcpServerIds])
+  }, [task.mcpServerIds?.length, task.mcpServerIds?.includes, task.mcpServerIds])
 
   // Fetch deployment info when task is completed and has a branch (only if not already cached)
   useEffect(() => {

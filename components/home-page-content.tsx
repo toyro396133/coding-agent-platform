@@ -523,7 +523,7 @@ export function HomePageContent({
       try {
         // Create all tasks in parallel
         const responses = await Promise.all(
-          tasksData.map((taskData) =>
+          (tasksData ?? []).map((taskData) =>
             fetch('/api/tasks', {
               method: 'POST',
               headers: {
@@ -598,7 +598,7 @@ export function HomePageContent({
       try {
         // Create all tasks in parallel
         const responses = await Promise.all(
-          tasksData.map((taskData) =>
+          (tasksData ?? []).map((taskData) =>
             fetch('/api/tasks', {
               method: 'POST',
               headers: {

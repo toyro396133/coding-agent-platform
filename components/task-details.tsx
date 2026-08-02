@@ -31,7 +31,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useTasks } from '@/components/app-layout'
 import { CheckpointBadge } from '@/components/checkpoint-viewer'
@@ -66,6 +66,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -80,6 +82,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { WorkerLogTabs } from '@/components/worker-log-tabs'
+import type { JobDiff } from '@/lib/api/job-diff'
+import { deriveErrorDetails } from '@/lib/api/job-errors'
 import type { Connector, Task } from '@/lib/db/schema'
 import { cn } from '@/lib/utils'
 import {
@@ -96,6 +100,7 @@ import {
   setShowFilesPane as saveShowFilesPane,
   setShowPreviewPane as saveShowPreviewPane,
 } from '@/lib/utils/cookies'
+import { unifiedDiffToContents } from '@/lib/utils/unified-diff'
 
 interface TaskDetailsProps {
   task: Task
@@ -107,6 +112,9 @@ interface DiffData {
   oldContent: string
   newContent: string
   language: string
+  isBinary?: boolean
+  isImage?: boolean
+  isBase64?: boolean
 }
 
 const CODING_AGENTS = [
@@ -133,6 +141,9 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
   const [loadingMcpServers, setLoadingMcpServers] = useState(false)
   const [diffsCache, setDiffsCache] = useState<Record<string, DiffData>>({})
   const loadingDiffsRef = useRef(false)
+  // Tracks whether the live SSE stream already delivered the completion diff,
+  // so the completion-refresh effect keeps the seeded cache (no extra polling).
+  const sseDiffReceivedRef = useRef(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const previousStatusRef = useRef<Task['status']>(task.status)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -516,6 +527,16 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
   // Use optimistic status if available, otherwise use actual task status
   const currentStatus = optimisticStatus || task.status
 
+  // Structured failure details (error_code + category + stage + retryable +
+  // recovery_hint) derived from the persisted error envelope and task logs.
+  const errorDetails = useMemo(
+    () =>
+      currentStatus === 'error' || currentStatus === 'stopped'
+        ? deriveErrorDetails({ status: currentStatus, error: task.error, logs: task.logs })
+        : null,
+    [currentStatus, task.error, task.logs],
+  )
+
   // Clear optimistic status when task status actually changes
   useEffect(() => {
     if (optimisticStatus && task.status === optimisticStatus) {
@@ -866,7 +887,10 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
         })
 
         await Promise.all(diffPromises)
-        setDiffsCache(newDiffsCache)
+        // When the SSE stream delivered the contract diff, merge so those
+        // seeded entries survive a partial fetch. Otherwise keep the original
+        // replace semantics (stale entries from renamed/deleted files drop).
+        setDiffsCache((prev) => (sseDiffReceivedRef.current ? { ...prev, ...newDiffsCache } : newDiffsCache))
       } catch (error) {
         console.error('Error fetching diffs:', error)
       } finally {
@@ -1037,14 +1061,107 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
       (currentStatus === 'completed' || currentStatus === 'error' || currentStatus === 'stopped')
     ) {
       setRefreshKey((prev) => prev + 1)
-      // Clear diffs cache to force reload
-      setDiffsCache({})
-      // Clear selected files for all modes
-      setSelectedFileByMode({ local: undefined, remote: undefined, all: undefined, 'all-local': undefined })
+      // The live SSE stream may already have delivered the fresh contract diff
+      // (platform.job.diff) — keep the seeded cache so it displays immediately
+      // without additional polling. Otherwise clear to force a reload.
+      if (!sseDiffReceivedRef.current) {
+        setDiffsCache({})
+        // Clear selected files for all modes
+        setSelectedFileByMode({ local: undefined, remote: undefined, all: undefined, 'all-local': undefined })
+      }
     }
 
     previousStatusRef.current = currentStatus
   }, [task.status, optimisticStatus])
+
+  // Latest-ref mirrors so the SSE consumer (keyed on task.id only) never reads
+  // stale closures for view mode, selection, or the tab-opener.
+  const openFileInTabRef = useRef(openFileInTab)
+  const viewModeRef = useRef(viewMode)
+  const selectedFileByModeRef = useRef(selectedFileByMode)
+  useEffect(() => {
+    openFileInTabRef.current = openFileInTab
+    viewModeRef.current = viewMode
+    selectedFileByModeRef.current = selectedFileByMode
+  })
+
+  // Live SSE diff delivery: consume the session-authenticated job stream so the
+  // platform.job.diff contract event (structured JobDiff with per-file unified
+  // diff patches) seeds the diff cache the moment the task completes — no
+  // per-file polling required. The server closes the stream after the terminal
+  // event, and this effect closes the EventSource client-side on `done`.
+  useEffect(() => {
+    if (!task.id) return
+    sseDiffReceivedRef.current = false
+    let es: EventSource | null = null
+    let closed = false
+
+    const close = () => {
+      closed = true
+      es?.close()
+      es = null
+    }
+
+    const handleDiff = (diff: JobDiff) => {
+      if (!diff || !Array.isArray(diff.files) || diff.files.length === 0) return
+      // The JobDiff contract is always the remote/PR diff, so only seed the
+      // remote changes pane. Binary/image files (no parseable patch) are left
+      // to the normal /api/tasks/[taskId]/diff fetch path which handles them.
+      if (viewModeRef.current !== 'remote') return
+      const seeded: Record<string, DiffData> = {}
+      const names: string[] = []
+      for (const file of diff.files) {
+        if (!file.filename) continue
+        const contents = file.patch ? unifiedDiffToContents(file.patch) : null
+        if (!contents || file.is_binary) continue
+        names.push(file.filename)
+        seeded[file.filename] = {
+          filename: file.filename,
+          oldContent: contents.oldContent,
+          newContent: contents.newContent,
+          language: file.language || 'text',
+        }
+      }
+      if (names.length === 0) return
+      sseDiffReceivedRef.current = true
+      setDiffsCache((prev) => ({ ...prev, ...seeded }))
+      setAllFiles((prev) => Array.from(new Set([...prev, ...names])))
+      // Auto-open the first changed file so the contract diff is immediately
+      // visible (only when nothing is selected in the remote pane yet).
+      if (!selectedFileByModeRef.current.remote) {
+        openFileInTabRef.current(names[0])
+      }
+    }
+
+    es = new EventSource(`/api/tasks/${task.id}/stream`)
+    es.onmessage = (ev) => {
+      if (closed) return
+      let data: unknown = null
+      try {
+        data = JSON.parse(ev.data)
+      } catch {
+        return
+      }
+      if (!data || typeof data !== 'object') return
+      const record = data as Record<string, unknown>
+      if (record.object === 'platform.job.diff' && record.diff) {
+        handleDiff(record.diff as JobDiff)
+      }
+      if (record.done === true) {
+        close()
+      }
+    }
+    es.onerror = () => {
+      // EventSource auto-reconnects on transient failures; stop reconnecting
+      // once the terminal diff has already been delivered.
+      if (sseDiffReceivedRef.current) {
+        close()
+      }
+    }
+
+    return close
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id])
 
   // Update model when agent changes
   useEffect(() => {
@@ -1465,6 +1582,87 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Error Details Panel — shown when the task failed or was stopped */}
+        {errorDetails && (
+          <Alert
+            variant={errorDetails.code === 'cancelled' ? 'default' : 'destructive'}
+            className={cn(
+              'space-y-1',
+              errorDetails.code === 'cancelled' &&
+                'border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-300',
+            )}
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="flex items-center gap-2 line-clamp-none">
+              <span className="text-sm md:text-base font-semibold">
+                {errorDetails.code === 'cancelled' ? t.taskDetails.taskStopped : t.taskDetails.taskFailed}
+              </span>
+              <Badge
+                variant={errorDetails.code === 'cancelled' ? 'outline' : 'destructive'}
+                className={cn(
+                  'font-mono text-[10px] md:text-xs',
+                  errorDetails.code === 'cancelled' && 'border-amber-500/50 text-amber-700 dark:text-amber-300',
+                )}
+                aria-label={`${t.taskDetails.errorCode}: ${errorDetails.code}`}
+              >
+                {errorDetails.code}
+              </Badge>
+              {errorDetails.retryable && (
+                <Badge variant="outline" className="border-destructive/40 text-destructive">
+                  <RefreshCw className="h-3 w-3" />
+                  {t.taskDetails.errorRetryable}
+                </Badge>
+              )}
+            </AlertTitle>
+            <AlertDescription className="space-y-3 w-full">
+              {errorDetails.message && (
+                <p className="whitespace-pre-wrap break-words w-full">{errorDetails.message}</p>
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs w-full">
+                <div>
+                  <p className="text-muted-foreground mb-0.5">{t.taskDetails.errorCategory}</p>
+                  <p className="font-medium">{errorDetails.category}</p>
+                </div>
+                {errorDetails.stage && (
+                  <div>
+                    <p className="text-muted-foreground mb-0.5">{t.taskDetails.errorStage}</p>
+                    <p className="font-medium">{errorDetails.stage}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-muted-foreground mb-0.5">{t.taskDetails.errorRetryable}</p>
+                  <p className={cn('font-medium', errorDetails.retryable ? 'text-emerald-600' : 'text-muted-foreground')}>
+                    {errorDetails.retryable ? t.taskDetails.retryableYes : t.taskDetails.retryableNo}
+                  </p>
+                </div>
+                {errorDetails.failedAt && (
+                  <div>
+                    <p className="text-muted-foreground mb-0.5">{t.taskDetails.errorFailedAt}</p>
+                    <p className="font-medium">{new Date(errorDetails.failedAt).toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+
+              {errorDetails.recovery_hint && (
+                <p className="text-xs text-muted-foreground border-t pt-2">
+                  <span className="font-medium text-foreground">{t.taskDetails.errorRecoveryHint}:</span>{' '}
+                  {errorDetails.recovery_hint}
+                </p>
+              )}
+
+              {errorDetails.retryable && (
+                <div className="flex justify-end pt-1">
+                  <Button size="sm" onClick={() => setShowTryAgainDialog(true)} className="h-8">
+                    <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                    {t.taskDetails.tryAgain}
+                  </Button>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Compact info row */}
         <div className="flex items-center gap-2 md:gap-4 md:flex-wrap text-xs md:text-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -2510,7 +2708,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-3">Task Options</h3>
               <div className="space-y-4">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <Checkbox
                     id="try-again-install-deps"
                     checked={tryAgainInstallDeps}
@@ -2550,7 +2748,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   </Select>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <Checkbox
                     id="try-again-keep-alive"
                     checked={tryAgainKeepAlive}
@@ -2564,7 +2762,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <Checkbox
                     id="try-again-enable-browser"
                     checked={tryAgainEnableBrowser}

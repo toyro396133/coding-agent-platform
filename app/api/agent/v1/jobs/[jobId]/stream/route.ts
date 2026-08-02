@@ -3,9 +3,15 @@ import { extractBearerToken, validatePlatformApiKey } from '@/lib/auth/api-key'
 import { db } from '@/lib/db/client'
 import { tasks, taskMessages } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
+import { deriveErrorDetails } from '@/lib/api/job-errors'
+import { buildJobDiffForTask, type JobDiffTaskRef } from '@/lib/api/job-diff'
+import { subscribeJob } from '@/lib/jobs/event-bus'
 
 // Maximum polling duration in milliseconds (5 minutes)
 const MAX_POLLING_DURATION = 5 * 60 * 1000
+
+// Terminal states after which the stream sends final messages and closes.
+const TERMINAL_STATUSES = ['completed', 'error', 'stopped']
 
 // Helper function to fetch and send final messages
 async function sendFinalMessages(jobId: string, sendEvent: (data: any) => void) {
@@ -30,6 +36,28 @@ async function sendFinalMessages(jobId: string, sendEvent: (data: any) => void) 
   }
 
   sendEvent({ done: true })
+}
+
+/**
+ * Emit the structured diff/patch for a completed job as its own SSE event so
+ * streaming clients receive the patch without an extra poll. Best-effort:
+ * when the diff can't be computed (e.g. unauthenticated private repo) nothing
+ * is emitted rather than failing the stream.
+ */
+async function sendJobDiff(
+  jobId: string,
+  userId: string,
+  task: JobDiffTaskRef,
+  sendEvent: (data: any) => void,
+): Promise<void> {
+  const diff = await buildJobDiffForTask(task, userId)
+  if (!diff) return
+  sendEvent({
+    id: `job-diff-${jobId}`,
+    object: 'platform.job.diff',
+    created: Math.floor(Date.now() / 1000),
+    diff,
+  })
 }
 
 export async function GET(req: NextRequest, context: { params: Promise<{ jobId: string }> }) {
@@ -82,44 +110,101 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
     const encoder = new TextEncoder()
     let isClosed = false
     let intervalId: NodeJS.Timeout | null = null
+    let unsubscribe: (() => void) | null = null
+    // Idempotency guards: a cancel event replayed on subscribe plus the
+    // terminal-state branch can both fire in the same tick (the first finish()
+    // awaits a DB query before isClosed flips). These flags make cancellation
+    // emission and stream finalization single-shot.
+    let cancelledEmitted = false
+    let finished = false
+
+    const close = () => {
+      if (isClosed) return
+      isClosed = true
+      if (intervalId) clearInterval(intervalId)
+      if (unsubscribe) unsubscribe()
+      unsubscribe = null
+    }
+
     const stream = new ReadableStream({
       async start(controller) {
-        req.signal.addEventListener('abort', () => {
-          isClosed = true
-          if (intervalId) {
-            clearInterval(intervalId)
-          }
-        })
+        req.signal.addEventListener('abort', close)
 
         const sendEvent = (data: any) => {
           if (isClosed) return
           try {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
           } catch (err) {
-            // Stream is closed or errored, mark as closed to stop further attempts
-            isClosed = true
-            if (intervalId) {
-              clearInterval(intervalId)
-            }
+            close()
           }
         }
 
-        // Send initial status
+        // Send final messages, then the [DONE] marker, then close the stream.
+        const finish = async () => {
+          if (finished) return
+          finished = true
+          try {
+            await sendFinalMessages(jobId, sendEvent)
+            if (!isClosed) {
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+              controller.close()
+            }
+          } catch (err) {
+            console.error('Error finalizing job stream')
+          } finally {
+            close()
+          }
+        }
+
+        // Emit the cancellation event as its own contract event.
+        const emitCancelled = (timestamp: number, status: string) => {
+          if (cancelledEmitted) return
+          cancelledEmitted = true
+          sendEvent({
+            id: `job-cancelled-${jobId}-${timestamp}`,
+            object: 'platform.job.cancelled',
+            created: Math.floor(timestamp / 1000),
+            status,
+            cancelled: true,
+          })
+        }
+
+        // Structured error details for terminal states (roadmap 2.3)
+        const errorDetails = deriveErrorDetails({ status: task.status, error: task.error, logs: task.logs })
+
+        // Send initial status (no diff — progress events stay lean; the patch
+        // is delivered as its own platform.job.diff event on completion)
         sendEvent({
           id: `job-sync-${jobId}`,
           object: 'platform.job.status',
           created: Math.floor(Date.now() / 1000),
           status: task.status,
           progress: task.progress || 0,
+          error_code: errorDetails?.code ?? null,
+          error_details: errorDetails,
         })
 
-        // If the task is already in a terminal state, just send the final status and close
-        if (task.status === 'completed' || task.status === 'error' || task.status === 'stopped') {
-          await sendFinalMessages(jobId, sendEvent)
-          if (!isClosed) {
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-            controller.close()
+        // Subscribe to the in-process event bus so a cancel request (the cancel
+        // route publishes { type: 'cancelled', status: 'stopped' }) is delivered
+        // to this stream immediately as platform.job.cancelled — no waiting for
+        // the next DB poll.
+        unsubscribe = subscribeJob(jobId, (event) => {
+          if (isClosed) return
+          if (event.type === 'cancelled') {
+            emitCancelled(event.timestamp, event.status || 'stopped')
+            void finish()
           }
+        })
+
+        // If the task is already in a terminal state, deliver the terminal
+        // payload and close.
+        if (TERMINAL_STATUSES.includes(task.status)) {
+          if (task.status === 'completed') {
+            await sendJobDiff(jobId, userId, task, sendEvent)
+          } else if (task.status === 'stopped') {
+            emitCancelled(Date.now(), task.status)
+          }
+          await finish()
           return
         }
 
@@ -134,9 +219,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
 
         intervalId = setInterval(async () => {
           if (isClosed) {
-            if (intervalId) {
-              clearInterval(intervalId)
-            }
+            if (intervalId) clearInterval(intervalId)
             return
           }
 
@@ -147,9 +230,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 controller.close()
               }
-              if (intervalId) {
-                clearInterval(intervalId)
-              }
+              close()
               return
             }
 
@@ -162,7 +243,15 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
             }
 
             const currentTaskResult = await db
-              .select({ status: tasks.status, progress: tasks.progress })
+              .select({
+                status: tasks.status,
+                progress: tasks.progress,
+                error: tasks.error,
+                logs: tasks.logs,
+                repoUrl: tasks.repoUrl,
+                branchName: tasks.branchName,
+                prMergeCommitSha: tasks.prMergeCommitSha,
+              })
               .from(tasks)
               .where(eq(tasks.id, jobId))
               .limit(1)
@@ -173,9 +262,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 controller.close()
               }
-              if (intervalId) {
-                clearInterval(intervalId)
-              }
+              close()
               return
             }
 
@@ -185,47 +272,42 @@ export async function GET(req: NextRequest, context: { params: Promise<{ jobId: 
               lastStatus = currentTask.status as any
               lastProgress = currentTask.progress || 0
 
+              const currentErrorDetails = deriveErrorDetails({
+                status: currentTask.status,
+                error: currentTask.error,
+                logs: currentTask.logs,
+              })
+
               sendEvent({
                 id: `job-sync-${jobId}-${Date.now()}`,
                 object: 'platform.job.status',
                 created: Math.floor(Date.now() / 1000),
                 status: currentTask.status,
                 progress: currentTask.progress || 0,
+                error_code: currentErrorDetails?.code ?? null,
+                error_details: currentErrorDetails,
               })
 
-              if (
-                currentTask.status === 'completed' ||
-                currentTask.status === 'error' ||
-                currentTask.status === 'stopped'
-              ) {
-                await sendFinalMessages(jobId, sendEvent)
-                if (!isClosed) {
-                  controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-                  controller.close()
+              if (TERMINAL_STATUSES.includes(currentTask.status)) {
+                // Deliver the patch for completed jobs before closing
+                if (currentTask.status === 'completed') {
+                  await sendJobDiff(jobId, userId, currentTask, sendEvent)
+                } else if (currentTask.status === 'stopped') {
+                  // Fallback when the cancel event-bus publish was missed
+                  emitCancelled(Date.now(), currentTask.status)
                 }
-                if (intervalId) {
-                  clearInterval(intervalId)
-                }
+                await finish()
+                if (intervalId) clearInterval(intervalId)
               }
             }
           } catch (e) {
             console.error('Error polling task status')
           }
         }, 3000) // Poll every 3 seconds
-
-        // Cleanup on close
-        req.signal.addEventListener('abort', () => {
-          if (intervalId) {
-            clearInterval(intervalId)
-          }
-        })
       },
       cancel() {
         // Handle client disconnects
-        isClosed = true
-        if (intervalId) {
-          clearInterval(intervalId)
-        }
+        close()
       },
     })
 

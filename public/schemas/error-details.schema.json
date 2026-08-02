@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Platform Job Error Details",
+  "description": "Structured, machine-readable failure details (Error details & codes) returned by the external agent API for terminal jobs. Each failed or stopped job is classified into a stable code with a category, failing pipeline stage, retryability flag and a static recovery hint.",
+  "type": "object",
+  "definitions": {
+    "JobErrorCode": {
+      "type": "string",
+      "enum": [
+        "cancelled",
+        "build_failed",
+        "test_failed",
+        "lint_failed",
+        "sandbox_timeout",
+        "sandbox_creation_failed",
+        "dependency_install_failed",
+        "agent_failed",
+        "agent_install_failed",
+        "auth_error",
+        "git_clone_failed",
+        "git_push_failed",
+        "rate_limited",
+        "budget_exceeded",
+        "worker_failed",
+        "orchestrator_failed",
+        "visual_qa_failed",
+        "unknown_failure"
+      ]
+    },
+    "JobErrorCategory": {
+      "type": "string",
+      "enum": [
+        "cancellation",
+        "build",
+        "verification",
+        "infrastructure",
+        "authentication",
+        "git",
+        "agent",
+        "limits",
+        "unknown"
+      ]
+    },
+    "RecoveryHint": {
+      "type": ["string", "null"],
+      "description": "Static, client-facing guidance. Never contains dynamic values."
+    }
+  },
+  "properties": {
+    "code": {
+      "$ref": "#/definitions/JobErrorCode"
+    },
+    "category": {
+      "$ref": "#/definitions/JobErrorCategory"
+    },
+    "stage": {
+      "type": ["string", "null"],
+      "description": "Failing pipeline stage when determinable from the logs (e.g. \"Type Check\", \"Tests\", \"Push\"). Null when unknown."
+    },
+    "message": {
+      "type": ["string", "null"],
+      "description": "Human-readable error message. When the task.error column holds a structured envelope, this is the envelope message (never raw JSON)."
+    },
+    "retryable": {
+      "type": "boolean",
+      "description": "True when resubmitting the job has a realistic chance of success."
+    },
+    "recovery_hint": {
+      "$ref": "#/definitions/RecoveryHint"
+    },
+    "failedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of when the failure was recorded, when known."
+    }
+  },
+  "required": ["code", "category", "stage", "message", "retryable", "recovery_hint", "failedAt"],
+  "additionalProperties": false
+}

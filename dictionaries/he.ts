@@ -334,6 +334,7 @@ export const he: Dictionary = {
   sidebar: {
     tasks: 'משימות',
     repos: 'מאגרים',
+    metrics: 'מטריקות ניתוב',
     newTask: 'משימה חדשה',
     deleteTasks: 'מחק משימות',
     viewAllTasks: 'צפה בכל המשימות',

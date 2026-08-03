@@ -384,7 +384,7 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
               {expandedInstructions.has(activeWorker.id) ? (
                 <ChevronDown className="h-3 w-3" />
               ) : (
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-3 w-3 rtl:rotate-180" />
               )}
               <Code className="h-3 w-3" />
               Instructions
@@ -415,13 +415,13 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
                 >
                   <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
                   <span className="text-xs font-medium text-red-600 dark:text-red-400">Error</span>
-                  <span className="text-[10px] text-red-500/70 truncate flex-1 text-left">
+                  <span className="text-[10px] text-red-500/70 truncate flex-1 text-start">
                     {expandedErrors.has(activeWorker.id) ? '' : error}
                   </span>
                   {expandedErrors.has(activeWorker.id) ? (
                     <ChevronDown className="h-3 w-3 text-red-500 shrink-0" />
                   ) : (
-                    <ChevronRight className="h-3 w-3 text-red-500 shrink-0" />
+                    <ChevronRight className="h-3 w-3 text-red-500 shrink-0 rtl:rotate-180" />
                   )}
                 </button>
                 {expandedErrors.has(activeWorker.id) && (
@@ -464,7 +464,7 @@ export function WorkerLogTabs({ task, workerStatusData, currentStatus }: WorkerL
                 }
                 return workerLogs.map((log, i) => (
                   <div key={i} className="flex gap-1.5 leading-tight hover:bg-white/5 px-1 py-0.5 rounded">
-                    <span className="text-white/30 text-[10px] shrink-0 w-[60px] text-right">
+                    <span className="text-white/30 text-[10px] shrink-0 w-[60px] text-end">
                       {formatLogTime(log.timestamp || new Date())}
                     </span>
                     <span className={cn('flex-1', getLogColor(log.type))}>{stripWorkerPrefix(log.message)}</span>

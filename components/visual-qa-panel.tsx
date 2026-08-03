@@ -210,7 +210,7 @@ export function VisualQaPanel({ taskId, className, active = false }: VisualQaPan
                 >
                   <button
                     onClick={() => toggleExpand(run.id)}
-                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left"
+                    className="flex items-center gap-2 w-full px-2.5 py-1.5 text-start"
                   >
                     <VerdictBadge verdict={run.verdict} />
                     <span className="text-[10px] text-muted-foreground truncate flex-1">{urlHost(run.url)}</span>
@@ -220,7 +220,7 @@ export function VisualQaPanel({ taskId, className, active = false }: VisualQaPan
                     {expandedId === run.id ? (
                       <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     ) : (
-                      <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 rtl:rotate-180" />
                     )}
                   </button>
                   {expandedId === run.id && (

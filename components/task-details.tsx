@@ -1459,7 +1459,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                       size="sm"
                       onClick={handleOpenPR}
                       disabled={isClosingPR || isMergingPR}
-                      className="h-7 md:h-8 px-2 md:px-3 rounded-r-none border-r-0"
+                      className="h-7 md:h-8 px-2 md:px-3 rounded-e-none border-e-0"
                     >
                       {isClosingPR ? (
                         <>
@@ -2019,7 +2019,7 @@ export function TaskDetails({ task, maxSandboxDuration = 300 }: TaskDetailsProps
                                     setShowFileDropdown(false)
                                   }}
                                   className={cn(
-                                    'w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors',
+                                    'w-full text-start px-3 py-2 text-sm hover:bg-accent transition-colors',
                                     selectedFile === file && 'bg-accent',
                                   )}
                                 >

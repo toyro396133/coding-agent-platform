@@ -1,5 +1,6 @@
 import type { LogEntry, Task } from '@/lib/db/schema'
 import type { AutonomyLevel, CapabilityLevel, ToolContext } from './capabilities/types'
+import type { DaemonAgentStatus } from './worker/types'
 
 export interface SubAgentResult {
   type: string
@@ -11,6 +12,7 @@ export interface OrchestratorResult {
   finalAnswer: string
   steps: number
   subAgentResults: SubAgentResult[]
+  daemonAgents: DaemonAgentStatus[]
   paused?: boolean
 }
 
@@ -34,6 +36,7 @@ export class OrchestratorState {
   public autonomyLevel: AutonomyLevel = 'full'
   public toolContext: ToolContext | null = null
   public agentTeam: AgentTeamMember[] = []
+  public daemonAgents: DaemonAgentStatus[] = []
   private checkpointFrequency: number
   private task: Task | null = null
   private logs: LogEntry[] = []
@@ -79,6 +82,23 @@ export class OrchestratorState {
     this.subAgentResults.push({ type, prompt, result })
   }
 
+  addDaemonAgent(agent: DaemonAgentStatus): void {
+    const existing = this.daemonAgents.find((a) => a.id === agent.id)
+    if (existing) {
+      Object.assign(existing, agent)
+    } else {
+      this.daemonAgents.push(agent)
+    }
+  }
+
+  removeDaemonAgent(id: string): void {
+    this.daemonAgents = this.daemonAgents.filter((a) => a.id !== id)
+  }
+
+  getDaemonAgent(id: string): DaemonAgentStatus | undefined {
+    return this.daemonAgents.find((a) => a.id === id)
+  }
+
   appendContext(context: string): void {
     this.accumulatedContext += `${context}\n`
   }
@@ -104,6 +124,7 @@ export class OrchestratorState {
       finalAnswer: this.accumulatedContext || this.currentPrompt,
       steps: this.steps,
       subAgentResults: this.subAgentResults,
+      daemonAgents: this.daemonAgents,
       paused: this.paused,
     }
   }

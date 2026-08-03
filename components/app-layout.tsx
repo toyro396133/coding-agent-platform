@@ -49,7 +49,7 @@ function SidebarLoader({ width }: { width: number }) {
   const { t } = useLocale()
   return (
     <div
-      className="h-full border-r bg-muted px-2 md:px-3 pt-3 md:pt-5.5 pb-3 md:pb-4 overflow-y-auto"
+      className="h-full border-e bg-muted px-2 md:px-3 pt-3 md:pt-5.5 pb-3 md:pb-4 overflow-y-auto"
       style={{ width: `${width}px` }}
     >
       <div className="mb-3 md:mb-4">
@@ -273,7 +273,10 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return
 
-      const newWidth = e.clientX
+      // In RTL the sidebar is anchored to the right, so width is computed
+      // from the right edge of the viewport.
+      const isRtl = document.documentElement.dir === 'rtl'
+      const newWidth = isRtl ? window.innerWidth - e.clientX : e.clientX
       const minWidth = 200
       const maxWidth = 600
 
@@ -329,9 +332,9 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
           {/* Sidebar */}
           <div
             className={`
-            fixed inset-y-0 left-0 z-40
+            fixed inset-y-0 start-0 z-40
             ${isResizing || !hasMounted ? '' : 'transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]'}
-            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'}
             ${isSidebarOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'}
           `}
             style={{
@@ -357,19 +360,19 @@ export function AppLayout({ children, initialSidebarWidth, initialSidebarOpen, i
           `}
             onMouseDown={isSidebarOpen ? handleMouseDown : undefined}
             style={{
-              // Position it right after the sidebar
-              left: isSidebarOpen ? `${sidebarWidth}px` : '0px',
+              // Position it right after the sidebar (inline-start + width)
+              insetInlineStart: isSidebarOpen ? `${sidebarWidth}px` : '0px',
             }}
           >
-            <div className="absolute inset-0 w-2 -ml-0.5" />
-            <div className="absolute inset-y-0 left-0 w-0.5 bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 w-2 -ms-0.5" />
+            <div className="absolute inset-y-0 start-0 w-0.5 bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
 
           {/* Main Content */}
           <div
             className={`flex-1 overflow-auto flex flex-col ${isResizing || !hasMounted ? '' : 'transition-all duration-300 ease-in-out'}`}
             style={{
-              marginLeft: isDesktop && isSidebarOpen ? `${sidebarWidth + 4}px` : '0px',
+              marginInlineStart: isDesktop && isSidebarOpen ? `${sidebarWidth + 4}px` : '0px',
             }}
           >
             {children}

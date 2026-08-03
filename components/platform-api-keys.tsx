@@ -163,7 +163,7 @@ export function PlatformApiKeys() {
           ) : (
             <div className="border rounded-md">
               <div className="border rounded-md">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-start">
                   <thead className="bg-muted">
                     <tr>
                       <th className="px-4 py-2 font-medium">Name</th>

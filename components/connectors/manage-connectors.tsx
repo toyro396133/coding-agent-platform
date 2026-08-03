@@ -330,7 +330,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                   }}
                   className="me-2 -ms-2"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
                 </Button>
               )}
               {view === 'list' && 'MCP Servers'}
@@ -612,7 +612,7 @@ export function ConnectorDialog({ open, onOpenChange }: ConnectorDialogProps) {
                               type={visibleEnvVars.has(index) ? 'text' : 'password'}
                               value={envVar.value}
                               onChange={(e) => updateEnvVar(index, 'value', e.target.value)}
-                              className="pr-10"
+                              className="pe-10"
                             />
                             <Button
                               type="button"

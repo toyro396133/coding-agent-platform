@@ -1,7 +1,20 @@
 'use client'
 
 import { useAtomValue } from 'jotai'
-import { AlertCircle, BarChart3, GitBranch, Loader2, Plus, Search, Sparkles, Trash2, X } from 'lucide-react'
+import {
+  AlertCircle,
+  BarChart3,
+  Cpu,
+  GitBranch,
+  Home,
+  Layers,
+  Loader2,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -36,7 +49,7 @@ interface TaskSidebarProps {
   width?: number
 }
 
-type TabType = 'tasks' | 'repos'
+type TabType = 'nav' | 'tasks' | 'repos'
 
 interface GitHubRepoInfo {
   name: string
@@ -60,7 +73,7 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
   const [deleteCompleted, setDeleteCompleted] = useState(true)
   const [deleteFailed, setDeleteFailed] = useState(true)
   const [deleteStopped, setDeleteStopped] = useState(true)
-  const [activeTab, setActiveTab] = useState<TabType>('tasks')
+  const [activeTab, setActiveTab] = useState<TabType>('nav')
 
   // State for repos from API
   const [repos, setRepos] = useState<GitHubRepoInfo[]>([])
@@ -322,13 +335,25 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
   if (!session.user) {
     return (
       <div
-        className="h-full border-r bg-muted px-2 md:px-3 pt-3 md:pt-5.5 pb-3 md:pb-4 overflow-y-auto flex flex-col"
+        className="h-full border-e bg-muted px-2 md:px-3 pt-3 md:pt-5.5 pb-3 md:pb-4 overflow-y-auto flex flex-col"
         style={{ width: `${width}px` }}
       >
         <div className="mb-3 md:mb-4">
           <div className="flex items-center justify-between mb-2">
             {/* Tabs */}
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveTab('nav')}
+                className={cn(
+                  'text-xs font-medium tracking-wide transition-colors px-2 py-1 rounded',
+                  activeTab === 'nav'
+                    ? 'text-foreground bg-accent'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+                )}
+                {...(activeTab === 'nav' ? { 'aria-current': 'page' } : {})}
+              >
+                {t.sidebar.nav || 'Nav'}
+              </button>
               <button
                 onClick={() => setActiveTab('tasks')}
                 className={cn(
@@ -355,14 +380,9 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <Link href="/capabilities" onClick={handleLinkClick}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.capabilities.metaTitle}>
-                  <Sparkles className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/metrics" onClick={handleLinkClick}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.metrics}>
-                  <BarChart3 className="h-4 w-4" />
+              <Link href="/dashboard" onClick={handleLinkClick}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t.sidebar.dashboard}>
+                  <Home className="h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/" onClick={handleLinkClick}>
@@ -374,6 +394,25 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           </div>
         </div>
         <div className="space-y-1">
+          {activeTab === 'nav' && (
+            <div className="space-y-0.5">
+              {[
+                { icon: Home, label: t.sidebar.dashboard, href: '/dashboard' },
+                { icon: Layers, label: t.sidebar.tasks, href: '/tasks' },
+                { icon: Cpu, label: t.sidebar.agents, href: '/agents' },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
           {activeTab === 'tasks' && (
             <Card>
               <CardContent className="p-3 text-center text-xs text-muted-foreground">
@@ -395,14 +434,25 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
 
   return (
     <div
-      className="h-full border-r bg-muted px-2 md:px-3 pt-3 md:pt-5.5 pb-3 md:pb-4 overflow-y-auto"
+      className="h-full border-e bg-muted px-2 md:px-3 pt-3 md:pt-5.5 pb-3 md:pb-4 overflow-y-auto"
       style={{ width: `${width}px` }}
     >
       <div className="mb-3 md:mb-4">
         <div className="flex items-center justify-between mb-2">
-          {/* Tabs */}
+          {/* Tabs */}{' '}
           <div className="flex items-center gap-1">
-            {' '}
+            <button
+              onClick={() => setActiveTab('nav')}
+              className={cn(
+                'text-xs font-medium tracking-wide transition-colors px-2 py-1 rounded',
+                activeTab === 'nav'
+                  ? 'text-foreground bg-accent'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+              )}
+              {...(activeTab === 'nav' ? { 'aria-current': 'page' } : {})}
+            >
+              {t.sidebar.nav || 'Nav'}
+            </button>
             <button
               onClick={() => setActiveTab('tasks')}
               className={cn(
@@ -457,6 +507,44 @@ export function TaskSidebar({ tasks, width = 288 }: TaskSidebarProps) {
           </div>
         </div>
       </div>
+
+      {/* Nav Tab Content — App Shell Navigation */}
+      {activeTab === 'nav' && (
+        <div className="space-y-0.5">
+          {[
+            { icon: Home, label: t.sidebar.dashboard, href: '/dashboard', active: pathname === '/dashboard' },
+            {
+              icon: Layers,
+              label: t.sidebar.tasks,
+              href: '/tasks',
+              active: pathname === '/tasks' || pathname.startsWith('/tasks/'),
+            },
+            { icon: Cpu, label: t.sidebar.agents, href: '/agents', active: pathname === '/agents' },
+            { icon: BarChart3, label: t.sidebar.metrics, href: '/metrics', active: pathname === '/metrics' },
+            {
+              icon: Sparkles,
+              label: t.capabilities.metaTitle || 'Capabilities',
+              href: '/capabilities',
+              active: pathname === '/capabilities',
+            },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={handleLinkClick}
+              className={cn(
+                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+                item.active
+                  ? 'bg-accent text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+              )}
+            >
+              <item.icon className={cn('h-4 w-4', item.active ? 'text-amber-500' : '')} />
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Tasks Tab Content */}
       {activeTab === 'tasks' && (

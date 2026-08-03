@@ -1011,7 +1011,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                             return (
                               <div className="opacity-50">
                                 <div className="italic">Generating response...</div>
-                                <div className="text-right font-mono opacity-70 mt-1">
+                                <div className="text-end font-mono opacity-70 mt-1">
                                   {formatDuration(group.userMessage.createdAt)}
                                 </div>
                               </div>
@@ -1217,7 +1217,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                             )
                           })}
                         </div>
-                        <div className="text-right font-mono text-muted-foreground/50 mt-2">
+                        <div className="text-end font-mono text-muted-foreground/50 mt-2">
                           {formatDuration(lastMessage.createdAt)}
                         </div>
                       </div>
@@ -1235,9 +1235,7 @@ export function TaskChat({ taskId, task, locale = 'he' }: TaskChatProps) {
                         <Loader2 className="h-3 w-3 animate-spin" />
                         Awaiting response...
                       </div>
-                      <div className="text-right font-mono opacity-70 mt-1">
-                        {formatDuration(lastMessage.createdAt)}
-                      </div>
+                      <div className="text-end font-mono opacity-70 mt-1">{formatDuration(lastMessage.createdAt)}</div>
                     </div>
                   </div>
                 </div>

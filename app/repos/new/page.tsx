@@ -285,7 +285,7 @@ export default function NewRepoPage() {
                           </>
                         )}
                       </div>
-                      <div className="text-left flex-1">
+                      <div className="text-start flex-1">
                         <div className="font-medium text-sm">{template.name}</div>
                       </div>
                       {selectedTemplate === template.id && (
@@ -330,7 +330,7 @@ export default function NewRepoPage() {
                           </>
                         )}
                       </div>
-                      <div className="text-left">
+                      <div className="text-start">
                         <div className="font-medium text-xs text-muted-foreground">{template.name}</div>
                       </div>
                       {selectedTemplate === template.id && (

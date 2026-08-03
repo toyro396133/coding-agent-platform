@@ -143,7 +143,7 @@ export function CheckpointViewer({
             {/* Checkpoint header */}
             <button
               onClick={() => toggleExpand(cp.id)}
-              className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left"
+              className="flex items-center gap-2 w-full px-2.5 py-1.5 text-start"
             >
               <StatusIcon status={cp.status} />
               <div className="flex-1 min-w-0">
@@ -170,7 +170,7 @@ export function CheckpointViewer({
                     {cp.metadata?.stage && (
                       <span className="text-[10px] text-muted-foreground/50">· {cp.metadata.stage}</span>
                     )}
-                    <div className="flex items-center gap-1 ml-auto">
+                    <div className="flex items-center gap-1 ms-auto">
                       <ChangeBadge type="added" count={cp.addedFiles.length} />
                       <ChangeBadge type="changed" count={cp.changedFiles.length} />
                       <ChangeBadge type="deleted" count={cp.deletedFiles.length} />
@@ -181,7 +181,7 @@ export function CheckpointViewer({
               {expandedId === cp.id ? (
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                <ChevronRight className="h-3 w-3 text-muted-foreground rtl:rotate-180" />
               )}
             </button>
 

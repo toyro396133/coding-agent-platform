@@ -418,7 +418,7 @@ export function RoutingMetricsDashboard({ className }: { className?: string }) {
                     return (
                       <div key={model} className="flex items-center gap-2 text-xs">
                         <span className="flex-1 text-muted-foreground truncate font-mono">{model}</span>
-                        <span className="font-medium w-8 text-right">{count}</span>
+                        <span className="font-medium w-8 text-end">{count}</span>
                         <div className="h-1.5 w-20 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full bg-foreground/40" style={{ width: `${pct}%` }} />
                         </div>

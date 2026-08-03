@@ -1,7 +1,14 @@
 import { Sandbox } from '@vercel/sandbox'
 import { runWorkerAgent } from '@/lib/sandbox/agents/worker'
 import { PROJECT_DIR, runCommandInSandbox, runInProject } from '@/lib/sandbox/commands'
-import type { WorkerResult, WorkerSpec, WorkerTeamResult, WorkerTeamSpec } from './types'
+import type {
+  DaemonAgentSpec,
+  DaemonAgentStatus,
+  WorkerResult,
+  WorkerSpec,
+  WorkerTeamResult,
+  WorkerTeamSpec,
+} from './types'
 
 /**
  * Run a list of promises with an overall timeout.
@@ -206,6 +213,176 @@ async function deploySingleWorker(worker: WorkerSpec, spec: WorkerTeamSpec): Pro
       error: error instanceof Error ? error.message : 'Worker sandbox failed',
       durationMs: Date.now() - workerStart,
     }
+  }
+}
+
+// ─── Daemon Agent Lifecycle ──────────────────────────────────────────────
+
+/** Active daemon agents keyed by ID. */
+const activeDaemons = new Map<
+  string,
+  { sandbox: Sandbox; abortController: AbortController; status: DaemonAgentStatus }
+>()
+
+/**
+ * Spawn a daemon agent that runs in an infinite loop inside its own Vercel sandbox.
+ * Returns the initial status. The daemon continues running in the background.
+ */
+export async function spawnDaemonAgent(
+  spec: DaemonAgentSpec,
+  onUpdate: (status: DaemonAgentStatus) => void,
+): Promise<DaemonAgentStatus> {
+  const abortController = new AbortController()
+
+  const status: DaemonAgentStatus = {
+    id: spec.id,
+    label: spec.label,
+    agentType: spec.agentType,
+    status: 'starting',
+    iterations: 0,
+    startedAt: Date.now(),
+    lastIterationAt: undefined,
+  }
+
+  // Create sandbox asynchronously
+  let sandbox: Sandbox
+  try {
+    sandbox = await Sandbox.create({
+      timeout: 60 * 60 * 1000, // 1 hour hard limit for daemons
+      ports: [],
+      runtime: 'node22',
+      resources: { vcpus: 2 },
+    })
+    status.sandboxId = 'daemon-sandbox'
+    status.status = 'running'
+    onUpdate({ ...status })
+  } catch (error) {
+    status.status = 'error'
+    status.lastError = error instanceof Error ? error.message : 'Failed to create daemon sandbox'
+    onUpdate({ ...status })
+    return status
+  }
+
+  activeDaemons.set(spec.id, { sandbox, abortController, status })
+
+  // Run the daemon loop in background
+  runDaemonLoop(spec, sandbox, abortController.signal, status, onUpdate).catch(() => {})
+
+  return { ...status }
+}
+
+/**
+ * Stop a running daemon agent.
+ */
+export async function stopDaemonAgent(daemonId: string): Promise<{ success: boolean; error?: string }> {
+  const entry = activeDaemons.get(daemonId)
+  if (!entry) {
+    return { success: false, error: `Daemon agent ${daemonId} not found` }
+  }
+
+  entry.abortController.abort()
+  activeDaemons.delete(daemonId)
+
+  try {
+    await entry.sandbox.stop()
+  } catch {
+    // Sandbox may already be stopped
+  }
+
+  return { success: true }
+}
+
+/**
+ * Get the current status of all active daemon agents.
+ */
+export function getDaemonAgentStatuses(): DaemonAgentStatus[] {
+  return Array.from(activeDaemons.values()).map((e) => ({ ...e.status }))
+}
+
+/**
+ * Internal: run the infinite loop for a daemon agent.
+ */
+async function runDaemonLoop(
+  spec: DaemonAgentSpec,
+  sandbox: Sandbox,
+  signal: AbortSignal,
+  status: DaemonAgentStatus,
+  onUpdate: (status: DaemonAgentStatus) => void,
+): Promise<void> {
+  const intervalMs = spec.loopIntervalMs || 30000
+  const maxIterations = spec.maxIterations || 0
+
+  // Prepare sandbox with basic setup
+  try {
+    await runCommandInSandbox(sandbox, 'mkdir', ['-p', '/home/vercel-sandbox/work'])
+  } catch {
+    // Best-effort setup
+  }
+
+  while (!signal.aborted && (maxIterations === 0 || status.iterations < maxIterations)) {
+    status.lastIterationAt = Date.now()
+
+    try {
+      // Run one iteration of the agent
+      const iterationInstructions = `
+Iteration #${status.iterations + 1}.
+Your task (repeat indefinitely): ${spec.instructions}
+
+Report what you found/changed in this iteration. Be concise.
+`.trim()
+
+      const result = await runWorkerAgent(sandbox, {
+        id: `${spec.id}-iter-${status.iterations}`,
+        agentType: spec.agentType,
+        model: spec.model,
+        instructions: iterationInstructions,
+      })
+
+      status.iterations++
+      status.lastResult = result.success ? (result.response || 'Completed successfully').slice(0, 500) : undefined
+      status.lastError = result.error
+
+      if (!result.success && result.error) {
+        status.status = 'error'
+        onUpdate({ ...status })
+        // Continue loop despite errors — daemon is resilient
+      }
+
+      onUpdate({ ...status })
+    } catch (error) {
+      status.lastError = error instanceof Error ? error.message : 'Iteration failed'
+      onUpdate({ ...status })
+    }
+
+    // Wait for next interval (or abort)
+    if (!signal.aborted) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, intervalMs)
+          signal.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer)
+              reject(new Error('Aborted'))
+            },
+            { once: true },
+          )
+        })
+      } catch {
+        break // Aborted
+      }
+    }
+  }
+
+  // Cleanup
+  status.status = signal.aborted ? 'stopped' : 'stopped'
+  onUpdate({ ...status })
+
+  activeDaemons.delete(spec.id)
+  try {
+    await sandbox.stop()
+  } catch {
+    // Best-effort cleanup
   }
 }
 

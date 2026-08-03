@@ -681,7 +681,7 @@ function PresetManager({ currentWorkers, onLoadPreset }: PresetManagerProps) {
                 <button
                   type="button"
                   onClick={() => handleLoad(preset)}
-                  className="flex-1 text-xs text-left truncate hover:text-foreground"
+                  className="flex-1 text-xs text-start truncate hover:text-foreground"
                 >
                   <span className="font-medium">{preset.name}</span>
                   <span className="text-[10px] text-muted-foreground ms-1.5">
@@ -972,7 +972,7 @@ export function WorkerTeamBuilder({ value, onChange, maxWorkers = 8 }: WorkerTea
                       {isExpanded ? (
                         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                       ) : (
-                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground rtl:rotate-180" />
                       )}
                     </div>
 

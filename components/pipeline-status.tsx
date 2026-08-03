@@ -108,7 +108,7 @@ export function PipelineStatus({ stages, totalDuration, compact = false, onRetry
           >
             <button
               onClick={() => setExpandedStage(expandedStage === stage.name ? null : stage.name)}
-              className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left"
+              className="flex items-center gap-2 w-full px-2.5 py-1.5 text-start"
             >
               <StageIcon status={stage.status} />
               <span
@@ -127,7 +127,7 @@ export function PipelineStatus({ stages, totalDuration, compact = false, onRetry
                 (expandedStage === stage.name ? (
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 ) : (
-                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  <ChevronRight className="h-3 w-3 text-muted-foreground rtl:rotate-180" />
                 ))}
               {stage.status === 'failed' && onRetry && (
                 <button

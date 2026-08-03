@@ -78,3 +78,42 @@ export interface WorkerHandle {
   startTime: number
   sandboxId?: string
 }
+
+// ─── Daemon Agent types ──────────────────────────────────────────────────
+
+/**
+ * Specification for a daemon agent — a sub-agent that runs in an
+ * infinite loop, continuously working until explicitly stopped.
+ */
+export interface DaemonAgentSpec {
+  /** Unique ID for this daemon agent */
+  id: string
+  /** Human-readable label */
+  label: string
+  /** Agent CLI to use */
+  agentType: AgentType
+  /** The task/instructions for the daemon */
+  instructions: string
+  /** Optional model override */
+  model?: string
+  /** Interval between loop iterations in ms (default 30s) */
+  loopIntervalMs?: number
+  /** Max iterations (0 = infinite, default 0) */
+  maxIterations?: number
+}
+
+/**
+ * Current status of a daemon agent.
+ */
+export interface DaemonAgentStatus {
+  id: string
+  label: string
+  agentType: AgentType
+  status: 'starting' | 'running' | 'paused' | 'stopped' | 'error'
+  iterations: number
+  lastResult?: string
+  lastError?: string
+  sandboxId?: string
+  startedAt: number
+  lastIterationAt?: number
+}

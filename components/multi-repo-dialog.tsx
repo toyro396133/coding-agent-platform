@@ -198,7 +198,7 @@ export function MultiRepoDialog({ open, onOpenChange }: MultiRepoDialogProps) {
                     <button
                       key={repo.full_name}
                       onClick={() => handleSelectRepo(repo)}
-                      className="w-full px-3 py-2 text-left flex items-center gap-2 transition-colors hover:bg-accent"
+                      className="w-full px-3 py-2 text-start flex items-center gap-2 transition-colors hover:bg-accent"
                     >
                       <span className="font-medium">{repo.full_name}</span>
                       {repo.private && <Lock className="h-3 w-3 text-muted-foreground" />}

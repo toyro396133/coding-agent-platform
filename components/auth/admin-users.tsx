@@ -163,11 +163,11 @@ export function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 px-2">Username</th>
-                  <th className="text-left py-2 px-2">Email</th>
-                  <th className="text-left py-2 px-2">Provider</th>
-                  <th className="text-left py-2 px-2">Password</th>
-                  <th className="text-left py-2 px-2">Created</th>
+                  <th className="text-start py-2 px-2">Username</th>
+                  <th className="text-start py-2 px-2">Email</th>
+                  <th className="text-start py-2 px-2">Provider</th>
+                  <th className="text-start py-2 px-2">Password</th>
+                  <th className="text-start py-2 px-2">Created</th>
                 </tr>
               </thead>
               <tbody>

@@ -202,7 +202,7 @@ export function CapabilitiesPage() {
               <div className="overflow-x-auto rounded-xl border bg-card">
                 <table className="w-full text-sm min-w-[720px]">
                   <thead>
-                    <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr className="border-b text-start text-xs uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-3 font-medium">{t.capabilities.errorCodeCol}</th>
                       <th className="px-4 py-3 font-medium">{t.capabilities.errorCategoryCol}</th>
                       <th className="px-4 py-3 font-medium">{t.capabilities.errorStageCol}</th>

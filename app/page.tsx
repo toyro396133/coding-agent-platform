@@ -1,18 +1,25 @@
 import { cookies } from 'next/headers'
 import { HomePageContent } from '@/components/home-page-content'
+import { LandingPage } from '@/components/landing-page'
 import { getMaxSandboxDuration } from '@/lib/db/settings'
 import { getGitHubStars } from '@/lib/github-stars'
 import { getServerSession } from '@/lib/session/get-server-session'
 
 export default async function Home() {
+  const session = await getServerSession()
+
+  // Non-authenticated users → landing page
+  if (!session?.user) {
+    return <LandingPage />
+  }
+
+  // Authenticated users → dashboard (home page with task form)
   const cookieStore = await cookies()
   const selectedOwner = cookieStore.get('selected-owner')?.value || ''
   const selectedRepo = cookieStore.get('selected-repo')?.value || ''
   const installDependencies = cookieStore.get('install-dependencies')?.value === 'true'
   const keepAlive = cookieStore.get('keep-alive')?.value === 'true'
   const enableBrowser = cookieStore.get('enable-browser')?.value === 'true'
-
-  const session = await getServerSession()
 
   // Get max sandbox duration for this user (user-specific > global > env var)
   const maxSandboxDuration = await getMaxSandboxDuration(session?.user?.id)
